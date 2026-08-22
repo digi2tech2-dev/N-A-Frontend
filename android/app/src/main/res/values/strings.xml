@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">𝑵&amp;𝑨(HUB)</string>
+    <string name="title_activity_main">𝑵&amp;𝑨(HUB)</string>
+    <string name="package_name">online.nahub.app</string>
+    <string name="custom_url_scheme">online.nahub.app</string>
+    <string name="download_description">تنزيل ملف من N&amp;A HUB</string>
+    <string name="download_started">بدأ التنزيل</string>
+    <string name="download_failed">تعذّر بدء التنزيل</string>
+</resources>

@@ -1,0 +1,157 @@
+import { isAdminRole } from './authRoles';
+
+export const PERMISSIONS = {
+  ADMIN_DASHBOARD: 'VIEW_ADMIN_DASHBOARD',
+  // The current backend exposes no read-only admin wallet API: every wallet
+  // list, detail, and transaction endpoint requires MANAGE_WALLET.
+  ADMIN_WALLET: 'MANAGE_WALLET',
+  MANAGE_WALLET: 'MANAGE_WALLET',
+  ADMIN_USERS: 'VIEW_USERS',
+  MANAGE_USERS: 'MANAGE_USERS',
+  CONFIRM_ACCOUNTS: 'CONFIRM_ACCOUNTS',
+  ADMIN_GROUPS: 'MANAGE_GROUPS',
+  ADMIN_PRODUCTS: 'MANAGE_PRODUCTS',
+  ADMIN_ORDERS: 'MANAGE_ORDERS',
+  CONFIRM_ORDERS: 'CONFIRM_ORDERS',
+  ADMIN_SUPPLIERS: 'MANAGE_SUPPLIERS',
+  ADMIN_PAYMENTS: 'MANAGE_DEPOSITS',
+  ADMIN_PAYMENT_METHODS: 'MANAGE_PAYMENT_METHODS',
+  ADMIN_CURRENCIES: 'MANAGE_CURRENCIES',
+  ADMIN_WHATSAPP: 'MANAGE_SETTINGS',
+  ADMIN_TARGET_REQUESTS: 'MANAGE_TARGETS',
+  CONFIRM_TARGET_REQUESTS: 'CONFIRM_TARGET_REQUESTS',
+  CUSTOMERS: 'VIEW_CUSTOMERS',
+  ACTIVITY_LOGS: 'VIEW_ACTIVITY_LOGS',
+};
+
+const LEGACY_PERMISSION_ALIASES = {
+  'admin.dashboard': PERMISSIONS.ADMIN_DASHBOARD,
+  'admin.wallet': PERMISSIONS.ADMIN_WALLET,
+  'admin.users': PERMISSIONS.ADMIN_USERS,
+  'admin.groups': PERMISSIONS.ADMIN_GROUPS,
+  'admin.products': PERMISSIONS.ADMIN_PRODUCTS,
+  'admin.orders': PERMISSIONS.ADMIN_ORDERS,
+  'admin.suppliers': PERMISSIONS.ADMIN_SUPPLIERS,
+  'admin.payments': PERMISSIONS.ADMIN_PAYMENTS,
+  'admin.paymentMethods': PERMISSIONS.ADMIN_PAYMENT_METHODS,
+  'admin.currencies': PERMISSIONS.ADMIN_CURRENCIES,
+  'admin.whatsapp': PERMISSIONS.ADMIN_WHATSAPP,
+  'admin.targetRequests': PERMISSIONS.ADMIN_TARGET_REQUESTS,
+  view_admin_dashboard: PERMISSIONS.ADMIN_DASHBOARD,
+  view_wallet: PERMISSIONS.ADMIN_WALLET,
+  manage_wallet: PERMISSIONS.MANAGE_WALLET,
+  view_users: PERMISSIONS.ADMIN_USERS,
+  manage_users: PERMISSIONS.MANAGE_USERS,
+  can_confirm_accounts: PERMISSIONS.CONFIRM_ACCOUNTS,
+  manage_groups: PERMISSIONS.ADMIN_GROUPS,
+  manage_products: PERMISSIONS.ADMIN_PRODUCTS,
+  view_orders: PERMISSIONS.ADMIN_ORDERS,
+  can_confirm_orders: PERMISSIONS.CONFIRM_ORDERS,
+  manage_suppliers: PERMISSIONS.ADMIN_SUPPLIERS,
+  payments_history: PERMISSIONS.ADMIN_PAYMENTS,
+  payment_methods: PERMISSIONS.ADMIN_PAYMENT_METHODS,
+  manage_currencies: PERMISSIONS.ADMIN_CURRENCIES,
+  manage_settings: PERMISSIONS.ADMIN_WHATSAPP,
+  whatsapp_integration: PERMISSIONS.ADMIN_WHATSAPP,
+  target_requests: PERMISSIONS.ADMIN_TARGET_REQUESTS,
+  can_confirm_target_requests: PERMISSIONS.CONFIRM_TARGET_REQUESTS,
+  customers: PERMISSIONS.CUSTOMERS,
+  activity_logs: PERMISSIONS.ACTIVITY_LOGS,
+  VIEW_ADMIN_DASHBOARD: PERMISSIONS.ADMIN_DASHBOARD,
+  VIEW_WALLET: PERMISSIONS.ADMIN_WALLET,
+  VIEW_ADMIN_WALLET: PERMISSIONS.ADMIN_WALLET,
+  MANAGE_WALLET: PERMISSIONS.MANAGE_WALLET,
+  VIEW_USERS: PERMISSIONS.ADMIN_USERS,
+  MANAGE_USERS: PERMISSIONS.MANAGE_USERS,
+  CONFIRM_ACCOUNTS: PERMISSIONS.CONFIRM_ACCOUNTS,
+  MANAGE_GROUPS: PERMISSIONS.ADMIN_GROUPS,
+  MANAGE_PRODUCTS: PERMISSIONS.ADMIN_PRODUCTS,
+  VIEW_ORDERS: PERMISSIONS.ADMIN_ORDERS,
+  MANAGE_ORDERS: PERMISSIONS.ADMIN_ORDERS,
+  CONFIRM_ORDERS: PERMISSIONS.CONFIRM_ORDERS,
+  VIEW_SUPPLIERS: PERMISSIONS.ADMIN_SUPPLIERS,
+  MANAGE_SUPPLIERS: PERMISSIONS.ADMIN_SUPPLIERS,
+  VIEW_DEPOSITS: PERMISSIONS.ADMIN_PAYMENTS,
+  MANAGE_DEPOSITS: PERMISSIONS.ADMIN_PAYMENTS,
+  VIEW_PAYMENTS: PERMISSIONS.ADMIN_PAYMENTS,
+  MANAGE_PAYMENTS: PERMISSIONS.ADMIN_PAYMENTS,
+  MANAGE_PAYMENT_METHODS: PERMISSIONS.ADMIN_PAYMENT_METHODS,
+  MANAGE_CURRENCIES: PERMISSIONS.ADMIN_CURRENCIES,
+  MANAGE_SETTINGS: PERMISSIONS.ADMIN_WHATSAPP,
+  MANAGE_WHATSAPP: PERMISSIONS.ADMIN_WHATSAPP,
+  VIEW_TARGETS: PERMISSIONS.ADMIN_TARGET_REQUESTS,
+  MANAGE_TARGETS: PERMISSIONS.ADMIN_TARGET_REQUESTS,
+  VIEW_TARGET_REQUESTS: PERMISSIONS.ADMIN_TARGET_REQUESTS,
+  MANAGE_TARGET_REQUESTS: PERMISSIONS.ADMIN_TARGET_REQUESTS,
+  CONFIRM_TARGETS: PERMISSIONS.CONFIRM_TARGET_REQUESTS,
+  CONFIRM_TARGET_REQUESTS: PERMISSIONS.CONFIRM_TARGET_REQUESTS,
+  VIEW_CUSTOMERS: PERMISSIONS.CUSTOMERS,
+  VIEW_ACTIVITY_LOGS: PERMISSIONS.ACTIVITY_LOGS,
+};
+
+export const SUPERVISOR_PERMISSION_GROUPS = [
+  {
+    id: 'users',
+    title: 'المستخدمون',
+    options: [
+      { key: PERMISSIONS.ADMIN_USERS, label: 'عرض المستخدمين' },
+      { key: PERMISSIONS.MANAGE_USERS, label: 'إدارة المستخدمين' },
+      { key: PERMISSIONS.CONFIRM_ACCOUNTS, label: 'تأكيد الحسابات' },
+    ],
+  },
+  {
+    id: 'orders',
+    title: 'الطلبات',
+    options: [
+      { key: PERMISSIONS.ADMIN_ORDERS, label: 'عرض الطلبات' },
+      { key: PERMISSIONS.CONFIRM_ORDERS, label: 'تأكيد الطلبات' },
+    ],
+  },
+  {
+    id: 'products',
+    title: 'المنتجات والمجموعات',
+    options: [
+      { key: PERMISSIONS.ADMIN_GROUPS, label: 'إدارة المجموعات' },
+      { key: PERMISSIONS.ADMIN_PRODUCTS, label: 'إدارة المنتجات' },
+    ],
+  },
+  {
+    id: 'finance',
+    title: 'المالية',
+    options: [
+      { key: PERMISSIONS.ADMIN_PAYMENTS, label: 'سجل المدفوعات' },
+      { key: PERMISSIONS.MANAGE_WALLET, label: 'إدارة أرصدة المحفظة' },
+      { key: PERMISSIONS.ADMIN_PAYMENT_METHODS, label: 'طرق الدفع' },
+    ],
+  },
+  {
+    id: 'others',
+    title: 'أخرى',
+    options: [
+      { key: PERMISSIONS.ADMIN_SUPPLIERS, label: 'إدارة الموردين' },
+      { key: PERMISSIONS.CUSTOMERS, label: 'العملاء' },
+      { key: PERMISSIONS.ADMIN_TARGET_REQUESTS, label: 'طلبات التارجت' },
+      { key: PERMISSIONS.CONFIRM_TARGET_REQUESTS, label: 'تأكيد طلبات التارجت' },
+      { key: PERMISSIONS.ADMIN_WHATSAPP, label: 'تكامل الواتساب' },
+      { key: PERMISSIONS.ACTIVITY_LOGS, label: 'سجلات النشاط' },
+    ],
+  },
+];
+
+export const SUPERVISOR_PERMISSION_OPTIONS = SUPERVISOR_PERMISSION_GROUPS.flatMap((group) => group.options);
+
+export const normalizePermissions = (permissions) => (
+  Array.isArray(permissions)
+    ? [...new Set(permissions.map((item) => {
+        const key = String(item || '').trim();
+        return LEGACY_PERMISSION_ALIASES[key] || key;
+      }).filter(Boolean))]
+    : []
+);
+
+export const hasPermission = (user, permission) => {
+  if (!permission) return true;
+  if (isAdminRole(user?.role)) return true;
+  const normalizedPermission = LEGACY_PERMISSION_ALIASES[permission] || permission;
+  return normalizePermissions(user?.permissions).includes(normalizedPermission);
+};
