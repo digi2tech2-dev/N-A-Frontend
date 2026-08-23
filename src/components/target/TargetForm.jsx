@@ -194,13 +194,13 @@ const TargetForm = ({ products = [], paymentMethods = [], onSubmit }) => {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <Input
-                label="عدد الكوينز"
+                label="الكمية المحولة بالدولار"
                 type="number"
                 min="1"
                 step="1"
                 value={coinAmount}
                 onChange={(event) => setCoinAmount(event.target.value)}
-                placeholder="1000"
+                placeholder="على سبيل المثال: 100$، 50$، 10$"
               />
               <Input
                 label="معرّف الحساب"
@@ -262,7 +262,7 @@ const TargetForm = ({ products = [], paymentMethods = [], onSubmit }) => {
                 <strong className="text-[var(--color-text)]">{formatNumber(unitPrice, 'en-US', { maximumFractionDigits: 2 })} EGP</strong>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <span className="text-[var(--color-text-secondary)]">الكوينز</span>
+                <span className="text-[var(--color-text-secondary)]">الكمية بالدولار</span>
                 <strong className="text-[var(--color-text)]">{formatNumber(coinAmountValue, 'en-US')}</strong>
               </div>
               <div className="border-t border-[color:rgb(var(--color-border-rgb)/0.72)] pt-3">

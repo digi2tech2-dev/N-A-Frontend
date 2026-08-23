@@ -47,6 +47,11 @@ import { PERMISSIONS, hasPermission } from '../utils/permissions';
 const PENDING_STATUSES = ['pending', 'requested', 'under_review', 'processing'];
 const COMPLETED_STATUSES = ['completed', 'approved', 'success'];
 const REJECTED_STATUSES = ['rejected', 'denied', 'cancelled', 'canceled'];
+const MONTHLY_TARGET_TIERS = [
+  { target: 100, tone: 'starter', labelAr: 'المرحلة الأولى', labelEn: 'Stage One' },
+  { target: 500, tone: 'growth', labelAr: 'المرحلة الثانية', labelEn: 'Stage Two' },
+  { target: 1000, tone: 'elite', labelAr: 'المرحلة النهائية', labelEn: 'Final Stage' },
+];
 
 const asNumber = (value) => {
   const parsed = Number(value);
@@ -668,8 +673,11 @@ const AdminDashboard = () => {
   const statsFinancials = dashboardStats?.financials || {};
   const statsUsers = dashboardStats?.users || {};
   const statsProducts = dashboardStats?.products || {};
-  const monthlyTargetUsd = 100;
   const monthlyTargetProfitUsd = asNumber(statsFinancials.totalProfitUsd ?? statsFinancials.netProfit);
+  const monthlyTargetTier = MONTHLY_TARGET_TIERS.find((tier) => monthlyTargetProfitUsd < tier.target)
+    || MONTHLY_TARGET_TIERS[MONTHLY_TARGET_TIERS.length - 1];
+  const monthlyTargetUsd = monthlyTargetTier.target;
+  const monthlyTargetIsComplete = monthlyTargetProfitUsd >= MONTHLY_TARGET_TIERS[MONTHLY_TARGET_TIERS.length - 1].target;
   const monthlyTargetProgress = Math.min(100, Math.round((monthlyTargetProfitUsd / monthlyTargetUsd) * 100));
   const monthlyTargetRemaining = Math.max(0, monthlyTargetUsd - monthlyTargetProfitUsd);
 
@@ -736,16 +744,21 @@ const AdminDashboard = () => {
         icon: Wallet,
       },
       {
+        id: `monthly-target-${monthlyTargetUsd}`,
         title: isArabic ? 'تارجت الشهر' : 'Monthly Target',
         value: `${formatMoney(monthlyTargetProfitUsd, 'USD')} / ${formatMoney(monthlyTargetUsd, 'USD')}`,
-        note: monthlyTargetRemaining > 0
+        note: monthlyTargetIsComplete
+          ? (isArabic ? 'تم تحقيق جميع أهداف الشهر — إنجاز رائع!' : 'All monthly targets achieved — excellent work!')
+          : monthlyTargetRemaining > 0
           ? (isArabic
-            ? `متبقي ${formatMoney(monthlyTargetRemaining, 'USD')} للوصول لهدف ربح الشهر`
-            : `${formatMoney(monthlyTargetRemaining, 'USD')} remaining to reach this month's profit target`)
+            ? `متبقي ${formatMoney(monthlyTargetRemaining, 'USD')} للانتقال إلى المرحلة التالية`
+            : `${formatMoney(monthlyTargetRemaining, 'USD')} remaining to unlock the next stage`)
           : (isArabic ? 'تم تحقيق هدف ربح الشهر' : 'This month’s profit target is complete'),
         icon: Target,
         progress: monthlyTargetProgress,
         wide: true,
+        targetTone: monthlyTargetTier.tone,
+        badge: isArabic ? monthlyTargetTier.labelAr : monthlyTargetTier.labelEn,
       },
     ],
     [
@@ -755,6 +768,9 @@ const AdminDashboard = () => {
       monthlyTargetProfitUsd,
       monthlyTargetProgress,
       monthlyTargetRemaining,
+      monthlyTargetIsComplete,
+      monthlyTargetTier,
+      monthlyTargetUsd,
       pendingApprovalUsers.length,
       pendingManualTopups.length,
       productMetricNote,
@@ -1023,7 +1039,7 @@ const AdminDashboard = () => {
         currentDateLabel={currentDateLabel}
       />
 
-      <Card variant="premium" className="admin-dashboard-filter-card overflow-visible p-4 sm:p-6">
+      <div className="flex justify-center sm:justify-end">
         <DashboardDateRangeFilter
           isArabic={isArabic}
           formatRangeDate={formatRangeDate}
@@ -1032,7 +1048,7 @@ const AdminDashboard = () => {
           endDate={endDate}
           onRangeChange={applyDateRangeSelection}
         />
-      </Card>
+      </div>
 
       <StatsGrid stats={stats} isLoading={isLoadingDashboardStats} />
 

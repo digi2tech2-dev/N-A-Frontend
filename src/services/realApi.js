@@ -44,6 +44,7 @@ const AUTH_STORAGE_KEY = 'auth-storage';
 const SESSION_LOGOUT_REASON_KEY = 'auth:logout-reason';
 const SESSION_EXPIRED_REASON = 'expired';
 const LOGIN_REDIRECT_PATH = '/login';
+
 const AUTH_FORCE_LOGOUT_EVENT = 'auth:force-logout';
 
 const safeParseJson = (raw, fallback = null) => {
@@ -180,9 +181,11 @@ const normaliseSenderDetails = (source = {}) => {
 
 const writeAuthState = (nextState) => {
   const root = getAuthPersistedRoot() || {};
+  const state = { ...(root.state || {}), ...(nextState || {}) };
+  if (nextState?.refreshToken === null) delete state.refreshToken;
   const nextRoot = {
     ...root,
-    state: { ...(root.state || {}), ...(nextState || {}) },
+    state,
   };
 
   if (typeof window === 'undefined' || !window.localStorage) return;
@@ -195,7 +198,7 @@ const writeAuthState = (nextState) => {
 };
 
 const getStoredToken = () => String(getStoredAuthState()?.token || '').trim() || null;
-const setStoredAuthToken = (token) => {
+const setStoredAuthTokens = (token) => {
   writeAuthState({
     token: token || null,
     isAuthenticated: Boolean(token),
@@ -247,6 +250,8 @@ const isPublicAuthRequest = (url = '') => {
     || value.includes('/auth/register')
     || value.includes('/auth/google')
     || value.includes('/auth/verify-2fa')
+    || value.includes('/auth/verify-email')
+    || value.includes('/auth/resend-verification')
   );
 };
 
@@ -301,7 +306,7 @@ http.interceptors.request.use((config) => {
 
 http.interceptors.response.use(
   (response) => response,
-  async (error) => {
+  (error) => {
     const originalRequest = error?.config || {};
     const unauthorized = isTokenAuthError(error);
     const skipAuthHandling = isPublicAuthRequest(originalRequest?.url);
@@ -1725,8 +1730,8 @@ const realApi = {
       }
       const user = normaliseUser(data.user);
       const token = data.token || data.accessToken || null;
-      // Persist tokens for subsequent requests
-      setStoredAuthToken(token);
+      // Persist the supported bearer access token for subsequent requests.
+      setStoredAuthTokens(token);
       return { user, token };
     },
 
@@ -1738,7 +1743,7 @@ const realApi = {
       const data = unwrap(res);
       const user = normaliseUser(data.user);
       const token = data.token || data.accessToken || null;
-      setStoredAuthToken(token);
+      setStoredAuthTokens(token);
       return { user, token };
     },
 
@@ -1809,7 +1814,7 @@ const realApi = {
         return new Promise(() => { });
       }
       // Token captured from callback redirect — fetch profile
-      setStoredAuthToken(token);
+      setStoredAuthTokens(token);
       const res = await http.get('/users/me');
       const user = normaliseUser(unwrap(res));
       return { user, token, status: 'login_complete', callbackStatus: rawCallbackStatus || 'LOGIN_COMPLETE' };
@@ -1824,7 +1829,7 @@ const realApi = {
       const data = unwrap(res);
       const user = normaliseUser(data.user);
       const token = data.token || data.accessToken || null;
-      if (token) setStoredAuthToken(token);
+      if (token) setStoredAuthTokens(token);
       return { user, token, status: normalizeAccountStatus(data.status || 'LOGIN_COMPLETE') };
     },
 
@@ -1835,7 +1840,20 @@ const realApi = {
       const data = unwrap(res);
       return {
         success: true,
-        message: data?.message || res?.data?.message || 'If that email exists, a verification link has been sent.',
+        message: data?.message || res?.data?.message || 'If that email exists, a verification code has been sent.',
+      };
+    },
+
+    verifyEmailCode: async ({ email, code } = {}) => {
+      const res = await http.post('/auth/verify-email', {
+        email: String(email || '').trim(),
+        code: String(code || '').replace(/\D/g, '').slice(0, 4),
+      });
+      const data = unwrap(res);
+      return {
+        success: data?.success !== false,
+        message: data?.message || res?.data?.message || 'Email verified successfully.',
+        user: data?.user ? normaliseUser(data.user) : null,
       };
     },
 
@@ -1856,7 +1874,7 @@ const realApi = {
       const data = unwrap(res);
       const user = normaliseUser(data.user);
       const token = data.token || data.accessToken || null;
-      if (token) setStoredAuthToken(token);
+      if (token) setStoredAuthTokens(token);
       return { user, token };
     },
 
@@ -2120,12 +2138,13 @@ const realApi = {
 
   notifications: {
     unreadCount: async () => {
-      const data = unwrap(await http.get('/me/notifications/unread-count'));
+      const res = await http.get('/me/notifications/unread-count');
+      const data = unwrap(res);
       return Number(data?.unreadCount ?? data?.count ?? 0);
     },
 
     list: async () => {
-      const res = await http.get('/me/notifications', { params: { page: 1, limit: 30 } });
+      const res = await http.get('/me/notifications');
       const data = unwrap(res);
       return Array.isArray(data) ? data : (data?.notifications || data?.items || []);
     },
@@ -2133,11 +2152,13 @@ const realApi = {
     markAsRead: async (id) => {
       const normalizedId = String(id || '').trim();
       if (!normalizedId) return { success: true };
-      return unwrap(await http.patch(`/me/notifications/${normalizedId}/read`));
+      const res = await http.patch(`/me/notifications/${normalizedId}/read`);
+      return unwrap(res);
     },
 
     markAllAsRead: async () => {
-      return unwrap(await http.patch('/me/notifications/read-all'));
+      const res = await http.patch('/me/notifications/read-all');
+      return unwrap(res);
     },
 
     send: async (payload = {}) => {
@@ -2222,9 +2243,8 @@ const realApi = {
      */
     create: async (productData) => {
       const body = productToBE(productData);
-      const hasProvider = Boolean(body.providerProductId);
-      const endpoint = hasProvider ? '/admin/products/from-provider' : '/admin/products';
-      return normaliseProductMutationResponse(await http.post(endpoint, body));
+      const res = await http.post('/products', body);
+      return normaliseProductMutationResponse(res);
     },
 
     /**
@@ -2234,22 +2254,24 @@ const realApi = {
      */
     update: async (id, updates) => {
       const body = productToBE(updates);
-      return normaliseProductMutationResponse(await http.patch(`/admin/products/${id}`, body));
+      const res = await http.patch(`/products/${id}`, body);
+      return normaliseProductMutationResponse(res);
     },
 
     /**
      * PATCH /products/:id/toggle-status — activate or deactivate product.
      */
     toggleStatus: async (id) => {
-      return normaliseProductMutationResponse(await http.patch(`/admin/products/${id}/toggle`));
+      const res = await http.patch(`/products/${id}/toggle-status`);
+      return normaliseProductMutationResponse(res);
     },
 
     /**
      * DELETE /admin/products/:id — soft-delete (sets deletedAt + isActive=false).
      */
     delete: async (id) => {
-      await http.delete(`/admin/products/${id}`);
-      return { success: true };
+      void id;
+      throw new Error('Product deletion is not supported by the backend.');
     },
 
     /**
@@ -2691,13 +2713,11 @@ const realApi = {
       if (!normalizedUserId) return null;
 
       const normalizedBalance = toFiniteNumber(balance, 0);
-
       const res = await http.put(`/admin/wallets/${normalizedUserId}/set`, {
         targetBalance: normalizedBalance,
         description: 'Admin set balance',
       });
-      const data = unwrap(res);
-      return data?.user ? normaliseUser(data.user) : normaliseUser(data);
+      return unwrap(res)?.transaction || unwrap(res);
     },
 
     /**
@@ -2901,29 +2921,109 @@ const realApi = {
         `/admin/wallets/${normalizedUserId}/transactions`,
         `/wallet/users/${normalizedUserId}/transactions`,
       ];
-      const params = {
-        page,
-        limit,
-        ...(from ? { from } : {}),
-        ...(to ? { to } : {}),
-      };
-
       let lastError = null;
+      let selectedEndpoint = '';
+      let firstPage = null;
+
+      const readPage = async (endpoint, requestedPage) => {
+        const params = {
+          page: requestedPage,
+          limit,
+          ...(from ? { from } : {}),
+          ...(to ? { to } : {}),
+        };
+        const res = await http.get(endpoint, { params });
+        const raw = res.data || {};
+        const data = unwrap(res);
+        const items = Array.isArray(data)
+          ? data
+          : (data?.transactions || data?.items || data?.results || raw?.data?.transactions || []);
+        const pagination = raw?.pagination
+          || data?.pagination
+          || data?.meta
+          || raw?.data?.pagination
+          || raw?.meta
+          || null;
+
+        return {
+          transactions: items
+            .map((entry) => normaliseWalletTransaction(entry, normalizedUserId))
+            .filter(Boolean),
+          pagination,
+        };
+      };
 
       for (const endpoint of endpoints) {
         try {
-          const res = await http.get(endpoint, { params });
-          const data = unwrap(res);
-          const items = Array.isArray(data) ? data : (data?.transactions || data?.items || data?.data || []);
-          return items
-            .map((entry) => normaliseWalletTransaction(entry, normalizedUserId))
-            .filter(Boolean);
+          firstPage = await readPage(endpoint, page);
+          selectedEndpoint = endpoint;
+          break;
         } catch (error) {
           lastError = error;
         }
       }
 
-      throw lastError || new Error('Unable to load wallet transactions.');
+      if (!firstPage || !selectedEndpoint) {
+        throw lastError || new Error('Unable to load wallet transactions.');
+      }
+
+      const pagination = firstPage.pagination || {};
+      const explicitPages = Number(pagination.pages || pagination.totalPages || pagination.pageCount || 0);
+      const total = Number(pagination.total || pagination.totalItems || pagination.count || 0);
+      const resolvedLimit = Number(pagination.limit || pagination.pageSize || limit);
+      const computedPages = total > 0 && resolvedLimit > 0 ? Math.ceil(total / resolvedLimit) : 0;
+      const totalPages = Math.max(1, explicitPages || computedPages);
+      let collectedTransactions = [...firstPage.transactions];
+
+      if (totalPages > page) {
+        const remainingPages = Array.from(
+          { length: totalPages - page },
+          (_, index) => page + index + 1
+        );
+        const remainingResults = await Promise.all(
+          remainingPages.map((pageNumber) => readPage(selectedEndpoint, pageNumber))
+        );
+        collectedTransactions = [
+          ...collectedTransactions,
+          ...remainingResults.flatMap((result) => result.transactions),
+        ];
+      } else if (!explicitPages && !computedPages && firstPage.transactions.length >= resolvedLimit) {
+        // Some deployments omit pagination metadata. Continue page-by-page until
+        // a short or repeated page proves that the complete history was loaded.
+        let nextPage = page + 1;
+        let previousKeys = new Set(firstPage.transactions.map((entry) => String(
+          entry?.id || entry?._id || entry?.reference || `${entry?.createdAt}-${entry?.amount}`
+        )));
+
+        while (nextPage <= 1000) {
+          const result = await readPage(selectedEndpoint, nextPage);
+          const newTransactions = result.transactions.filter((entry) => {
+            const key = String(entry?.id || entry?._id || entry?.reference || `${entry?.createdAt}-${entry?.amount}`);
+            return !previousKeys.has(key);
+          });
+          if (!newTransactions.length) break;
+
+          collectedTransactions.push(...newTransactions);
+          newTransactions.forEach((entry) => {
+            previousKeys.add(String(entry?.id || entry?._id || entry?.reference || `${entry?.createdAt}-${entry?.amount}`));
+          });
+          if (result.transactions.length < resolvedLimit) break;
+          nextPage += 1;
+        }
+      }
+
+      const uniqueTransactions = new Map();
+      collectedTransactions.forEach((entry, index) => {
+        const key = String(
+          entry?.id
+          || entry?._id
+          || entry?.reference
+          || `${entry?.createdAt || entry?.date || 'transaction'}-${entry?.amount}-${index}`
+        );
+        uniqueTransactions.set(key, entry);
+      });
+
+      return Array.from(uniqueTransactions.values());
     },
   },
 
@@ -3286,6 +3386,15 @@ const realApi = {
       if (playerId && !orderFieldsValues.playerId && (!isDeclaredPayload || declaredFieldKeys.has('playerId'))) {
         orderFieldsValues.playerId = playerId;
       }
+      if (
+        playerId
+        && orderData?.preferLegacyOrderEndpoint
+        && !orderFieldsValues.userId
+        && (!isDeclaredPayload || declaredFieldKeys.has('userId'))
+      ) {
+        orderFieldsValues.userId = playerId;
+      }
+
       const hasOrderFieldsValues = Object.keys(orderFieldsValues).length > 0;
       const body = stripUndefined({
         productId: orderData.productId,
@@ -3298,22 +3407,11 @@ const realApi = {
         ? { headers: { 'Idempotency-Key': String(orderData.idempotencyKey) } }
         : undefined;
       const res = await http.post('/me/orders', body, requestConfig);
-      // A 2xx response means the order was created. Parse defensively so a
-      // normalisation issue never masks a completed business action.
-      try {
-        const data = unwrap(res);
-        return { order: normaliseOrder(data?.order || data), updatedBalance: (data?.updatedBalance ?? data?.order?.updatedBalance ?? res.data?.updatedBalance) };
-      } catch (_parseError) {
-        const raw = res.data?.data?.order || res.data?.data || res.data?.order || res.data || {};
-        return {
-          order: {
-            id: raw._id || raw.id || `ord-${Date.now()}`,
-            status: (raw.status || 'pending').toLowerCase(),
-            ...raw,
-          },
-          updatedBalance: raw.updatedBalance,
-        };
-      }
+      const data = unwrap(res);
+      return {
+        order: normaliseOrder(data?.order || data),
+        updatedBalance: data?.updatedBalance ?? data?.order?.updatedBalance ?? res.data?.updatedBalance,
+      };
     },
 
     /**
@@ -3623,15 +3721,8 @@ const realApi = {
           ? `/admin/targets/${id}/reject`
           : null;
 
-      if (!endpoint && normalizedStatus !== 'pending') {
-        throw new Error(`Unsupported target order status: ${status}`);
-      }
-
       if (!endpoint) {
-        // The backend defines only PENDING → APPROVED or REJECTED. Reopening a
-        // reviewed payment request has no defined financial/audit semantics,
-        // so never attempt legacy status endpoints or patch the model directly.
-        throw new Error('Resetting a reviewed target order to pending is not supported.');
+        throw new Error(`Unsupported target order status: ${status}`);
       }
 
       const body = normalizedStatus === 'rejected'

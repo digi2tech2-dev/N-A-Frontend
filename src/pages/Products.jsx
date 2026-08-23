@@ -352,6 +352,7 @@ const Products = () => {
   }, [searchParams, setSearchParams]);
 
   const openProduct = useCallback((product) => {
+    if (product?.storefrontStatus?.isPurchasable === false) return;
     setSelectedProduct(product);
   }, []);
 

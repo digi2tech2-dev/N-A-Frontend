@@ -2,25 +2,27 @@
 
 .admin-dashboard-shell {
   --admin-panel-bg:
-    linear-gradient(180deg, rgb(255 255 255 / 0.98), rgb(245 243 238 / 0.94));
-  --admin-panel-border: rgb(214 201 167 / 0.78);
+    radial-gradient(26rem circle at 100% 0%, rgb(var(--color-brand-magenta-rgb) / 0.07), transparent 48%),
+    linear-gradient(180deg, rgb(255 255 255 / 0.98), rgb(var(--color-surface-rgb) / 0.94));
+  --admin-panel-border: rgb(var(--color-brand-violet-rgb) / 0.2);
   --admin-gold-line: rgb(var(--color-primary-rgb) / 0.28);
-  --admin-soft-shadow: 0 16px 42px -34px rgb(80 64 24 / 0.24);
+  --admin-soft-shadow: 0 16px 42px -34px rgb(var(--color-brand-violet-rgb) / 0.42);
   --admin-inner-line: rgb(255 255 255 / 0.72);
   --admin-stat-bg:
-    linear-gradient(180deg, rgb(255 255 255 / 0.98), rgb(246 242 232 / 0.96));
+    linear-gradient(180deg, rgb(255 255 255 / 0.98), rgb(var(--color-elevated-rgb) / 0.96));
   --admin-stat-gloss: rgb(255 255 255 / 0.68);
 }
 
 .dark .admin-dashboard-shell {
   --admin-panel-bg:
-    linear-gradient(180deg, rgb(26 26 26 / 0.96), rgb(18 18 18 / 0.92));
+    radial-gradient(26rem circle at 100% 0%, rgb(var(--color-brand-magenta-rgb) / 0.1), transparent 48%),
+    linear-gradient(180deg, rgb(var(--color-card-rgb) / 0.97), rgb(var(--color-surface-rgb) / 0.94));
   --admin-panel-border: rgb(var(--color-border-rgb) / 0.82);
   --admin-gold-line: rgb(var(--color-primary-rgb) / 0.36);
   --admin-soft-shadow: 0 16px 42px -34px rgb(0 0 0 / 0.72);
   --admin-inner-line: rgb(255 255 255 / 0.035);
   --admin-stat-bg:
-    linear-gradient(180deg, rgb(26 26 26 / 0.98), rgb(17 17 17 / 0.94));
+    linear-gradient(180deg, rgb(var(--color-elevated-rgb) / 0.96), rgb(var(--color-card-rgb) / 0.94));
   --admin-stat-gloss: rgb(255 255 255 / 0.04);
 }
 
@@ -35,30 +37,102 @@
 }
 
 .admin-dashboard-header {
+  isolation: isolate;
   background:
-    radial-gradient(30rem circle at top right, rgb(var(--color-primary-rgb) / 0.16), transparent 48%),
-    linear-gradient(135deg, rgb(255 255 255 / 0.98), rgb(244 239 226 / 0.94));
-  box-shadow: 0 18px 52px -42px rgb(80 64 24 / 0.28);
+    radial-gradient(28rem circle at 92% -18%, rgb(103 232 249 / 0.32), transparent 54%),
+    radial-gradient(24rem circle at 8% 118%, rgb(232 121 249 / 0.28), transparent 56%),
+    linear-gradient(128deg, #171049 0%, #3b168f 38%, #1356a2 72%, #092c62 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.28),
+    inset 0 -1px 0 rgb(103 232 249 / 0.16),
+    0 24px 58px -34px rgb(76 29 149 / 0.82),
+    0 0 38px -25px rgb(14 165 233 / 0.86);
+}
+
+.admin-dashboard-header::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -80%;
+  left: -18%;
+  width: 36%;
+  height: 250%;
+  transform: rotate(24deg);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.18), transparent);
+  filter: blur(7px);
+  animation: admin-header-shine 6.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.admin-dashboard-header::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(115deg, rgb(255 255 255 / 0.14), transparent 25%, transparent 72%, rgb(103 232 249 / 0.08)),
+    repeating-linear-gradient(135deg, rgb(255 255 255 / 0.025) 0 1px, transparent 1px 10px);
+  pointer-events: none;
+}
+
+.admin-dashboard-header h1,
+.admin-dashboard-header .section-kicker,
+.admin-dashboard-header > div:last-child > div:first-child p {
+  color: #ffffff;
+}
+
+.admin-dashboard-header > div:last-child > div:first-child p {
+  opacity: 0.76;
 }
 
 .admin-dashboard-info-tile {
-  border: 1px solid rgb(var(--color-border-rgb) / 0.78);
+  border: 1px solid rgb(255 255 255 / 0.2);
   background:
-    linear-gradient(180deg, rgb(255 255 255 / 0.86), rgb(245 241 231 / 0.72)),
-    rgb(255 255 255 / 0.84);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.8);
+    linear-gradient(145deg, rgb(255 255 255 / 0.16), rgb(255 255 255 / 0.065));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.24),
+    0 16px 34px -26px rgb(0 0 0 / 0.72),
+    0 0 24px -18px rgb(103 232 249 / 0.72);
+  backdrop-filter: blur(10px);
+}
+
+.admin-dashboard-info-tile p {
+  color: #ffffff;
+}
+
+.admin-dashboard-info-tile p:first-child {
+  color: rgb(224 242 254 / 0.68);
+}
+
+.admin-dashboard-info-tile > div {
+  color: #67e8f9;
+}
+
+@keyframes admin-header-shine {
+  0%, 18% {
+    left: -32%;
+    opacity: 0;
+  }
+  34% {
+    opacity: 0.9;
+  }
+  58%, 100% {
+    left: 112%;
+    opacity: 0;
+  }
 }
 
 .admin-dashboard-filter-card {
   background:
-    linear-gradient(180deg, rgb(255 255 255 / 0.96), rgb(245 241 231 / 0.88));
+    linear-gradient(180deg, rgb(var(--color-card-rgb) / 0.96), rgb(var(--color-surface-rgb) / 0.88));
 }
 
 .admin-dashboard-skeleton {
   border: 1px solid rgb(var(--color-border-rgb) / 0.72);
   background:
     linear-gradient(90deg, rgb(255 255 255 / 0.54), rgb(var(--color-primary-rgb) / 0.12), rgb(255 255 255 / 0.54)),
-    rgb(245 241 231 / 0.9);
+    rgb(var(--color-surface-rgb) / 0.9);
   background-size: 220% 100%;
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.72);
 }
@@ -103,6 +177,140 @@
   box-shadow: var(--admin-soft-shadow), inset 0 1px 0 var(--admin-inner-line);
 }
 
+.admin-stat-card.is-target-card {
+  --target-accent: 34 211 238;
+  --target-accent-2: 14 116 144;
+  overflow: hidden;
+  border-color: rgb(var(--target-accent) / 0.48);
+  background:
+    radial-gradient(18rem circle at 96% -10%, rgb(var(--target-accent) / 0.3), transparent 58%),
+    radial-gradient(16rem circle at 5% 120%, rgb(var(--target-accent-2) / 0.28), transparent 60%),
+    linear-gradient(135deg, #062333, #08384a 52%, #071d32);
+  color: #ffffff;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.16),
+    0 20px 46px -30px rgb(var(--target-accent) / 0.82),
+    0 0 28px -20px rgb(var(--target-accent) / 0.92);
+  animation: admin-target-card-enter 480ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.admin-stat-card.is-target-growth {
+  --target-accent: 192 132 252;
+  --target-accent-2: 217 70 239;
+  background:
+    radial-gradient(18rem circle at 96% -10%, rgb(192 132 252 / 0.34), transparent 58%),
+    radial-gradient(16rem circle at 5% 120%, rgb(217 70 239 / 0.28), transparent 60%),
+    linear-gradient(135deg, #24104d, #4c1d78 52%, #251243);
+}
+
+.admin-stat-card.is-target-elite {
+  --target-accent: 250 204 21;
+  --target-accent-2: 249 115 22;
+  background:
+    radial-gradient(18rem circle at 96% -10%, rgb(253 224 71 / 0.38), transparent 58%),
+    radial-gradient(16rem circle at 5% 120%, rgb(249 115 22 / 0.28), transparent 60%),
+    linear-gradient(135deg, #3c2505, #6f4508 52%, #321d05);
+}
+
+.admin-stat-card.is-target-card::before {
+  z-index: 0;
+  background:
+    linear-gradient(115deg, rgb(255 255 255 / 0.13), transparent 28%, transparent 70%, rgb(var(--target-accent) / 0.08)),
+    repeating-linear-gradient(135deg, rgb(255 255 255 / 0.02) 0 1px, transparent 1px 10px);
+  opacity: 1;
+}
+
+.admin-stat-card.is-target-card::after {
+  inset: auto 0.9rem 0;
+  background: linear-gradient(90deg, transparent, rgb(var(--target-accent) / 0.88), transparent);
+  opacity: 0.9;
+}
+
+.admin-stat-card.is-target-card .admin-stat-card-shimmer {
+  position: absolute;
+  z-index: 1;
+  top: -80%;
+  left: -24%;
+  display: block;
+  width: 20%;
+  height: 260%;
+  transform: rotate(24deg);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.18), transparent);
+  filter: blur(6px);
+  animation: admin-target-shimmer 5.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.admin-stat-card.is-target-card > div {
+  z-index: 2;
+}
+
+.admin-stat-card.is-target-card p:first-child {
+  color: rgb(255 255 255 / 0.68);
+}
+
+.admin-stat-card.is-target-card p[class*="text-[1.65rem]"] {
+  color: #ffffff;
+  text-shadow: 0 2px 18px rgb(var(--target-accent) / 0.28);
+}
+
+.admin-stat-card.is-target-card p[class*="text-[var(--color-text-secondary)]"] {
+  color: rgb(255 255 255 / 0.76);
+}
+
+.admin-stat-card.is-target-card .admin-icon-glow {
+  border-color: rgb(var(--target-accent) / 0.52);
+  color: rgb(var(--target-accent));
+  background: rgb(var(--target-accent) / 0.14);
+  box-shadow: inset 0 1px rgb(255 255 255 / 0.18), 0 0 22px -10px rgb(var(--target-accent) / 0.9);
+}
+
+.admin-target-tier-badge {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 0.38rem;
+  border: 1px solid rgb(var(--target-accent) / 0.42);
+  border-radius: 999px;
+  padding: 0.16rem 0.48rem;
+  color: rgb(255 255 255 / 0.92);
+  background: rgb(var(--target-accent) / 0.13);
+  font-size: 0.58rem;
+  font-weight: 900;
+  line-height: 1.2;
+  box-shadow: inset 0 1px rgb(255 255 255 / 0.1), 0 8px 18px -14px rgb(var(--target-accent) / 0.9);
+}
+
+.admin-stat-card.is-target-card .admin-stat-progress {
+  height: 0.36rem;
+  background: rgb(255 255 255 / 0.12);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.3);
+}
+
+.admin-stat-card.is-target-card .admin-stat-progress__bar {
+  background: linear-gradient(90deg, rgb(var(--target-accent-2)), rgb(var(--target-accent)), #ffffff);
+  box-shadow: 0 0 14px rgb(var(--target-accent) / 0.82);
+  transition: width 520ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.admin-stat-card.is-target-card:hover {
+  border-color: rgb(var(--target-accent) / 0.72);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.2),
+    0 24px 54px -30px rgb(var(--target-accent) / 0.9),
+    0 0 34px -20px rgb(var(--target-accent) / 0.98);
+}
+
+@keyframes admin-target-card-enter {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes admin-target-shimmer {
+  0%, 20% { left: -26%; opacity: 0; }
+  34% { opacity: 0.9; }
+  58%, 100% { left: 112%; opacity: 0; }
+}
+
 .admin-icon-glow {
   position: relative;
   display: inline-flex;
@@ -133,17 +341,23 @@
 
 .dark .admin-dashboard-header {
   background:
-    linear-gradient(135deg, rgb(26 26 26 / 0.98), rgb(12 12 12 / 0.92)),
-    linear-gradient(90deg, rgb(var(--color-primary-rgb) / 0.12), transparent 55%);
+    radial-gradient(28rem circle at 92% -18%, rgb(34 211 238 / 0.22), transparent 54%),
+    radial-gradient(24rem circle at 8% 118%, rgb(217 70 239 / 0.22), transparent 56%),
+    linear-gradient(128deg, #09071f 0%, #25105f 40%, #0c376f 74%, #061a3c 100%);
   box-shadow:
-    0 18px 52px -40px rgb(0 0 0 / 0.78);
+    inset 0 1px 0 rgb(255 255 255 / 0.18),
+    inset 0 -1px 0 rgb(103 232 249 / 0.1),
+    0 24px 58px -32px rgb(0 0 0 / 0.9),
+    0 0 38px -25px rgb(14 165 233 / 0.72);
 }
 
 .dark .admin-dashboard-info-tile {
   background:
-    linear-gradient(180deg, rgb(255 255 255 / 0.035), rgb(255 255 255 / 0.015)),
-    rgb(26 26 26 / 0.82);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+    linear-gradient(145deg, rgb(255 255 255 / 0.12), rgb(255 255 255 / 0.035));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.16),
+    0 16px 34px -26px rgb(0 0 0 / 0.9),
+    0 0 24px -18px rgb(103 232 249 / 0.54);
 }
 
 .dark .admin-dashboard-filter-card {
@@ -204,6 +418,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .admin-dashboard-header::before {
+    animation: none;
+    opacity: 0.18;
+  }
+
   .admin-stat-card,
   .admin-dashboard-shell article,
   .admin-dashboard-shell a.group {

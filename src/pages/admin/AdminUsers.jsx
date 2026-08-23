@@ -4,10 +4,14 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
+  EyeOff,
+  History,
   KeyRound,
   MailCheck,
   RotateCcw,
   Search,
+  Settings2,
+  Trash2,
   Wallet,
 } from 'lucide-react';
 import useAdminStore from '../../store/useAdminStore';
@@ -31,7 +35,6 @@ import {
   getAccountStatusBadgeVariant,
   getAccountStatusLabel,
   getSignupMethodLabel,
-  getUserRegistrationDate,
   isApprovedAccountStatus,
   isPendingAccountStatus,
   isRejectedAccountStatus,
@@ -73,6 +76,20 @@ const resolveInitialGroupValue = (entry, groups) => {
 const toFiniteNumber = (value, fallback = 0) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const convertCurrencyAmount = (amount, fromCurrency, toCurrency, currencies) => {
+  const fromCode = String(fromCurrency || 'USD').toUpperCase();
+  const toCode = String(toCurrency || 'USD').toUpperCase();
+  const numericAmount = toFiniteNumber(amount, 0);
+  if (fromCode === toCode) return numericAmount;
+
+  const findRate = (code) => {
+    const match = (currencies || []).find((entry) => String(entry?.code || '').toUpperCase() === code);
+    return toFiniteNumber(match?.rate ?? match?.platformRate ?? match?.effectiveRate, 1) || 1;
+  };
+
+  return Number(((numericAmount / findRate(fromCode)) * findRate(toCode)).toFixed(6));
 };
 
 const normalizeUserSearchText = (value) => String(value || '')
@@ -169,6 +186,11 @@ const AdminUsers = () => {
   const [settingsCreditLimit, setSettingsCreditLimit] = useState('0');
   const [temporaryPassword, setTemporaryPassword] = useState('');
   const [manualPassword, setManualPassword] = useState('');
+  const [manualPasswordConfirm, setManualPasswordConfirm] = useState('');
+  const [showManualPassword, setShowManualPassword] = useState(false);
+  const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [accountSettingsConfirmation, setAccountSettingsConfirmation] = useState(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDetailsLoading, setIsDetailsLoading] = useState(false);
@@ -194,6 +216,7 @@ const AdminUsers = () => {
 
   useEffect(() => {
     if (!selectedUser?.id) return;
+    if (isSubmitting || accountSettingsConfirmation) return;
     const nextSelected = (users || []).find((entry) => entry.id === selectedUser.id);
     if (nextSelected) {
       setSelectedUser(nextSelected);
@@ -201,7 +224,7 @@ const AdminUsers = () => {
       setSettingsCurrency(nextSelected.currency || currencies[0]?.code || 'USD');
       setSettingsCreditLimit(String(toFiniteNumber(nextSelected?.creditLimit, 0)));
     }
-  }, [currencies, groups, selectedUser?.id, users]);
+  }, [accountSettingsConfirmation, currencies, groups, isSubmitting, selectedUser?.id, users]);
 
   const customerUsers = useMemo(
     () => (users || []).filter((entry) => String(entry?.role || '').trim().toLowerCase() === 'customer'),
@@ -291,6 +314,7 @@ const AdminUsers = () => {
     setSettingsCreditLimit(String(toFiniteNumber(entry?.creditLimit, 0)));
     setTemporaryPassword('');
     setManualPassword('');
+    setManualPasswordConfirm('');
     setIsDetailsOpen(true);
     setIsDetailsLoading(true);
 
@@ -454,43 +478,53 @@ const AdminUsers = () => {
     askReject(selectedUser);
   };
 
-  const handleSettingsGroupSave = async () => {
-    if (!selectedUser || !settingsGroup) return;
-    if (!canManageUsers) {
-      addToast('ليس لديك صلاحية تعديل بيانات المستخدمين.', 'error');
-      return;
-    }
-
-    try {
-      await updateUserGroup(selectedUser.id, settingsGroup, actor);
-      addToast('تم تحديث المجموعة بنجاح.', 'success');
-      await loadUsers({ force: true });
-    } catch (error) {
-      addToast(error?.message || 'تعذر تحديث المجموعة.', 'error');
-    }
+  const openUserWalletView = (entry, section = 'wallet-management') => {
+    const userId = String(entry?.id || '').trim();
+    if (!userId) return;
+    navigate(`/admin/users/${encodeURIComponent(userId)}/transactions#${section}`);
   };
 
-  const handleSettingsCurrencySave = async () => {
-    if (!selectedUser || !settingsCurrency) return;
-    if (!canManageUsers) {
-      addToast('ليس لديك صلاحية تعديل بيانات المستخدمين.', 'error');
-      return;
-    }
-
-    try {
-      await updateUserCurrency(selectedUser.id, settingsCurrency, actor);
-      addToast('تم تحديث العملة بنجاح.', 'success');
-      await Promise.allSettled([
-        loadUsers({ force: true }),
-        getUserWallet(selectedUser.id, { force: true }),
-      ]);
-    } catch (error) {
-      addToast(error?.message || 'تعذر تحديث العملة.', 'error');
-    }
+  const openUserSettings = (entry) => {
+    if (!entry?.id) return;
+    setSelectedUser(entry);
+    setManualPassword('');
+    setManualPasswordConfirm('');
+    setShowManualPassword(false);
+    setTemporaryPassword('');
+    setIsUserSettingsOpen(true);
   };
 
-  const handleSettingsCreditLimitSave = async () => {
-    if (!selectedUser) return;
+  const openPasswordSettings = () => {
+    setManualPassword('');
+    setManualPasswordConfirm('');
+    setShowManualPassword(false);
+    setIsUserSettingsOpen(false);
+    setIsPasswordModalOpen(true);
+  };
+
+  const requestDeleteFromSettings = () => {
+    setIsUserSettingsOpen(false);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleSettingsCurrencyChange = (nextValue) => {
+    const nextCurrency = String(nextValue || '').toUpperCase();
+    const fromCurrency = String(
+      settingsCurrency || selectedUser?.currency || currencies[0]?.code || 'USD'
+    ).toUpperCase();
+    const currentDisplayedCreditLimit = toFiniteNumber(settingsCreditLimit, 0);
+
+    setSettingsCurrency(nextCurrency);
+    setSettingsCreditLimit(String(convertCurrencyAmount(
+      currentDisplayedCreditLimit,
+      fromCurrency,
+      nextCurrency,
+      currencies
+    )));
+  };
+
+  const requestAccountSettingsSave = () => {
+    if (!selectedUser || !settingsGroup || !settingsCurrency) return;
     if (!canManageUsers) {
       addToast('ليس لديك صلاحية تعديل بيانات المستخدمين.', 'error');
       return;
@@ -502,16 +536,119 @@ const AdminUsers = () => {
       return;
     }
 
-    const normalizedValue = toFiniteNumber(parsedValue, 0);
+    const normalizedCreditLimit = toFiniteNumber(parsedValue, 0);
+    const currentGroupId = resolveInitialGroupValue(selectedUser, groups);
+    const currentCurrency = String(selectedUser?.currency || currencies[0]?.code || 'USD').toUpperCase();
+    const nextCurrency = String(settingsCurrency).toUpperCase();
+    const currencyChanged = nextCurrency !== currentCurrency;
+    const currentBalance = toFiniteNumber(
+      selectedWallet?.walletBalance ?? selectedUser?.walletBalance ?? selectedUser?.coins,
+      0
+    );
+    const currentCreditLimit = toFiniteNumber(selectedUser?.creditLimit, 0);
+    const convertedBalance = currencyChanged
+      ? convertCurrencyAmount(currentBalance, currentCurrency, nextCurrency, currencies)
+      : currentBalance;
+    const creditLimitWasManuallyChanged = normalizedCreditLimit !== currentCreditLimit;
+    const finalCreditLimit = normalizedCreditLimit;
+    const getGroupLabel = (groupId) => {
+      const group = (groups || []).find((entry) => String(entry?.id || '') === String(groupId || ''));
+      if (!group) return '-';
+      return `${group.name} (${group.discount ?? group.percentage ?? 0}%)`;
+    };
+    const changes = [];
 
+    if (String(settingsGroup) !== String(currentGroupId)) {
+      changes.push({
+        key: 'group',
+        label: 'المجموعة',
+        from: getGroupLabel(currentGroupId),
+        to: getGroupLabel(settingsGroup),
+      });
+    }
+    if (currencyChanged) {
+      changes.push({
+        key: 'currency',
+        label: 'العملة',
+        from: currentCurrency,
+        to: nextCurrency,
+      });
+      changes.push({
+        key: 'balance',
+        label: 'الرصيد بعد التحويل',
+        from: formatWalletAmount(currentBalance, currentCurrency),
+        to: formatWalletAmount(convertedBalance, nextCurrency),
+      });
+    }
+    if (creditLimitWasManuallyChanged) {
+      changes.push({
+        key: 'creditLimit',
+        label: 'حد الدين',
+        from: formatWalletAmount(currentCreditLimit, currentCurrency),
+        to: formatWalletAmount(finalCreditLimit, nextCurrency),
+      });
+    }
+
+    if (!changes.length) {
+      addToast('لم يتم إجراء أي تغيير لحفظه.', 'info');
+      return;
+    }
+
+    setAccountSettingsConfirmation({
+      changes,
+      group: settingsGroup,
+      currency: nextCurrency,
+      creditLimit: finalCreditLimit,
+    });
+  };
+
+  const handleAccountSettingsSave = async () => {
+    if (!selectedUser || !accountSettingsConfirmation) return;
+
+    const { changes, group, currency, creditLimit } = accountSettingsConfirmation;
+    const hasChange = (key) => changes.some((entry) => entry.key === key);
+
+    setIsSubmitting(true);
     try {
-      const updated = await updateUserCreditLimit(selectedUser.id, normalizedValue, actor);
-      syncSelectedUser(updated || { ...selectedUser, creditLimit: normalizedValue });
-      setSettingsCreditLimit(String(normalizedValue));
-      addToast('تم تحديث حد الدين بنجاح.', 'success');
+      if (hasChange('group')) {
+        await updateUserGroup(selectedUser.id, group, actor);
+      }
+      if (hasChange('currency')) {
+        await updateUserCurrency(selectedUser.id, currency, actor);
+      }
+      if (hasChange('creditLimit')) {
+        await updateUserCreditLimit(selectedUser.id, creditLimit, actor);
+      }
+
+      // Refresh sequentially so an older parallel response cannot overwrite the
+      // currency or credit limit that was just saved.
       await loadUsers({ force: true });
+      const refreshedUser = await getUserById(selectedUser.id, { force: true }).catch(() => null);
+      await getUserWallet(selectedUser.id, { force: true }).catch(() => null);
+      const stableSavedUser = {
+        ...selectedUser,
+        ...(refreshedUser || {}),
+        ...(hasChange('currency') ? { currency } : {}),
+        ...(hasChange('creditLimit') ? { creditLimit } : {}),
+      };
+      useAdminStore.setState((state) => ({
+        users: (state.users || []).map((entry) => (
+          entry.id === selectedUser.id ? { ...entry, ...stableSavedUser } : entry
+        )),
+      }));
+      syncSelectedUser(stableSavedUser);
+      setSettingsCurrency(currency);
+      setSettingsCreditLimit(String(creditLimit));
+      setAccountSettingsConfirmation(null);
+      addToast('تم حفظ المجموعة والعملة وحد الدين بنجاح.', 'success');
     } catch (error) {
-      addToast(error?.message || 'تعذر تحديث حد الدين.', 'error');
+      await Promise.allSettled([
+        loadUsers({ force: true }),
+        getUserWallet(selectedUser.id, { force: true }),
+      ]);
+      addToast(error?.message || 'تعذر حفظ إعدادات الحساب.', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -641,27 +778,43 @@ const AdminUsers = () => {
     }
   };
 
-  const handleSetPassword = async () => {
+  const handleSetPassword = async ({ requireConfirmation = false, closeOnSuccess = false } = {}) => {
     if (!selectedUser) return;
     if (!canManageUsers) {
       addToast('ليس لديك صلاحية تعديل بيانات المستخدمين.', 'error');
       return;
     }
     const nextPassword = String(manualPassword || '').trim();
+    const confirmedPassword = String(manualPasswordConfirm || '').trim();
     if (nextPassword.length < 8) {
       addToast('كلمة المرور يجب أن تكون 8 أحرف على الأقل.', 'error');
       return;
     }
+    if (requireConfirmation && !confirmedPassword) {
+      addToast('يرجى تأكيد كلمة المرور الجديدة.', 'error');
+      return;
+    }
+    if (confirmedPassword && nextPassword !== confirmedPassword) {
+      addToast('كلمتا المرور غير متطابقتين.', 'error');
+      return;
+    }
 
+    setIsSubmitting(true);
     try {
       const result = await resetUserPassword(selectedUser.id, actor, nextPassword);
       const appliedPassword = result?.temporaryPassword || nextPassword;
       setTemporaryPassword(appliedPassword);
       setManualPassword('');
+      setManualPasswordConfirm('');
       const copied = await copyToClipboard(appliedPassword);
       addToast(copied ? 'تم تغيير كلمة المرور ونسخها.' : 'تم تغيير كلمة المرور بنجاح.', 'success');
+      if (closeOnSuccess) {
+        setIsPasswordModalOpen(false);
+      }
     } catch (error) {
       addToast(error?.message || 'تعذر تغيير كلمة المرور.', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -676,15 +829,19 @@ const AdminUsers = () => {
 
   const confirmDeleteUser = async () => {
     if (!selectedUser) return;
+    setIsSubmitting(true);
     try {
       await deleteUser(selectedUser.id, actor);
       addToast('تم حذف المستخدم.', 'success');
       setDeleteConfirmOpen(false);
+      setIsUserSettingsOpen(false);
       setIsDetailsOpen(false);
       setSelectedUser(null);
       await loadUsers({ force: true });
     } catch (error) {
       addToast(error?.message || 'تعذر حذف المستخدم.', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -715,9 +872,66 @@ const AdminUsers = () => {
     () => buildWalletPreview(selectedUser, walletByUserId.get(String(selectedUser?.id || '').trim()) || null),
     [selectedUser, walletByUserId]
   );
+  const selectedCurrentCurrency = String(
+    selectedWallet?.currency || selectedUser?.currency || currencies[0]?.code || 'USD'
+  ).toUpperCase();
+  const selectedNextCurrency = String(settingsCurrency || selectedCurrentCurrency).toUpperCase();
+  const selectedCurrentBalance = toFiniteNumber(
+    selectedWallet?.walletBalance ?? selectedUser?.walletBalance ?? selectedUser?.coins,
+    0
+  );
+  const selectedConvertedBalance = convertCurrencyAmount(
+    selectedCurrentBalance,
+    selectedCurrentCurrency,
+    selectedNextCurrency,
+    currencies
+  );
+  const isSelectedCurrencyChanging = selectedNextCurrency !== selectedCurrentCurrency;
   const canResendVerification = canManageUsers
     && Boolean(selectedUser?.email)
     && (!selectedUser?.verified || isPendingAccountStatus(selectedUser?.status));
+
+  const renderUserQuickActions = (entry, detailsLabel = 'التفاصيل') => (
+    <>
+      <Button
+        size="sm"
+        className={`${compactButtonClassName} border-[color:rgb(var(--color-primary-rgb)/0.28)] bg-[color:rgb(var(--color-primary-rgb)/0.08)] text-[var(--color-primary)] hover:bg-[color:rgb(var(--color-primary-rgb)/0.14)]`}
+        variant="outline"
+        onClick={() => openDetails(entry)}
+      >
+        <Eye className="h-3.5 w-3.5" />
+        {detailsLabel}
+      </Button>
+
+      {filter !== 'deleted' ? (
+        <>
+          {canManageUsers ? (
+            <Button
+              size="sm"
+              className={`${compactButtonClassName} border-fuchsia-400/25 bg-fuchsia-500/[0.08] text-fuchsia-700 hover:bg-fuchsia-500/[0.14] dark:text-fuchsia-300`}
+              variant="outline"
+              onClick={() => openUserSettings(entry)}
+              disabled={isSubmitting}
+              title="إعدادات المستخدم"
+            >
+              <Settings2 className="h-3.5 w-3.5" />
+              الإعدادات
+            </Button>
+          ) : null}
+          <Button
+            size="sm"
+            className="h-7 w-7 rounded-[var(--radius-sm)] border-cyan-400/25 bg-[linear-gradient(135deg,rgb(6_182_212/0.1),rgb(124_58_237/0.09))] p-0 text-cyan-700 hover:bg-[linear-gradient(135deg,rgb(6_182_212/0.16),rgb(124_58_237/0.14))] dark:text-cyan-300"
+            variant="outline"
+            onClick={() => openUserWalletView(entry, 'wallet-management')}
+            title="المحفظة والسجل للحساب"
+            aria-label="المحفظة والسجل للحساب"
+          >
+            <Wallet className="h-3.5 w-3.5" />
+          </Button>
+        </>
+      ) : null}
+    </>
+  );
 
   return (
     <div className="min-w-0 space-y-2">
@@ -820,10 +1034,7 @@ const AdminUsers = () => {
                   </Button>
                 </>
               )}
-              <Button size="sm" className={compactButtonClassName} variant="outline" onClick={() => openDetails(entry)}>
-                <Eye className="h-3.5 w-3.5" />
-                عرض التفاصيل
-              </Button>
+              {renderUserQuickActions(entry, 'عرض التفاصيل')}
               </div>
             </div>
           </Card>
@@ -891,7 +1102,7 @@ const AdminUsers = () => {
                   </span>
                 </TableCell>
                 <TableCell className={`rounded-e-xl py-2 text-end ${compactTableCellClassName}`}>
-                  <div className="flex justify-end gap-1.5">
+                  <div className="flex flex-wrap justify-end gap-1.5">
                     {filter === 'deleted' && canManageUsers ? (
                       <Button size="sm" className={compactButtonClassName} onClick={() => handleRestoreUser(entry)} disabled={isSubmitting}>
                         <RotateCcw className="h-3.5 w-3.5" />
@@ -907,10 +1118,7 @@ const AdminUsers = () => {
                         </Button>
                       </>
                     )}
-                    <Button size="sm" className={`${compactButtonClassName} border-[color:rgb(var(--color-primary-rgb)/0.28)] bg-[color:rgb(var(--color-primary-rgb)/0.08)] text-[var(--color-primary)] hover:bg-[color:rgb(var(--color-primary-rgb)/0.14)]`} variant="outline" onClick={() => openDetails(entry)}>
-                      <Eye className="h-3.5 w-3.5" />
-                      التفاصيل
-                    </Button>
+                    {renderUserQuickActions(entry)}
                   </div>
                 </TableCell>
               </TableRow>
@@ -1023,30 +1231,6 @@ const AdminUsers = () => {
               </div>
             </div>
 
-            {selectedWallet?.recentTransactions?.[0] ? (
-              <div className="mt-3 rounded-[var(--radius-md)] border border-[color:rgb(var(--color-primary-rgb)/0.16)] bg-[linear-gradient(135deg,rgba(255,248,220,0.34),rgba(255,255,255,0.04))] p-2.5">
-                <p className="text-[11px] text-[var(--color-text-secondary)]">آخر عملية محفوظة بالمحفظة</p>
-                <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <p className="text-xs font-semibold text-[var(--color-text)]">
-                      {selectedWallet.recentTransactions[0]?.description || 'Wallet activity'}
-                    </p>
-                    <p className="mt-0.5 text-[11px] text-[var(--color-text-secondary)]">
-                      {formatDate(selectedWallet.recentTransactions[0]?.createdAt)}
-                    </p>
-                  </div>
-                  <span className={getBalanceBadgeTone(selectedWallet.recentTransactions[0]?.signedAmount ?? selectedWallet.recentTransactions[0]?.amount ?? 0)}>
-                    <Wallet className="h-3 w-3" />
-                    {formatWalletAmount(
-                      selectedWallet.recentTransactions[0]?.signedAmount ?? selectedWallet.recentTransactions[0]?.amount ?? 0,
-                      selectedWallet.recentTransactions[0]?.currency || selectedWallet?.currency || selectedUser?.currency || 'USD',
-                      { signed: true }
-                    )}
-                  </span>
-                </div>
-              </div>
-            ) : null}
-
             <div className="mt-3 flex flex-wrap justify-end gap-1.5">
               {canResendVerification ? (
                 <Button variant="ghost" className={compactButtonClassName} onClick={handleResendVerification} disabled={isSubmitting}>
@@ -1056,47 +1240,22 @@ const AdminUsers = () => {
               ) : null}
             </div>
 
-            <div className="mt-3 grid gap-2.5 text-xs sm:grid-cols-2 lg:grid-cols-3">
-              <div>
-                <p className="text-[11px] text-[var(--color-text-secondary)]">طريقة التسجيل</p>
-                <p className="mt-0.5 text-xs font-semibold text-[var(--color-text)]">
-                  {getSignupMethodLabel(selectedUser?.signupMethod || selectedUser?.authProvider, isArabic)}
-                </p>
-              </div>
-              <div>
-                <p className="text-[11px] text-[var(--color-text-secondary)]">تاريخ التسجيل</p>
-                <p className="mt-0.5 text-xs font-semibold text-[var(--color-text)]">
-                  {formatDate(getUserRegistrationDate(selectedUser))}
-                </p>
-              </div>
-              <div>
-                <p className="text-[11px] text-[var(--color-text-secondary)]">المجموعة</p>
-                <p className="mt-0.5 text-xs font-semibold text-[var(--color-text)]">{selectedUser?.group || '-'}</p>
-              </div>
-              <div>
-                <p className="text-[11px] text-[var(--color-text-secondary)]">العملة</p>
-                <p className="mt-0.5 text-xs font-semibold text-[var(--color-text)]">{selectedUser?.currency || '-'}</p>
-              </div>
-              <div>
-                <p className="text-[11px] text-[var(--color-text-secondary)]">حد الدين</p>
-                <p className="mt-0.5 text-xs font-semibold text-[var(--color-text)]">
-                  {formatWalletAmount(toFiniteNumber(selectedUser?.creditLimit, 0), selectedWallet?.currency || selectedUser?.currency || 'USD')}
-                </p>
-              </div>
-              <div>
-                <p className="text-[11px] text-[var(--color-text-secondary)]">اسم المستخدم</p>
-                <p className="mt-0.5 text-xs font-semibold text-[var(--color-text)]">{selectedUser?.username || '-'}</p>
-              </div>
-              <div>
-                <p className="text-[11px] text-[var(--color-text-secondary)]">الهاتف</p>
-                <p className="mt-0.5 text-xs font-semibold text-[var(--color-text)]">{selectedUser?.phone || '-'}</p>
-              </div>
-              <div>
-                <p className="text-[11px] text-[var(--color-text-secondary)]">حالة التحقق</p>
-                <p className="mt-0.5 text-xs font-semibold text-[var(--color-text)]">{selectedUser?.verified ? 'مفعل' : 'بانتظار التأكيد'}</p>
-              </div>
-            </div>
           </div>
+
+          <Button
+            type="button"
+            className="h-11 w-full rounded-[var(--radius-md)] text-xs sm:w-auto sm:min-w-[15rem]"
+            disabled={!selectedUser?.id}
+            onClick={() => {
+              const userId = String(selectedUser?.id || '').trim();
+              if (!userId) return;
+              setIsDetailsOpen(false);
+              navigate(`/admin/users/${encodeURIComponent(userId)}/transactions`);
+            }}
+          >
+            <History className="h-4 w-4" />
+            فتح المحفظة والسجل
+          </Button>
 
           {canConfirmAccounts && filter !== 'deleted' && (isPendingAccountStatus(selectedUser?.status) || isApprovedAccountStatus(selectedUser?.status) || isRejectedAccountStatus(selectedUser?.status)) && (
             <div className="rounded-[var(--radius-lg)] border border-[color:rgb(var(--color-border-rgb)/0.84)] p-3.5">
@@ -1149,64 +1308,72 @@ const AdminUsers = () => {
 
               <div className="space-y-2">
                 <label className="text-[11px] text-[var(--color-text-secondary)]">المجموعة</label>
-                <div className="flex gap-1.5">
-                  <select
-                    className="h-10 flex-1 rounded-[var(--radius-md)] border border-[color:rgb(var(--color-border-rgb)/0.92)] bg-[color:rgb(var(--color-card-rgb)/0.94)] px-3 text-xs text-[var(--color-text)] outline-none transition focus:border-[color:rgb(var(--color-primary-rgb)/0.45)]"
-                    value={settingsGroup}
-                    onChange={(event) => setSettingsGroup(event.target.value)}
-                    disabled={!canManageUsers}
-                  >
-                    {groups.map((group) => (
-                      <option key={group.id} value={group.id}>
-                        {group.name} ({group.discount ?? group.percentage ?? 0}%)
-                      </option>
-                    ))}
-                  </select>
-                  <Button variant="outline" className={compactButtonClassName} onClick={handleSettingsGroupSave} disabled={!canManageUsers}>
-                    حفظ
-                  </Button>
-                </div>
+                <select
+                  className="h-10 w-full rounded-[var(--radius-md)] border border-[color:rgb(var(--color-border-rgb)/0.92)] bg-[color:rgb(var(--color-card-rgb)/0.94)] px-3 text-xs text-[var(--color-text)] outline-none transition focus:border-[color:rgb(var(--color-primary-rgb)/0.45)]"
+                  value={settingsGroup}
+                  onChange={(event) => setSettingsGroup(event.target.value)}
+                  disabled={!canManageUsers || isSubmitting}
+                >
+                  {groups.map((group) => (
+                    <option key={group.id} value={group.id}>
+                      {group.name} ({group.discount ?? group.percentage ?? 0}%)
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="space-y-2">
                 <label className="text-[11px] text-[var(--color-text-secondary)]">العملة</label>
-                <div className="flex gap-1.5">
-                  <select
-                    className="h-10 flex-1 rounded-[var(--radius-md)] border border-[color:rgb(var(--color-border-rgb)/0.92)] bg-[color:rgb(var(--color-card-rgb)/0.94)] px-3 text-xs text-[var(--color-text)] outline-none transition focus:border-[color:rgb(var(--color-primary-rgb)/0.45)]"
-                    value={settingsCurrency}
-                    onChange={(event) => setSettingsCurrency(event.target.value)}
-                    disabled={!canManageUsers}
-                  >
-                    {(currencies || []).map((currencyItem) => (
-                      <option key={currencyItem.code} value={currencyItem.code}>
-                        {currencyItem.code} - {currencyItem.name}
-                      </option>
-                    ))}
-                  </select>
-                  <Button variant="outline" className={compactButtonClassName} onClick={handleSettingsCurrencySave} disabled={!canManageUsers}>
-                    حفظ
-                  </Button>
-                </div>
+                <select
+                  className="h-10 w-full rounded-[var(--radius-md)] border border-[color:rgb(var(--color-border-rgb)/0.92)] bg-[color:rgb(var(--color-card-rgb)/0.94)] px-3 text-xs text-[var(--color-text)] outline-none transition focus:border-[color:rgb(var(--color-primary-rgb)/0.45)]"
+                  value={settingsCurrency}
+                  onChange={(event) => handleSettingsCurrencyChange(event.target.value)}
+                  disabled={!canManageUsers || isSubmitting}
+                >
+                  {(currencies || []).map((currencyItem) => (
+                    <option key={currencyItem.code} value={currencyItem.code}>
+                      {currencyItem.code} - {currencyItem.name}
+                    </option>
+                  ))}
+                </select>
+                {isSelectedCurrencyChanging ? (
+                  <div className="rounded-[var(--radius-md)] border border-[color:rgb(var(--color-primary-rgb)/0.18)] bg-[color:rgb(var(--color-primary-rgb)/0.06)] px-3 py-2 text-[11px] text-[var(--color-text-secondary)]">
+                    <span>الرصيد بعد التحويل: </span>
+                    <span className="font-semibold text-[var(--color-text)]">
+                      {formatWalletAmount(selectedConvertedBalance, selectedNextCurrency)}
+                    </span>
+                    <span className="mt-1 block">
+                      حدّ الدين بعد التحويل:{' '}
+                      <span className="font-semibold text-[var(--color-text)]">
+                        {formatWalletAmount(toFiniteNumber(settingsCreditLimit, 0), selectedNextCurrency)}
+                      </span>
+                    </span>
+                  </div>
+                ) : null}
               </div>
 
               <div className="space-y-2">
                 <label className="text-[11px] text-[var(--color-text-secondary)]">حد الدين</label>
-                <div className="flex gap-1.5">
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={settingsCreditLimit}
-                    onChange={(event) => setSettingsCreditLimit(event.target.value)}
-                    placeholder="0.00"
-                    className="h-10 flex-1 px-3 text-xs"
-                    disabled={!canManageUsers}
-                  />
-                  <Button variant="outline" className={compactButtonClassName} onClick={handleSettingsCreditLimitSave} disabled={!canManageUsers}>
-                    حفظ
-                  </Button>
-                </div>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={settingsCreditLimit}
+                  onChange={(event) => setSettingsCreditLimit(event.target.value)}
+                  placeholder="0.00"
+                  className="h-10 px-3 text-xs"
+                  disabled={!canManageUsers || isSubmitting}
+                />
               </div>
+
+              <Button
+                type="button"
+                className="h-10 w-full rounded-[var(--radius-md)] text-xs"
+                onClick={requestAccountSettingsSave}
+                disabled={!canManageUsers || isSubmitting || !settingsGroup || !settingsCurrency}
+              >
+                {isSubmitting ? 'جارٍ حفظ التغييرات...' : 'حفظ التغييرات'}
+              </Button>
             </div>
 
             <div className="space-y-2.5 rounded-[var(--radius-lg)] border border-[color:rgb(var(--color-border-rgb)/0.84)] p-3.5">
@@ -1238,7 +1405,7 @@ const AdminUsers = () => {
                 placeholder="أدخل كلمة مرور جديدة (8 أحرف على الأقل)"
                 className="h-10 px-3 text-xs font-mono"
               />
-              <Button variant="outline" onClick={handleSetPassword} className={`w-full ${compactButtonClassName}`} disabled={!canManageUsers || !String(manualPassword || '').trim()}>
+              <Button variant="outline" onClick={() => handleSetPassword()} className={`w-full ${compactButtonClassName}`} disabled={!canManageUsers || !String(manualPassword || '').trim()}>
                 تعيين كلمة المرور
               </Button>
               <p className="text-xs text-[var(--color-text-secondary)]">يمكنك تعيين كلمة مرور مباشرة لأي حساب من هنا.</p>
@@ -1285,6 +1452,148 @@ const AdminUsers = () => {
                 حذف المستخدم
               </Button>
             ) : null}
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isUserSettingsOpen}
+        onClose={() => {
+          if (isSubmitting) return;
+          setIsUserSettingsOpen(false);
+        }}
+        title="إعدادات المستخدم"
+        size="xs"
+      >
+        <div className="space-y-4">
+          <div className="relative overflow-hidden rounded-2xl border border-[color:rgb(var(--color-primary-rgb)/0.2)] bg-[linear-gradient(135deg,rgb(var(--color-primary-rgb)/0.11),rgb(var(--color-brand-violet-rgb)/0.08),rgb(var(--color-card-rgb)/0.9))] p-3.5">
+            <span className="pointer-events-none absolute -end-10 -top-12 h-28 w-28 rounded-full bg-[color:rgb(var(--color-brand-magenta-rgb)/0.12)] blur-2xl" />
+            <div className="relative flex min-w-0 items-center gap-3">
+              <img
+                src={resolveUserAvatar(selectedUser, selectedUser?.name || selectedUser?.email || 'N&A HUB User')}
+                alt={selectedUser?.name || 'المستخدم'}
+                className="h-12 w-12 shrink-0 rounded-2xl border border-[color:rgb(var(--color-primary-rgb)/0.25)] object-cover shadow-[0_16px_32px_-22px_rgb(var(--color-primary-rgb)/0.72)]"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-black text-[var(--color-text)]">{selectedUser?.name || 'المستخدم'}</p>
+                <p className="mt-1 truncate text-[11px] text-[var(--color-text-secondary)]">{selectedUser?.email || '-'}</p>
+                <p className="mt-1 truncate font-mono text-[9px] text-[var(--color-muted)]">ID: {selectedUser?.id || '-'}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={openPasswordSettings}
+              className="group flex w-full items-center gap-3 rounded-2xl border border-[color:rgb(var(--color-primary-rgb)/0.24)] bg-[linear-gradient(135deg,rgb(var(--color-primary-rgb)/0.12),rgb(var(--color-brand-violet-rgb)/0.075))] p-3.5 text-start transition hover:-translate-y-0.5 hover:border-[color:rgb(var(--color-primary-rgb)/0.48)] hover:shadow-[0_18px_40px_-28px_rgb(var(--color-primary-rgb)/0.72)]"
+            >
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl text-white shadow-[0_12px_28px_-18px_rgb(var(--color-brand-violet-rgb)/0.9)] [background-image:var(--gradient-brand)]">
+                <KeyRound className="h-5 w-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-black text-[var(--color-text)]">تعيين كلمة المرور</span>
+                <span className="mt-1 block text-[11px] leading-5 text-[var(--color-text-secondary)]">إنشاء كلمة مرور جديدة وآمنة لهذا الحساب.</span>
+              </span>
+              <ChevronLeft className="h-4 w-4 shrink-0 text-[var(--color-muted)] transition group-hover:-translate-x-1 group-hover:text-[var(--color-primary)]" />
+            </button>
+
+            <button
+              type="button"
+              onClick={requestDeleteFromSettings}
+              className="group flex w-full items-center gap-3 rounded-2xl border border-rose-500/[0.22] bg-[linear-gradient(135deg,rgb(244_63_94/0.11),rgb(var(--color-card-rgb)/0.78))] p-3.5 text-start transition hover:-translate-y-0.5 hover:border-rose-500/[0.45] hover:shadow-[0_18px_40px_-28px_rgb(244_63_94/0.72)]"
+            >
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[linear-gradient(145deg,#fb7185,#e11d48)] text-white shadow-[0_12px_28px_-18px_rgb(225_29_72/0.9)]">
+                <Trash2 className="h-5 w-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-black text-rose-700 dark:text-rose-300">حذف المستخدم</span>
+                <span className="mt-1 block text-[11px] leading-5 text-[var(--color-text-secondary)]">حذف الحساب بعد عرض نافذة تأكيد مستقلة.</span>
+              </span>
+              <ChevronLeft className="h-4 w-4 shrink-0 text-rose-400 transition group-hover:-translate-x-1" />
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isPasswordModalOpen}
+        onClose={() => {
+          if (isSubmitting) return;
+          setIsPasswordModalOpen(false);
+          setManualPassword('');
+          setManualPasswordConfirm('');
+        }}
+        title="تعيين كلمة مرور جديدة"
+        size="xs"
+      >
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 rounded-2xl border border-[color:rgb(var(--color-primary-rgb)/0.18)] bg-[color:rgb(var(--color-primary-rgb)/0.07)] p-3">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-white [background-image:var(--gradient-brand)]">
+              <KeyRound className="h-4.5 w-4.5" />
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-xs font-black text-[var(--color-text)]">{selectedUser?.name || selectedUser?.email || 'المستخدم'}</p>
+              <p className="mt-1 text-[10px] leading-4 text-[var(--color-text-secondary)]">سيتمكن المستخدم من تسجيل الدخول بكلمة المرور الجديدة فور حفظها.</p>
+            </div>
+          </div>
+
+          <Input
+            label="كلمة المرور الجديدة"
+            type={showManualPassword ? 'text' : 'password'}
+            autoComplete="new-password"
+            value={manualPassword}
+            onChange={(event) => setManualPassword(event.target.value)}
+            placeholder="8 أحرف على الأقل"
+            className="h-11 px-3 font-mono text-sm"
+            suffix={(
+              <button
+                type="button"
+                onClick={() => setShowManualPassword((current) => !current)}
+                className="rounded-lg p-1 text-[var(--color-muted)] transition hover:bg-[color:rgb(var(--color-primary-rgb)/0.1)] hover:text-[var(--color-primary)]"
+                aria-label={showManualPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+              >
+                {showManualPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            )}
+          />
+
+          <Input
+            label="تأكيد كلمة المرور"
+            type={showManualPassword ? 'text' : 'password'}
+            autoComplete="new-password"
+            value={manualPasswordConfirm}
+            onChange={(event) => setManualPasswordConfirm(event.target.value)}
+            placeholder="أعد إدخال كلمة المرور"
+            className="h-11 px-3 font-mono text-sm"
+            error={manualPasswordConfirm && manualPassword !== manualPasswordConfirm ? 'كلمتا المرور غير متطابقتين.' : ''}
+          />
+
+          <div className="grid grid-cols-3 gap-1.5 text-center text-[9px] font-bold">
+            <span className={`rounded-lg border px-2 py-1.5 ${manualPassword.length >= 8 ? 'border-emerald-400/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300' : 'border-[color:rgb(var(--color-border-rgb)/0.7)] text-[var(--color-muted)]'}`}>8 أحرف</span>
+            <span className={`rounded-lg border px-2 py-1.5 ${/[A-Za-z]/.test(manualPassword) ? 'border-emerald-400/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300' : 'border-[color:rgb(var(--color-border-rgb)/0.7)] text-[var(--color-muted)]'}`}>حروف</span>
+            <span className={`rounded-lg border px-2 py-1.5 ${/\d/.test(manualPassword) ? 'border-emerald-400/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300' : 'border-[color:rgb(var(--color-border-rgb)/0.7)] text-[var(--color-muted)]'}`}>أرقام</span>
+          </div>
+
+          <div className="flex justify-end gap-2 border-t border-[color:rgb(var(--color-border-rgb)/0.68)] pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 rounded-xl px-4 text-xs"
+              onClick={() => setIsPasswordModalOpen(false)}
+              disabled={isSubmitting}
+            >
+              إلغاء
+            </Button>
+            <Button
+              type="button"
+              className="h-9 rounded-xl px-4 text-xs"
+              onClick={() => handleSetPassword({ requireConfirmation: true, closeOnSuccess: true })}
+              disabled={isSubmitting || manualPassword.length < 8 || manualPassword !== manualPasswordConfirm}
+            >
+              <KeyRound className="h-3.5 w-3.5" />
+              {isSubmitting ? 'جارٍ التعيين...' : 'حفظ كلمة المرور'}
+            </Button>
           </div>
         </div>
       </Modal>
@@ -1393,15 +1702,59 @@ const AdminUsers = () => {
       </Modal>
 
       <ConfirmDialog
+        open={Boolean(accountSettingsConfirmation)}
+        title="هل تريد حفظ التغييرات؟"
+        description="راجع التغييرات التالية قبل تأكيد الحفظ."
+        confirmLabel="موافق"
+        cancelLabel="إلغاء"
+        confirmVariant="primary"
+        onConfirm={handleAccountSettingsSave}
+        onCancel={() => setAccountSettingsConfirmation(null)}
+        isLoading={isSubmitting}
+      >
+        <div className="space-y-2 rounded-xl border border-[color:rgb(var(--color-border-rgb)/0.74)] bg-[color:rgb(var(--color-surface-rgb)/0.62)] p-2.5">
+          {(accountSettingsConfirmation?.changes || []).map((change) => (
+            <div key={change.key} className="text-xs">
+              <p className="font-bold text-[var(--color-text)]">{change.label}</p>
+              <div className="mt-1 flex min-w-0 items-center gap-2 text-[10px] text-[var(--color-text-secondary)]">
+                <span className="min-w-0 truncate rounded-md bg-[color:rgb(var(--color-card-rgb)/0.86)] px-2 py-1">{change.from}</span>
+                <span aria-hidden="true">←</span>
+                <span className="min-w-0 truncate rounded-md bg-[color:rgb(var(--color-primary-rgb)/0.1)] px-2 py-1 font-bold text-[var(--color-primary)]">{change.to}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </ConfirmDialog>
+
+      <ConfirmDialog
         open={deleteConfirmOpen}
-        title="حذف المستخدم"
-        description={selectedUser ? `هل تريد حذف ${selectedUser.name || selectedUser.email || 'هذا المستخدم'}؟` : ''}
-        confirmLabel="حذف"
+        title="تأكيد حذف الحساب"
+        description="راجع الحساب جيدًا قبل المتابعة. سيختفي المستخدم من قائمة الحسابات النشطة."
+        confirmLabel="نعم، حذف الحساب"
         cancelLabel="إلغاء"
         onConfirm={confirmDeleteUser}
         onCancel={() => setDeleteConfirmOpen(false)}
         isLoading={isSubmitting}
-      />
+      >
+        {selectedUser ? (
+          <div className="rounded-xl border border-rose-500/20 bg-rose-500/[0.07] p-3">
+            <div className="flex items-center gap-2.5">
+              <img
+                src={resolveUserAvatar(selectedUser, selectedUser?.name || selectedUser?.email || 'N&A HUB User')}
+                alt={selectedUser?.name || 'المستخدم'}
+                className="h-10 w-10 shrink-0 rounded-xl border border-rose-400/25 object-cover"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-black text-[var(--color-text)]">{selectedUser.name || 'المستخدم'}</p>
+                <p className="mt-0.5 truncate text-[10px] text-[var(--color-text-secondary)]">{selectedUser.email || '-'}</p>
+              </div>
+            </div>
+            <p className="mt-2.5 border-t border-rose-500/15 pt-2.5 text-[10px] font-semibold leading-5 text-rose-700 dark:text-rose-300">
+              لن يتم تنفيذ الحذف إلا بعد الضغط على زر التأكيد الأحمر.
+            </p>
+          </div>
+        ) : null}
+      </ConfirmDialog>
     </div>
   );
 };

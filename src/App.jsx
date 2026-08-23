@@ -1,11 +1,12 @@
 import React, { Suspense, lazy } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import FloatingWhatsApp from './components/ui/FloatingWhatsApp';
 import MobileBottomNav from './components/layout/MobileBottomNav';
 import PageTransition from './components/app/PageTransition';
 import SessionBootstrap from './components/app/SessionBootstrap';
 import RouteErrorBoundary from './components/app/RouteErrorBoundary';
+import WebsiteUpdateModal from './components/app/WebsiteUpdateModal';
 import { LanguageProvider } from './context/LanguageContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './components/ui/Toast';
@@ -45,6 +46,7 @@ const Account = lazy(routeLoaders.Account);
 const AccountSecurity = lazy(routeLoaders.AccountSecurity);
 const Referral = lazy(routeLoaders.Referral);
 const AdminUsers = lazy(routeLoaders.AdminUsers);
+const AdminUserWallet = lazy(routeLoaders.AdminUserWallet);
 const AdminGroups = lazy(routeLoaders.AdminGroups);
 const AdminProducts = lazy(routeLoaders.AdminProducts);
 const AdminWallet = lazy(routeLoaders.AdminWallet);
@@ -112,6 +114,14 @@ const AdminDashboardRoute = () => {
   }
 
   return renderSuspended(<AdminDashboard />);
+};
+
+const RouteAwareFloatingSupport = () => {
+  const { pathname } = useLocation();
+
+  if (pathname === ACCOUNT_VERIFICATION_ROUTE) return null;
+
+  return <FloatingWhatsApp />;
 };
 
 const AnimatedAppRoutes = ({ location }) => {
@@ -350,7 +360,14 @@ const AnimatedAppRoutes = ({ location }) => {
           )}
         />
         <Route path="/admin/user-transactions" element={<Navigate to="/admin/wallet" replace />} />
-        <Route path="/admin/users/:userId/transactions" element={<Navigate to="/admin/wallet" replace />} />
+        <Route
+          path="/admin/users/:userId/transactions"
+          element={(
+            <ProtectedRoute roles={ADMIN_PANEL_ROLES} permission={PERMISSIONS.MANAGE_WALLET}>
+              {renderSuspended(<AdminUserWallet />)}
+            </ProtectedRoute>
+          )}
+        />
         <Route
           path="/admin/referrals"
           element={(
@@ -468,12 +485,13 @@ function App() {
       <LanguageProvider>
         <ToastProvider>
           <SessionBootstrap />
+          <WebsiteUpdateModal />
           <BrowserRouter>
             <PageTransition>
               {(location) => <AnimatedAppRoutes location={location} />}
             </PageTransition>
             <MobileBottomNav />
-            <FloatingWhatsApp />
+            <RouteAwareFloatingSupport />
           </BrowserRouter>
         </ToastProvider>
       </LanguageProvider>

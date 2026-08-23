@@ -10,13 +10,12 @@ export const isRealProvider = dataProvider === 'real';
 
 const configuredApiBaseUrl = String(import.meta.env.VITE_API_BASE_URL || '').trim();
 
-if (isProductionBuild && isRealProvider && !configuredApiBaseUrl) {
-  throw new Error('Production real-provider builds require VITE_API_BASE_URL.');
+if (isProductionBuild && !configuredApiBaseUrl) {
+  throw new Error('Production builds require VITE_API_BASE_URL.');
 }
 
-export const apiBaseUrl = configuredApiBaseUrl || 'http://localhost:5000/api';
+export const apiBaseUrl = configuredApiBaseUrl.replace(/\/+$/, '') || 'http://localhost:5000/api';
 
-// Real provider mode is production-safe by default. A local/demo build must
-// opt out explicitly to use the old browser-only referral fixtures.
+// Real provider mode uses backend referrals unless a local/demo build explicitly opts out.
 export const isReferralApiEnabled = isRealProvider
   && String(import.meta.env.VITE_REFERRAL_API_ENABLED || '').trim().toLowerCase() !== 'false';

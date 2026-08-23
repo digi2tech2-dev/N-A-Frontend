@@ -25,10 +25,10 @@ import useGroupStore from '../../store/useGroupStore';
 import agentProofImage from '../../assets/slide-3.webp';
 import { resolveUserAvatar } from '../../utils/avatar';
 import apiClient from '../../services/client';
+import { isReferralApiEnabled } from '../../config/dataProvider';
 import { useLanguage } from '../../context/LanguageContext';
 import Modal from '../../components/ui/Modal';
 import { useToast } from '../../components/ui/Toast';
-import { isReferralApiEnabled } from '../../config/dataProvider';
 
 const REFERRAL_RATE_STORAGE_KEY = 'kanzcoins_admin_referral_commission_rate';
 const WITHDRAWAL_METHODS_KEY = 'kanzcoins_referral_withdrawal_methods';
@@ -398,7 +398,7 @@ const AdminReferrals = () => {
       ...localRequests.map((request) => ({ ...request, isLocal: true })),
       ...(isRealProvider ? [] : owners.flatMap((owner) => owner.withdrawals.map((request, index) => ({ ...request, id: request?.id || `${owner.id}-withdrawal-${index}`, ownerName: owner.name, ownerEmail: owner.email, ownerAvatar: owner.avatar, currency: request?.currency || owner.currency })))),
     ];
-    const requests = gatheredRequests.length ? gatheredRequests : DEMO_WITHDRAWAL_REQUESTS;
+    const requests = gatheredRequests.length || isRealProvider ? gatheredRequests : DEMO_WITHDRAWAL_REQUESTS;
     return requests.map((request) => {
       const resolvedRequest = requestOverrides[request.id] || request;
       const methodSettings = withdrawalMethods.find((method) => method.id === resolvedRequest.method);

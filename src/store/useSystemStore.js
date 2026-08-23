@@ -2,8 +2,8 @@ import { create } from 'zustand';
 import apiClient from '../services/client';
 import { getDefaultWhatsAppNumber } from '../utils/whatsapp';
 import { createDefaultPaymentGroups, normalizePaymentGroups } from '../utils/paymentSettings';
-import { isRealProvider } from '../config/dataProvider';
 
+const isRealProvider = (import.meta.env.VITE_DATA_PROVIDER || 'mock').toLowerCase() === 'real';
 // Polling interval for payment settings (ms). Keep reasonable to avoid excess requests.
 const PAYMENT_SETTINGS_POLL_INTERVAL = 15 * 1000;
 const PAYMENT_SETTINGS_BROADCAST_CHANNEL = 'payment-settings-updates';

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   Activity,
@@ -99,6 +99,7 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [copiedUserId, setCopiedUserId] = useState(false);
+  const navigationScrollRef = useRef(null);
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const { dir } = useLanguage();
@@ -112,6 +113,16 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
     const timer = window.setTimeout(() => setCopiedUserId(false), 1400);
     return () => window.clearTimeout(timer);
   }, [copiedUserId]);
+
+  useEffect(() => {
+    if (!isExpanded) return undefined;
+
+    const frame = window.requestAnimationFrame(() => {
+      navigationScrollRef.current?.scrollTo({ top: 0, behavior: 'auto' });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [isExpanded]);
 
   const closeSidebarOnMobile = () => {
     if (isMobile) {
@@ -195,7 +206,7 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
       visible: (currentUser) => currentUser?.isApiEnabled === true,
     },
     { icon: UsersRound, label: t('sidebar.users'), path: '/admin/users', roles: ADMIN_NAV_ROLES, permission: PERMISSIONS.ADMIN_USERS, section: 'admin' },
-    { icon: Share2, label: dir === 'rtl' ? 'أرباح كود الإحالة' : 'Referral Earnings', path: '/admin/referrals', roles: ['admin', 'super_admin'], section: 'admin' },
+    { icon: Share2, label: dir === 'rtl' ? 'أرباح كود الإحالة' : 'Referral Earnings', path: '/admin/referrals', roles: ADMIN_NAV_ROLES, section: 'admin' },
     { icon: UserCog, label: t('sidebar.supervisors'), path: '/admin/supervisors', roles: ['admin'], section: 'admin' },
     { icon: Activity, label: 'مراقبة المشرفين', path: '/admin/supervisor-monitoring', roles: ['admin'], section: 'admin' },
     { icon: FolderKanban, label: t('sidebar.groupsManager'), path: '/admin/groups', roles: ADMIN_NAV_ROLES, permission: PERMISSIONS.ADMIN_GROUPS, section: 'admin' },
@@ -270,13 +281,13 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
         onClick={item.onClick}
         style={itemStyle}
         className={cn(
-          'kanz-sidebar-nav-item group relative flex w-full items-center gap-2 overflow-hidden px-2.5 py-1.5 text-[var(--color-text-secondary)] transition-all',
+          'kanz-sidebar-nav-item group relative flex w-full items-center gap-2 overflow-hidden px-2.5 py-[0.3rem] text-[var(--color-text-secondary)] transition-all',
           revealClassName,
           !isExpanded && 'justify-center'
         )}
       >
         <span className="kanz-sidebar-icon-bubble">
-          <item.icon className="h-5 w-5" strokeWidth={2.15} />
+          <item.icon className="h-4.5 w-4.5" strokeWidth={2.15} />
         </span>
         {isExpanded && <span className="truncate text-[0.8rem] font-semibold">{item.label}</span>}
       </button>
@@ -288,7 +299,7 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
         style={itemStyle}
         className={({ isActive }) =>
           cn(
-            'kanz-sidebar-nav-item group relative flex items-center gap-2 overflow-hidden px-2.5 py-1.5 transition-all',
+            'kanz-sidebar-nav-item group relative flex items-center gap-2 overflow-hidden px-2.5 py-[0.3rem] transition-all',
             revealClassName,
             !isExpanded && 'justify-center',
             isActive
@@ -300,7 +311,7 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
         {({ isActive }) => (
           <>
             <span className={cn('kanz-sidebar-icon-bubble', isActive && 'is-active')}>
-              <item.icon className="h-5 w-5" strokeWidth={2.15} />
+              <item.icon className="h-4.5 w-4.5" strokeWidth={2.15} />
             </span>
             {isExpanded && <span className="truncate text-[0.8rem] font-semibold">{item.label}</span>}
           </>
@@ -346,7 +357,7 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
           'app-shell-sidebar-panel kanz-sidebar-panel relative flex h-full flex-col rounded-[32px] border',
           isAdmin && 'border-[color:rgb(var(--color-primary-rgb)/0.26)]'
         )}>
-          <div className="relative z-10 px-4 pb-4 pt-5">
+          <div className="relative z-10 px-4 pb-2 pt-5">
             <div className={cn('relative flex items-center', isExpanded ? 'justify-center' : 'justify-center')}>
               <button
                 type="button"
@@ -386,7 +397,7 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
 
             {isExpanded && (
               <>
-                <div className="mt-4">
+                <div className="mt-2">
                   <LanguageSwitcher showIcon variant="sidebar" className="kanz-sidebar-language w-full justify-center" />
                 </div>
 
@@ -450,7 +461,10 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
             )}
           </div>
 
-          <div className="relative z-10 flex-1 overflow-y-auto px-3 py-3 scrollbar-hide">
+          <div
+            ref={navigationScrollRef}
+            className="kanz-sidebar-scroll-region relative z-10 flex-1 overflow-x-hidden overflow-y-auto px-4 pb-4 pt-0 scrollbar-hide"
+          >
             {showWalletCard && (
               <WalletSidebarCard
                 className="mb-3"
@@ -459,14 +473,14 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
               />
             )}
 
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {sidebarSections.map((section, sectionIndex) => {
                 const sectionItemOffset = sidebarSections
                   .slice(0, sectionIndex)
                   .reduce((total, currentSection) => total + currentSection.items.length, 0);
 
                 return (
-                  <div key={section.key} className="space-y-1.5">
+                  <div key={section.key} className="space-y-1">
                     {isExpanded ? (
                       <div
                         className={cn(
@@ -485,7 +499,7 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
                     ) : (
                       sectionIndex > 0 && <div className="mx-auto my-2 h-px w-7 bg-[color:rgb(var(--color-border-rgb)/0.5)]" />
                     )}
-                    <div id={`sidebar-section-${section.key}`} className="space-y-1.5">
+                    <div id={`sidebar-section-${section.key}`} className="space-y-1">
                       {section.items.map((item, itemIndex) => renderNavItem(item, sectionItemOffset + itemIndex + 1))}
                     </div>
                   </div>
@@ -494,17 +508,6 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
             </div>
           </div>
 
-          <div className={cn('relative z-10 px-4 pb-5 pt-1', !isExpanded && 'px-3')}>
-            <button
-              type="button"
-              onClick={handleLogoutClick}
-              className={cn('kanz-sidebar-logout-pill w-full', !isExpanded && 'is-icon-only')}
-              aria-label={dir === 'rtl' ? 'تسجيل الخروج' : 'Logout'}
-            >
-              <LogOut className="h-5 w-5" />
-              {isExpanded && <span>{dir === 'rtl' ? 'تسجيل الخروج' : 'Logout'}</span>}
-            </button>
-          </div>
         </div>
       </motion.aside>
       <ConfirmDialog

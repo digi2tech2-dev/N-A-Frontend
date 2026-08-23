@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import apiClient from '../services/client';
 
+const dataProvider = (import.meta.env.VITE_DATA_PROVIDER || 'mock').toLowerCase();
+const isRealProvider = dataProvider === 'real';
 const AUTH_STORAGE_KEY = 'auth-storage';
 
 const hasArabicText = (value) => /[\u0600-\u06FF]/.test(String(value || ''));

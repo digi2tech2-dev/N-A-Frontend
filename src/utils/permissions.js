@@ -2,8 +2,6 @@ import { isAdminRole } from './authRoles';
 
 export const PERMISSIONS = {
   ADMIN_DASHBOARD: 'VIEW_ADMIN_DASHBOARD',
-  // The current backend exposes no read-only admin wallet API: every wallet
-  // list, detail, and transaction endpoint requires MANAGE_WALLET.
   ADMIN_WALLET: 'MANAGE_WALLET',
   MANAGE_WALLET: 'MANAGE_WALLET',
   ADMIN_USERS: 'VIEW_USERS',

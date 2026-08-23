@@ -112,6 +112,7 @@ const ProductSearch = ({ onClose, onSelectProduct }) => {
   };
 
   const openProduct = (product) => {
+    if (product?.storefrontStatus?.isPurchasable === false) return;
     rememberSearch(query || product?.displayName);
     onClose?.();
     onSelectProduct?.(product);
@@ -239,7 +240,8 @@ const ProductSearch = ({ onClose, onSelectProduct }) => {
                         key={product.id}
                         type="button"
                         onClick={() => openProduct(product)}
-                        className="product-search-result group flex min-w-0 items-center gap-3 rounded-2xl p-2.5 text-start"
+                        disabled={isUnavailable}
+                        className={`product-search-result group flex min-w-0 items-center gap-3 rounded-2xl p-2.5 text-start ${isUnavailable ? 'cursor-not-allowed' : ''}`}
                       >
                         <span className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-[color:rgb(var(--color-border-rgb)/0.56)] bg-[var(--color-elevated)]">
                           <img

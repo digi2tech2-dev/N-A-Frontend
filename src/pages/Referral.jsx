@@ -32,8 +32,8 @@ import Input from '../components/ui/Input';
 import { useToast } from '../components/ui/Toast';
 import { resolveUserAvatar } from '../utils/avatar';
 import apiClient from '../services/client';
+import { isReferralApiEnabled } from '../config/dataProvider';
 import referralHeroImage from '../assets/slide-3.webp';
-import { isReferralApiEnabled, isRealProvider } from '../config/dataProvider';
 
 const copyText = async (value) => {
   try {
@@ -53,7 +53,7 @@ const copyText = async (value) => {
 };
 
 const createSevenLetterCode = (value) => {
-  const source = String(value || 'NAHUB').trim().toUpperCase();
+  const source = String(value || 'KANZCOINS').trim().toUpperCase();
   const lettersOnly = source.replace(/[^A-Z]/g, '');
 
   if (lettersOnly.length === 7) return lettersOnly;
@@ -75,8 +75,8 @@ const createSevenLetterCode = (value) => {
 };
 
 const getPublicAppUrl = () => {
+  const configuredUrl = String(import.meta.env.VITE_PUBLIC_APP_URL || 'http://kanzcoins.com').trim();
   const currentOrigin = typeof window === 'undefined' ? '' : window.location.origin;
-  const configuredUrl = String(import.meta.env.VITE_PUBLIC_APP_URL || currentOrigin).trim();
   return (configuredUrl || currentOrigin).replace(/\/+$/, '');
 };
 

@@ -62,7 +62,7 @@ const BrandMark = ({
               titleClassName
             )}
           >
-            <span className="text-transparent bg-clip-text bg-[linear-gradient(105deg,#21d4fd_0%,#087dff_34%,#f4fbff_52%,#a855f7_72%,#d946ef_100%)]">
+            <span className="text-transparent bg-clip-text [background-image:var(--gradient-brand)]">
               N&amp;A
             </span>
             <span className="mx-1.5 text-[color:rgb(var(--color-text-secondary)/0.48)]">•</span>

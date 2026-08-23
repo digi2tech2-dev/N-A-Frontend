@@ -6,9 +6,9 @@ import useAuthStore from './useAuthStore';
 import useAdminStore from './useAdminStore';
 import useMediaStore from './useMediaStore';
 import { getManualOrderStatusLabel, isManualStatusEditableOrder, normalizeManualOrderStatus } from '../utils/orders';
-import { isRealProvider } from '../config/dataProvider';
-import { devLogger } from '../utils/devLogger';
 
+const dataProvider = (import.meta.env.VITE_DATA_PROVIDER || 'mock').toLowerCase();
+const isRealProvider = dataProvider === 'real';
 const fetchedOrderScopesThisSession = new Set();
 
 const ORDERS_CACHE_TTL = 15 * 1000; // short TTL to keep navigation smooth and reduce repeated fetches
@@ -324,7 +324,7 @@ const useOrderStore = create((set, get) => ({
             throw err;
           }
 
-          devLogger.errorUnlessBenign('[OrderStore] order submission failed:', err);
+          console.error('Order submission error details:', err, err?.response?.data);
           throw err;
         }
       },

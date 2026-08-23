@@ -14,6 +14,7 @@ const ConfirmDialog = ({
   onConfirm,
   onCancel,
   isLoading = false,
+  confirmVariant = 'danger',
   children
 }) => {
   useBodyScrollLock(open);
@@ -53,7 +54,7 @@ const ConfirmDialog = ({
                 <Button type="button" variant="outline" size="sm" onClick={onCancel} disabled={isLoading} className="h-8 min-w-20 rounded-lg px-3 text-xs">
                   {cancelLabel}
                 </Button>
-                <Button type="button" variant="danger" size="sm" onClick={onConfirm} disabled={isLoading} className="h-8 min-w-20 rounded-lg px-3 text-xs">
+                <Button type="button" variant={confirmVariant} size="sm" onClick={onConfirm} disabled={isLoading} className="h-8 min-w-20 rounded-lg px-3 text-xs">
                   {isLoading ? '...' : confirmLabel}
                 </Button>
               </div>

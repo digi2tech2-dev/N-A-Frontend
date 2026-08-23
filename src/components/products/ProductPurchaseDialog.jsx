@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import {
   Check,
   ClipboardList,
-  Coins,
   Copy,
   FileText,
   Hash,
@@ -44,7 +43,8 @@ import {
   resolveProductOrderFields,
   sanitizeOrderFieldValue,
 } from '../../utils/productPurchase';
-import { getWalletBalanceSummary, normalizeMoneyAmount } from '../../utils/money';
+import { getWalletBalanceSummary, multiplyRawPriceByQuantity, normalizeMoneyAmount } from '../../utils/money';
+import { getProductStatus } from '../../utils/productStatus';
 import { devLogger } from '../../utils/devLogger';
 import { useBodyScrollLock } from '../../utils/bodyScrollLock';
 import AddBalance from '../../pages/AddBalance';
@@ -93,6 +93,8 @@ const getCopy = (language = 'ar') => (
         backToPurchase: 'Back to purchase',
         loading: 'Loading product...',
         fallbackStatus: 'Processing',
+        usdEquivalent: 'USD equivalent',
+        platformRate: 'Platform rate',
       }
     : {
         available: 'متاح',
@@ -133,6 +135,8 @@ const getCopy = (language = 'ar') => (
         backToPurchase: 'العودة للشراء',
         loading: 'جاري تحميل المنتج...',
         fallbackStatus: 'قيد التنفيذ',
+        usdEquivalent: 'ما يعادله بالدولار',
+        platformRate: 'سعر تحويل المنصة',
       }
 );
 
@@ -229,10 +233,30 @@ const PurchaseFieldFrame = ({ icon: Icon, controlIcon: ControlIcon, label, child
   </div>
 );
 
-const PurchasePriceSummary = ({ title, quantity, unitPrice, total, copy }) => {
+const PurchasePriceValue = ({ primary, usdEquivalent = '', usdLabel = '' }) => (
+  <div className="purchase-dialog-price-summary__value" dir="ltr">
+    <strong>{primary}</strong>
+    {usdEquivalent ? (
+      <small>
+        <span dir="auto">{usdLabel}</span>
+        <b dir="ltr">{usdEquivalent}</b>
+      </small>
+    ) : null}
+  </div>
+);
+
+const PurchasePriceSummary = ({
+  title,
+  quantity,
+  total,
+  totalUsd = '',
+  conversionRate = '',
+  accountCurrencyCode = 'USD',
+  copy,
+}) => {
+  const showUsdEquivalent = accountCurrencyCode !== 'USD';
   const rows = [
     { label: copy.quantity, value: quantity, icon: Package },
-    { label: copy.unitPrice, value: unitPrice, icon: Coins },
   ];
 
   return (
@@ -246,11 +270,22 @@ const PurchasePriceSummary = ({ title, quantity, unitPrice, total, copy }) => {
         </span>
         <Check className="purchase-dialog-summary-check" />
       </div>
-      <div className="purchase-dialog-price-summary__content">
-        <div className="purchase-dialog-price-summary__heading">
-          <h3>{title}</h3>
-        </div>
-        <div className="purchase-dialog-price-summary__rows">
+        <div className="purchase-dialog-price-summary__content">
+          <div className="purchase-dialog-price-summary__heading">
+            <h3>{title}</h3>
+            {showUsdEquivalent ? (
+              <span className="purchase-dialog-price-summary__currency-pair" dir="ltr">
+                {accountCurrencyCode} ⇄ USD
+              </span>
+            ) : null}
+          </div>
+          {showUsdEquivalent ? (
+            <p className="purchase-dialog-price-summary__rate">
+              <span>{copy.platformRate}</span>
+              <strong dir="ltr">1 USD = {conversionRate}</strong>
+            </p>
+          ) : null}
+          <div className="purchase-dialog-price-summary__rows">
           {rows.map((row) => {
             const RowIcon = row.icon;
             return (
@@ -258,7 +293,13 @@ const PurchasePriceSummary = ({ title, quantity, unitPrice, total, copy }) => {
                 <span><RowIcon /></span>
                 <p>{row.label}</p>
                 <i aria-hidden="true" />
-                <strong dir="ltr">{row.value}</strong>
+                {row.usdEquivalent ? (
+                  <PurchasePriceValue
+                    primary={row.value}
+                    usdEquivalent={row.usdEquivalent}
+                    usdLabel={copy.usdEquivalent}
+                  />
+                ) : <strong dir="ltr">{row.value}</strong>}
               </div>
             );
           })}
@@ -266,7 +307,11 @@ const PurchasePriceSummary = ({ title, quantity, unitPrice, total, copy }) => {
             <span><WalletCards /></span>
             <p>{copy.total}</p>
             <i aria-hidden="true" />
-            <strong dir="ltr">{total}</strong>
+            <PurchasePriceValue
+              primary={total}
+              usdEquivalent={showUsdEquivalent ? totalUsd : ''}
+              usdLabel={copy.usdEquivalent}
+            />
           </div>
         </div>
       </div>
@@ -366,8 +411,17 @@ const ProductPurchaseDialog = ({
   const quantityInputRef = useRef(null);
   const mainFieldsRef = useRef(null);
   const hasFocusedQuantityRef = useRef(false);
+  const resolvedProductStatus = useMemo(
+    () => product?.storefrontStatus || (product ? getProductStatus(product, language) : null),
+    [language, product]
+  );
+  const isPurchasable = resolvedProductStatus?.isPurchasable !== false;
 
-  useBodyScrollLock(isOpen);
+  useBodyScrollLock(isOpen && isPurchasable);
+
+  useEffect(() => {
+    if (isOpen && product && !isPurchasable) onClose?.();
+  }, [isOpen, isPurchasable, onClose, product]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -471,15 +525,22 @@ const ProductPurchaseDialog = ({
   const quantity = parseQuantityInput(quantityInput);
   const safeQuantity = Number.isFinite(quantity) ? quantity : 0;
   const totalPrice = normalizeMoneyAmount(Number(unitPrice) * safeQuantity);
+  const totalPriceBase = multiplyRawPriceByQuantity(unitPriceBase, safeQuantity);
   const walletSummary = getWalletBalanceSummary(pricingUser);
   const walletBalance = walletSummary.walletBalance;
   const availableBalance = walletSummary.availableBalance;
   const locale = language === 'en' ? 'en-US' : 'ar-EG';
-  const formattedUnitPrice = formatCurrencyAmount(unitPrice, userCurrencyCode, currencies, locale);
   const formattedTotalPrice = formatCurrencyAmount(totalPrice, userCurrencyCode, currencies, locale, {
-    maximumFractionDigits: 1,
-    minimumFractionDigits: 0,
+    maximumFractionDigits: 4,
+    minimumFractionDigits: 4,
   });
+  const formattedTotalPriceUsd = formatCurrencyAmount(totalPriceBase, 'USD', currencies, locale);
+  const formattedPlatformRate = formatCurrencyAmount(
+    getCurrencyMeta(userCurrencyCode, currencies).rate,
+    userCurrencyCode,
+    currencies,
+    locale
+  );
   const balanceShortfall = normalizeMoneyAmount(Math.max(0, totalPrice - availableBalance));
   const formattedAvailableBalance = formatCurrencyAmount(availableBalance, userCurrencyCode, currencies, locale);
   const formattedBalanceShortfall = formatCurrencyAmount(balanceShortfall, userCurrencyCode, currencies, locale);
@@ -533,10 +594,9 @@ const ProductPurchaseDialog = ({
   const displayedAccountNumber = shouldShowAccountNumber
     ? (configuredAccountNumber || agentProductId)
     : '';
-  const isPurchasable = product?.storefrontStatus?.isPurchasable !== false;
   const statusLabel = isPurchasable
-    ? (product?.storefrontStatus?.label || product?.storefrontStatus?.badgeLabel || copy.available)
-    : (product?.storefrontStatus?.label || product?.storefrontStatus?.badgeLabel || copy.unavailable);
+    ? (resolvedProductStatus?.label || resolvedProductStatus?.badgeLabel || copy.available)
+    : (resolvedProductStatus?.label || resolvedProductStatus?.badgeLabel || copy.unavailable);
   const purchaseButtonLabel = isSubmitting
     ? copy.buying
     : (shouldRequireAuth && isPurchasable ? copy.loginToBuy : (isPurchasable ? copy.buyNow : statusLabel));
@@ -745,6 +805,8 @@ const ProductPurchaseDialog = ({
         productName: product.name,
         quantity,
         total: totalPrice,
+        chargedAmount: totalPrice,
+        usdAmount: totalPriceBase,
         playerId: hasPrimaryOrderField ? identifier : undefined,
         customInputs: normalizedFields,
         orderFields: normalizedFields,
@@ -761,8 +823,11 @@ const ProductPurchaseDialog = ({
         priceCoins: totalPrice,
         currencyCode: userCurrencyCode,
         exchangeRateAtExecution: getCurrencyMeta(userCurrencyCode, currencies).rate,
+        rateSnapshot: getCurrencyMeta(userCurrencyCode, currencies).rate,
         idempotencyKey: `${user?.id || 'user'}-${product.id}-${identifier || 'fields'}-${Date.now()}`,
-        preferLegacyOrderEndpoint: true,
+        // The authenticated endpoint recalculates the authoritative USD price
+        // from productId + quantity. Legacy remains an automatic fallback.
+        preferLegacyOrderEndpoint: false,
       };
 
       const result = await addOrder(payload);
@@ -855,7 +920,7 @@ const ProductPurchaseDialog = ({
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || (product && !isPurchasable)) return null;
 
   const displayNameAr = product?.nameAr || product?.displayName || product?.name || '';
   const displayNameEn = product?.name || product?.nameAr || '';
@@ -1155,6 +1220,17 @@ const ProductPurchaseDialog = ({
               />
             </PurchaseFieldFrame>
 
+            <small className="purchase-dialog-quantity-limits">
+              <span>
+                {copy.minQuantity}
+                <strong dir="ltr">{formatCount(quantityMeta.minQty)}</strong>
+              </span>
+              <span>
+                {copy.maxQuantity}
+                <strong dir="ltr">{formatCount(quantityMeta.maxQty)}</strong>
+              </span>
+            </small>
+
             {hasPrimaryOrderField ? (
               <PurchaseFieldFrame
                 icon={primaryOrderFieldIcon}
@@ -1195,8 +1271,10 @@ const ProductPurchaseDialog = ({
             <PurchasePriceSummary
               title={copy.purchaseSummary}
               quantity={quantityInput ? formatCount(safeQuantity) : '---'}
-              unitPrice={formattedUnitPrice}
               total={formattedTotalPrice}
+              totalUsd={formattedTotalPriceUsd}
+              conversionRate={formattedPlatformRate}
+              accountCurrencyCode={userCurrencyCode}
               copy={copy}
             />
 

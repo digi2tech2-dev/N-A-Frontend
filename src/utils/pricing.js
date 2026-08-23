@@ -31,8 +31,9 @@ const toFinitePrice = (value) => {
  * (which it does for API users), we return that directly as a string.
  */
 export const calculateProductPrice = (product, userGroup = 'Normal', userGroupPercentage = null) => {
-  // Prefer server-computed finalPrice (already marked up with full precision)
-  const serverFinalPrice = product?.finalPrice ?? product?.markedUpPriceUSD;
+  // Prefer the explicitly USD-denominated server price. `finalPrice` remains
+  // a compatibility fallback for older API responses.
+  const serverFinalPrice = product?.markedUpPriceUSD ?? product?.finalPrice;
   if (serverFinalPrice != null && String(serverFinalPrice) !== '0' && String(serverFinalPrice) !== '') {
     return toRawPriceString(serverFinalPrice);
   }

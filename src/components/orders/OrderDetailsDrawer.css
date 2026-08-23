@@ -526,6 +526,202 @@
   }
 }
 
+/* The drawer is portalled outside the page, so its light palette lives here. */
+:root:not(.dark) .order-details-neon {
+  --color-bg-rgb: 241 245 249;
+  --color-surface-rgb: 248 250 252;
+  --color-card-rgb: 255 255 255;
+  --color-elevated-rgb: 241 245 249;
+  --color-border-rgb: 148 163 184;
+  --color-primary-rgb: 37 99 235;
+  --color-primary: #2563eb;
+  --color-text: #172033;
+  --color-text-secondary: #475569;
+  --color-muted: #64748b;
+  color: #172033;
+  background:
+    linear-gradient(155deg, #ffffff, #f8fafc) padding-box,
+    linear-gradient(135deg, #d8b4fe, #93c5fd 50%, #67e8f9) border-box !important;
+  box-shadow: 0 34px 90px -40px rgb(15 23 42 / 0.5), 0 0 34px -24px rgb(37 99 235 / 0.38) !important;
+}
+
+:root:not(.dark) .order-details-neon__backdrop {
+  background: rgb(15 23 42 / 0.44) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+:root:not(.dark) .order-details-neon__shell {
+  background:
+    radial-gradient(circle at 50% 0%, rgb(124 58 237 / 0.07), transparent 30%),
+    linear-gradient(180deg, #ffffff, #f8fafc);
+}
+
+:root:not(.dark) .order-details-neon__header {
+  border-color: #dbeafe !important;
+  background: linear-gradient(145deg, #ffffff, #eff6ff);
+  box-shadow: 0 12px 28px -25px rgb(37 99 235 / 0.42);
+}
+
+:root:not(.dark) .order-details-neon__brand {
+  background:
+    radial-gradient(circle at 38% 26%, rgb(255 255 255 / 0.9), transparent 38%) padding-box,
+    linear-gradient(145deg, #ffffff, #eef2ff) padding-box,
+    linear-gradient(135deg, #22d3ee, #2563eb 45%, #a855f7) border-box;
+  box-shadow: 0 12px 26px -18px rgb(37 99 235 / 0.68);
+}
+
+:root:not(.dark) .order-details-neon__brand img {
+  filter: drop-shadow(0 5px 10px rgb(37 99 235 / 0.2));
+}
+
+:root:not(.dark) .order-details-neon__kicker {
+  color: #6d28d9 !important;
+}
+
+:root:not(.dark) .order-details-neon__title {
+  color: #172033;
+  text-shadow: none;
+}
+
+:root:not(.dark) .order-details-neon__number {
+  border-color: #bfdbfe !important;
+  background: #eff6ff !important;
+  color: #1e3a8a !important;
+  box-shadow: none !important;
+}
+
+:root:not(.dark) .order-details-neon__status,
+:root:not(.dark) .order-details-neon__type {
+  border-color: #c4b5fd !important;
+  background: #f5f3ff !important;
+  color: #6d28d9 !important;
+  box-shadow: none;
+}
+
+:root:not(.dark) .order-details-neon__close {
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+  background: #ffffff !important;
+  box-shadow: 0 8px 18px -14px rgb(15 23 42 / 0.55) !important;
+}
+
+:root:not(.dark) .order-details-neon__product,
+:root:not(.dark) .order-details-neon__section,
+:root:not(.dark) .order-details-neon__complaint,
+:root:not(.dark) .order-details-neon__feedback {
+  border-color: #dbe4f0 !important;
+  background: #ffffff !important;
+  box-shadow: 0 14px 30px -26px rgb(15 23 42 / 0.4) !important;
+}
+
+:root:not(.dark) .order-details-neon__product-image {
+  border-color: #bfdbfe !important;
+  background: linear-gradient(145deg, #ffffff, #eff6ff) !important;
+  box-shadow: 0 10px 22px -17px rgb(37 99 235 / 0.55) !important;
+}
+
+:root:not(.dark) .order-details-neon__eyebrow,
+:root:not(.dark) .order-details-neon__tile-label {
+  color: #64748b !important;
+}
+
+:root:not(.dark) .order-details-neon__product-name,
+:root:not(.dark) .order-details-neon__tile-value,
+:root:not(.dark) .order-details-neon__section-heading p {
+  color: #172033 !important;
+  text-shadow: none;
+}
+
+:root:not(.dark) .order-details-neon__price {
+  border-color: #a7f3d0 !important;
+  background: #ecfdf5 !important;
+  color: #047857 !important;
+  box-shadow: none !important;
+}
+
+:root:not(.dark) .order-details-neon__tile {
+  border-color: #dbe4f0 !important;
+  background: #f8fafc !important;
+  box-shadow: none !important;
+}
+
+:root:not(.dark) .order-details-neon__tile:hover {
+  border-color: #93c5fd !important;
+  background: #eff6ff !important;
+  box-shadow: 0 12px 22px -20px rgb(37 99 235 / 0.45) !important;
+}
+
+:root:not(.dark) .order-details-neon__tile.is-warning {
+  border-color: #e9d5ff !important;
+  background: #faf5ff !important;
+}
+
+:root:not(.dark) .order-details-neon__tile-icon,
+:root:not(.dark) .order-details-neon__complaint-icon {
+  border-color: #bfdbfe !important;
+  color: #2563eb !important;
+  background: #eff6ff !important;
+  box-shadow: none !important;
+}
+
+:root:not(.dark) .order-details-neon__tile.is-warning .order-details-neon__tile-icon {
+  border-color: #e9d5ff !important;
+  color: #7e22ce !important;
+  background: #faf5ff !important;
+  box-shadow: none !important;
+}
+
+:root:not(.dark) .order-details-neon__tile-hint,
+:root:not(.dark) .order-details-neon__complaint p,
+:root:not(.dark) .order-details-neon__complaint-form > div:last-of-type {
+  color: #64748b !important;
+}
+
+:root:not(.dark) .order-details-neon__complaint p:first-child,
+:root:not(.dark) .order-details-neon__complaint label {
+  color: #172033 !important;
+}
+
+:root:not(.dark) .order-details-neon__complaint-open,
+:root:not(.dark) .order-details-neon__send {
+  border-color: #2563eb !important;
+  background: linear-gradient(110deg, #0284c7, #2563eb 52%, #7c3aed) !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 22px -15px rgb(37 99 235 / 0.7) !important;
+}
+
+:root:not(.dark) .order-details-neon__quick-message {
+  border-color: #dbe4f0 !important;
+  background: #f8fafc !important;
+  color: #475569 !important;
+}
+
+:root:not(.dark) .order-details-neon__quick-message:hover {
+  border-color: #93c5fd !important;
+  color: #1d4ed8 !important;
+  box-shadow: none;
+}
+
+:root:not(.dark) .order-details-neon__quick-message.is-active {
+  border-color: #60a5fa !important;
+  background: #dbeafe !important;
+  color: #1d4ed8 !important;
+  box-shadow: none;
+}
+
+:root:not(.dark) .order-details-neon__textarea {
+  border-color: #cbd5e1 !important;
+  background: #ffffff !important;
+  color: #172033 !important;
+  box-shadow: inset 0 1px 2px rgb(15 23 42 / 0.03);
+}
+
+:root:not(.dark) .order-details-neon__textarea:focus {
+  border-color: #60a5fa !important;
+  box-shadow: 0 0 0 3px rgb(59 130 246 / 0.14);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .order-details-neon *,
   .order-details-neon *::before,

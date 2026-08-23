@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CalendarRange, ChevronDown, ChevronLeft, ChevronRight, Filter, X } from 'lucide-react';
+import { CalendarRange, ChevronDown, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import Button, { cn } from '../ui/Button';
 
 const parseDateValue = (value) => {
@@ -338,41 +338,24 @@ const DashboardDateRangeFilter = ({
   );
 
   return (
-    <div ref={rootRef} className={cn('relative flex w-full flex-wrap items-stretch gap-2 sm:w-auto', className)}>
+    <div ref={rootRef} className={cn('relative inline-flex max-w-full', className)}>
       <button
         type="button"
         onClick={() => setIsOpen((current) => !current)}
         className={cn(
-          'inline-flex min-w-[220px] flex-1 items-center gap-2.5 rounded-[0.95rem] border border-[color:rgb(var(--color-border-rgb)/0.92)] bg-[color:rgb(var(--color-card-rgb)/0.96)] px-3.5 py-2 text-start shadow-[var(--shadow-subtle)] transition-all duration-200 hover:border-[color:rgb(var(--color-primary-rgb)/0.28)] hover:bg-[color:rgb(var(--color-primary-rgb)/0.06)] sm:flex-none',
+          'inline-flex h-8 max-w-full items-center gap-1.5 rounded-full border border-[color:rgb(var(--color-primary-rgb)/0.28)] bg-[color:rgb(var(--color-primary-rgb)/0.08)] px-2.5 text-start shadow-[0_8px_22px_-18px_rgb(var(--color-primary-rgb)/0.8)] transition-all duration-200 hover:border-[color:rgb(var(--color-primary-rgb)/0.48)] hover:bg-[color:rgb(var(--color-primary-rgb)/0.14)]',
           buttonClassName
         )}
         aria-expanded={isOpen}
+        aria-label={isArabic ? `فلترة التاريخ: ${triggerLabel}` : `Date filter: ${triggerLabel}`}
       >
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[0.8rem] border border-[color:rgb(var(--color-primary-rgb)/0.18)] bg-[color:rgb(var(--color-primary-rgb)/0.1)] text-[var(--color-primary)]">
-          <CalendarRange className="h-3.5 w-3.5" />
-        </div>
+        <CalendarRange className="h-3.5 w-3.5 shrink-0 text-[var(--color-primary)]" />
+        <span className="truncate text-[10px] font-bold text-[var(--color-text)] sm:text-[11px]">
+          {triggerLabel}
+        </span>
 
-        <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)]">
-            {isArabic ? 'التاريخ' : 'Date'}
-          </p>
-          <p className="truncate text-[13px] font-semibold text-[var(--color-text)]">
-            {triggerLabel}
-          </p>
-        </div>
-
-        <ChevronDown className={cn('h-3.5 w-3.5 shrink-0 text-[var(--color-text-secondary)] transition-transform duration-200', isOpen && 'rotate-180')} />
+        <ChevronDown className={cn('h-3 w-3 shrink-0 text-[var(--color-text-secondary)] transition-transform duration-200', isOpen && 'rotate-180')} />
       </button>
-
-      <Button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className="h-auto min-h-[3.25rem] shrink-0 rounded-[0.95rem] px-4"
-        aria-label={isArabic ? 'فتح فلترة التاريخ' : 'Open date filter'}
-      >
-        <Filter className="h-4 w-4" />
-        <span>{isArabic ? 'فلتره' : 'Filter'}</span>
-      </Button>
 
       {typeof document !== 'undefined' ? createPortal(popupContent, document.body) : null}
     </div>

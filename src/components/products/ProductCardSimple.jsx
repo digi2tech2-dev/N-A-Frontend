@@ -23,11 +23,12 @@ const ProductCardSimple = React.memo(({
     <button
       type="button"
       onClick={() => {
-        onOpen(product);
+        if (!isUnavailable) onOpen?.(product);
       }}
+      disabled={isUnavailable}
       className={cn(
         'storefront-product-card group relative isolate flex w-full origin-center select-none flex-col rounded-[1.25rem] p-2 text-start transition-all duration-200 ease-out hover:-translate-y-0.5',
-        isUnavailable && 'hover:translate-y-0'
+        isUnavailable && 'cursor-not-allowed hover:translate-y-0'
       )}
       aria-label={displayName}
     >

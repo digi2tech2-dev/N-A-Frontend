@@ -1,12 +1,10 @@
-# N&A HUB Frontend
+# Kanz Coins Frontend
 
-React/Vite web frontend and Capacitor Android remote-shell experience for N&A HUB. It provides the customer store, wallet and deposit flows, target orders, and administration panels. This document describes the current implementation in this repository; the source code and configuration files are the source of truth.
-
-> **Clone-migration note:** Some package metadata, browser-storage keys, mock fixtures, Barba transition symbols, referral fallback URLs, and WhatsApp fallbacks still contain former-product names. They are implementation leftovers, not N&A HUB branding or deployment configuration. Replace or migrate them deliberately; do not depend on inherited domains, phone numbers, keys, OAuth settings, or other third-party resources.
+React/Vite frontend for the Kanz Coins store, wallet, deposit, target-order, and administration panels. This document describes the current implementation in this repository; the source code and configuration files are the source of truth.
 
 ## Application Overview
 
-N&A HUB is a storefront and account portal for buying digital products and services with an internal wallet balance. The frontend supports:
+Kanz Coins is a storefront and account portal for buying digital products and services with an internal wallet balance. The frontend supports:
 
 - Public browsing of the catalog, About, contact, creator, auth, and account-state pages.
 - Customer registration, email-verification gating, login, Google OAuth callback handling, two-factor login, account settings, product purchases, wallet deposits, deposit history, order history, target requests, referral sharing, notifications, and WhatsApp contact actions.
@@ -14,21 +12,6 @@ N&A HUB is a storefront and account portal for buying digital products and servi
 - Supervisor-style roles (`supervisor`, `manager`, `moderator`) that can access selected admin pages only when their permission array allows it.
 
 The frontend can run against either an in-memory mock adapter or the real backend API. Mock mode is the default. Real mode expects a backend whose API routes are mounted under `/api`, with uploaded files served from `/uploads`.
-
-## Backend, Mobile, And Release Integration Status
-
-The repository contains the UI and adapter layer, but the inspected frontend/backend combination is **not release-ready** without resolving the gaps below. The full cross-project findings are in [`../PROJECT_INTEGRATION_AUDIT.md`](../PROJECT_INTEGRATION_AUDIT.md).
-
-- Set `VITE_DATA_PROVIDER=real` for every real integration build. An unset or unrecognized value selects the in-memory mock adapter, so a production-looking UI can otherwise run without backend persistence.
-- Set `VITE_API_BASE_URL` to the HTTPS backend URL ending in `/api`. This base URL is embedded at Vite build time and is also used to derive the `/uploads` origin.
-- The frontend attempts `POST /auth/refresh`, but that route was not present in the inspected backend. The current backend issues an access token only, so an expiry/401 can force logout rather than silently refreshing a session.
-- Backend notification endpoints exist, but the real frontend adapter does not yet implement inbox listing, unread counts, or read actions. It only wires the admin send operation.
-- The frontend sends target-request status updates, but the inspected backend did not expose matching pending-transition routes. The target approval/rejection lifecycle must be aligned before release.
-- The backend's Vodafone Cash SMS bridge (`POST /api/payment-events/vodafone-cash`) is an HMAC-protected server-to-server webhook. The browser must not call it or contain its signing secret; it can only reflect deposit status after the normal deposit APIs report it.
-- There is no Socket.IO or other realtime transport in the frontend. Notifications, order/deposit/target status, and wallet data update through requests, refreshes, and polling rather than push synchronization.
-- Android ships as a Capacitor shell loading `https://na-hub.online`, not the local `dist/` bundle. The site, backend CORS, OAuth redirects, uploaded-file URLs, and Android app-link host must all be deployed and compatible before an APK can function.
-
-Release blockers are therefore: real-adapter configuration, an agreed token lifecycle, notification integration, target-state contract alignment, deployment CORS/origin checks, and Android host/app-link readiness.
 
 ## Technology Stack
 
@@ -42,7 +25,6 @@ The package versions below come from `package.json`.
 | Styling | Tailwind CSS `^4.1.14`, `@tailwindcss/vite`, global CSS variables in `src/theme/tokens.css` |
 | State | Zustand `^5.0.11`; stores are manually persisted where needed |
 | API | Axios `^1.13.6`, real adapter in `src/services/realApi.js`, mock adapter in `src/services/mockApi.js` |
-| Android shell | Capacitor `^8.5.0` with App, Browser, Camera, Geolocation, Local/Push Notifications, and Status Bar plugins |
 | Localization | i18next `^25.8.14`, react-i18next `^16.5.6`, i18next browser detector |
 | Animation | Framer Motion `^12.35.0`, Barba installed but not part of the main route setup |
 | Icons | `lucide-react` `^0.546.0` |
@@ -58,8 +40,6 @@ Generated folders such as `node_modules` and `dist` are intentionally omitted.
 ```text
 .
 |-- .env.example                  # Safe example variables for local/mock/real modes
-|-- capacitor.config.ts           # N&A HUB Android remote-shell configuration
-|-- CAPACITOR_ANDROID.md          # Android build, signing, app-link, and release notes
 |-- index.html                    # Root HTML, boot loader, default RTL/dark classes, favicon links
 |-- package.json                  # Scripts and dependency versions
 |-- package-lock.json             # npm lockfile
@@ -67,11 +47,7 @@ Generated folders such as `node_modules` and `dist` are intentionally omitted.
 |   |-- _redirects                # Netlify-style SPA fallback: /* /index.html 200
 |   `-- favicon/app icon files
 |-- scripts/
-|   |-- android-gradle.mjs        # Runs Gradle assemble tasks for debug/release APKs
-|   |-- generate-android-icons.mjs # Generates Android launcher/notification icons
 |   `-- generate-favicons.mjs     # Generates favicon assets from src/assets/logo.PNG
-|-- capacitor-shell/              # Minimal offline fallback; not the React production bundle
-|-- android/                      # Capacitor-generated native Android project and app-link example
 |-- src/
 |   |-- main.jsx                  # React entry point, i18n import, volatile cleanup, extension-error suppression
 |   |-- App.jsx                   # Providers, session bootstrap, route tree, guards, redirects
@@ -86,7 +62,6 @@ Generated folders such as `node_modules` and `dist` are intentionally omitted.
 |   |   |-- ar/common.json        # Arabic translations
 |   |   `-- en/common.json        # English translations
 |   |-- pages/                    # Customer/public pages and admin pages
-|   |-- native/capacitorBridge.js # Native back-navigation and Capacitor integrations
 |   |-- services/
 |   |   |-- client.js             # Provider-selecting API facade
 |   |   |-- mockApi.js            # In-memory mock implementation
@@ -118,7 +93,7 @@ Startup begins in `src/main.jsx`.
 
 `src/App.jsx` sets up the app shell:
 
-- `ThemeProvider` reads/writes the legacy `localStorage["kanz-coins-theme"]` key and applies `.dark` plus `data-theme`.
+- `ThemeProvider` reads/writes `localStorage["kanz-coins-theme"]` and applies `.dark` plus `data-theme`.
 - `LanguageProvider` synchronizes i18next, `document.documentElement.lang`, and `dir`.
 - `ToastProvider` provides toast notifications.
 - `SessionBootstrap` restores and refreshes authenticated state, loads initial products/settings, refreshes profile on focus/visibility/online/interval, and listens for forced logout events.
@@ -189,16 +164,14 @@ To clear persisted frontend state in the browser, remove these keys as needed:
 - `kanz-coins:groups-cache:v1`
 - referral-related localStorage keys documented in the referral section
 
-The `kanz-coins-*` names above are legacy storage-key identifiers retained for backward compatibility. They are not the N&A HUB product name.
-
 ## Environment Variables
 
 Vite only exposes variables prefixed with `VITE_` to browser code through `import.meta.env`. Anything prefixed with `VITE_` is public and can be inspected in the browser bundle. Do not place private API keys or secrets in frontend variables.
 
 | Variable | Required | Default in code | Feature | Example | Notes/security |
 | --- | --- | --- | --- | --- | --- |
-| `VITE_DATA_PROVIDER` | Required for real/release builds | `mock` | Selects API provider | `real` | Only `real` enables the Axios adapter. Any other value behaves like mock mode. |
-| `VITE_API_BASE_URL` | Required for real/release builds | `http://localhost:5000/api` | Backend API base URL and upload origin resolution | `https://api.example.com/api` | Include `/api` for this backend. `src/utils/imageUrl.js` strips a trailing `/api` to resolve `/uploads`; use HTTPS in release builds. |
+| `VITE_DATA_PROVIDER` | Optional | `mock` | Selects API provider | `mock` or `real` | Only `real` enables the Axios adapter. Any other value behaves like mock mode. |
+| `VITE_API_BASE_URL` | Required for real mode | `http://localhost:5000/api` | Backend API base URL and upload origin resolution | `https://api.example.com/api` | Include `/api` for this backend. `src/utils/imageUrl.js` strips a trailing `/api` to resolve `/uploads`. |
 | `VITE_PUBLIC_APP_URL` | Optional | hardcoded public-site fallback in source | Referral share links | `https://app.example.com` | Public URL only. Prefer setting this explicitly. |
 | `VITE_SITE_URL` | Optional | none | SEO canonical URL | `https://app.example.com` | Used before `VITE_PUBLIC_SITE_URL`. |
 | `VITE_PUBLIC_SITE_URL` | Optional | none | SEO canonical URL fallback | `https://app.example.com` | Public URL only. |
@@ -216,12 +189,6 @@ Vite only exposes variables prefixed with `VITE_` to browser code through `impor
 | `npm run dev` | `vite --port=3000 --host=0.0.0.0` | Starts the development server on port 3000 and listens on all interfaces. |
 | `npm run build` | `vite build` | Creates the production static build in `dist/`. |
 | `npm run preview` | `vite preview` | Serves the already-built `dist/` output with Vite preview. |
-| `npm run cap:add:android` | `cap add android` | Creates the Capacitor Android project when it is not already present. Do not run it over a customized native project without reviewing the result. |
-| `npm run cap:sync` | `cap sync android` | Synchronizes Capacitor configuration and the small fallback shell to Android. It does **not** copy the React build because this app loads a remote site. |
-| `npm run cap:open` | `cap open android` | Opens the Android project in Android Studio. |
-| `npm run android:apk:debug` | `node scripts/android-gradle.mjs assembleDebug` | Builds the debug APK through the Android Gradle wrapper. |
-| `npm run android:apk:release` | `node scripts/android-gradle.mjs assembleRelease` | Builds the unsigned/locally signed release variant according to the native Gradle signing configuration. |
-| `npm run generate:android-icons` | `node scripts/generate-android-icons.mjs` | Generates Android launcher and notification icon assets from the N&A HUB logo. |
 | `npm run generate:favicons` | `node scripts/generate-favicons.mjs` | Generates favicon and app icon assets from `src/assets/logo.PNG`; requires `sharp` and `to-ico`. |
 | `npm run clean` | `rm -rf dist` | Removes `dist` on Unix-like shells. This can fail in Windows PowerShell because `rm -rf` is not portable there. |
 | `npm run lint` | `tsc --noEmit` | Runs TypeScript checking only. There is no ESLint config or ESLint command in this repository. |
@@ -236,7 +203,6 @@ All routes are declared in `src/App.jsx`. Lazy route imports are registered in `
 
 | Path | Component | Access | Behavior |
 | --- | --- | --- | --- |
-| `/`, `/welcome`, `/onboarding` | `OnboardingRoute` | Public | Shows onboarding to signed-out users; signed-in users are sent to their account-state/default role route. |
 | `/auth` | `Auth` | Public | Login/signup page. Query `mode=signup` starts registration. |
 | `/login` | `Auth` | Public | Login alias. |
 | `/email-verified` | `EmailVerified` | Public | Email-verification result page after backend redirect. |
@@ -248,9 +214,10 @@ All routes are declared in `src/App.jsx`. Lazy route imports are registered in `
 
 | Path | Redirect |
 | --- | --- |
+| `/` | `/login` |
 | `/account-pending` | `/auth/account-pending` |
 | `/account-rejected` | `/auth/account-rejected` |
-| `*` | `/login` |
+| `*` | `/` |
 
 ### Shared Authenticated Routes
 
@@ -507,7 +474,6 @@ The frontend references these endpoint groups in real mode. Paths below are rela
 | Orders | Product purchase, order history, admin orders | `/orders`, `/me/orders`, `/me/orders/:id`, `/orders/:id`, `/orders/my/:id`, `/admin/orders`, `/admin/orders/:id`, `/admin/orders/:id/status`, `/admin/orders/:id/sync-status` | Authenticated/admin |
 | Wallet | Dashboard/wallet/admin wallet | `/wallet/stats`, `/wallet/transactions`, `/admin/wallets`, `/admin/wallets/:userId`, `/admin/wallets/:userId/transactions`, `/admin/wallets/:userId/add`, `/admin/wallets/:userId/deduct`, `/admin/wallets/:userId/set` | Authenticated/admin |
 | Deposits/top-ups | Add balance, payment details, top-up history, admin payments | `/me/deposits`, `/me/deposits/:id`, `/admin/deposits`, `/admin/deposits/:id`, `/admin/deposits/:id/approve`, `/admin/deposits/:id/reject`, `/admin/deposits/:id/review`, `/admin/deposits/:id` | Authenticated/admin |
-| Vodafone Cash SMS events | Backend payment-event bridge | `POST /payment-events/vodafone-cash` | **Server-to-server HMAC webhook only; not called by the frontend** |
 | Payment methods/settings | Add balance, payment details, admin settings | `/settings/payment`, `/admin/settings`, `/admin/settings/:key` | Public/auth/admin depending backend |
 | Notifications | Notification store, admin send | `/me/notifications`, `/me/notifications/unread-count`, `/me/notifications/:id/read`, `/me/notifications/read-all`, `/admin/notifications`, `/admin/notifications/send` | Authenticated/admin |
 | Target apps/orders | Buy Target, target history, admin target requests | `/me/targets/apps`, `/me/targets`, `/admin/target-apps`, `/admin/target-apps/:id`, `/admin/targets`, `/admin/targets/:id/approve`, `/admin/targets/:id/reject`, `/admin/targets/:id/status` | Authenticated/admin |
@@ -753,23 +719,6 @@ location / {
 }
 ```
 
-## Capacitor Android Delivery
-
-The Android app identifier is `online.nahub.app`, and the displayed app name is `𝑵&𝑨(HUB)`. `capacitor.config.ts` deliberately uses `capacitor-shell/` as `webDir`; it contains only a minimal fallback page. The React/Vite application is **not packaged into the APK**.
-
-At runtime, Android loads `https://na-hub.online` over HTTPS with mixed content disabled. That makes the deployed website a runtime dependency of every installed APK:
-
-- Deploy the web application and verify its SPA fallback before creating an APK.
-- Keep `https://na-hub.online` reachable with a valid certificate. Do not use a localhost or HTTP URL for release builds.
-- Allow the Android app's web origin in backend CORS where required, and verify API calls, OAuth redirect/query-token handling, uploads, and WhatsApp/external links on a physical device.
-- `npm run cap:sync` copies the Capacitor configuration and fallback shell. It does not replace the remote website with `dist/`.
-- The native project enables its own React Router back-navigation bridge in `src/native/capacitorBridge.js`; test Android back behavior after changing routes.
-- Android App Links require publishing `android/app-links/assetlinks.json.example` at `https://na-hub.online/.well-known/assetlinks.json` after replacing the certificate SHA-256 placeholder with the release signing certificate fingerprint.
-- Firebase `google-services.json` is not included. Push notifications cannot be considered enabled until Firebase is configured and device registration/permission flows are implemented and tested.
-- Native Android settings currently use debug Capacitor logging and no release minification. Treat both as release-hardening items and review them before distribution.
-
-Detailed Android setup, signing, and asset-link instructions are in [`CAPACITOR_ANDROID.md`](CAPACITOR_ANDROID.md).
-
 ## Error Handling And User Feedback
 
 - `ToastProvider` and `useToast` power success/error/info feedback.
@@ -812,9 +761,6 @@ Do not assume tests exist or pass unless a script is added and run.
 | Missing translations | Add keys to both `src/locales/ar/common.json` and `src/locales/en/common.json`; the app falls back to Arabic/legacy translations. |
 | Role/permission redirects | Check normalized role, account status, and `user.permissions`. Admins bypass permissions; supervisors do not. |
 | Google OAuth callback issues | Confirm backend Google config, frontend callback URL, and that the backend redirects back to this frontend with expected query parameters. |
-| Android opens an offline/error screen | Confirm `https://na-hub.online` is online with a valid HTTPS certificate; the APK is a remote shell and does not contain `dist/`. |
-| Android API requests fail but browser requests work | Check backend CORS/origin policy, the device network, HTTPS certificate chain, and the deployed `VITE_API_BASE_URL` embedded in the remote site build. |
-| Android deep links open the browser | Publish the real `assetlinks.json` at `/.well-known/assetlinks.json` using the release certificate SHA-256 fingerprint, then reinstall/verify the app link. |
 
 ## Security And Privacy Notes
 
@@ -828,7 +774,6 @@ Do not assume tests exist or pass unless a script is added and run.
 - The repository contains hardcoded WhatsApp phone/link values and a WhatsApp group invite; review and replace with environment/config-driven public support links before production.
 - Detailed API errors are logged in some catch blocks. Avoid logging sensitive request/response data in production.
 - Run dependency audits as part of deployment; no audit script is currently defined in `package.json`.
-- The Android app is a remote WebView shell. Its security and availability depend on the deployed site, TLS configuration, backend CORS, and the native app-link/signing setup in addition to the APK itself.
 
 ## Current Limitations And Risks
 
@@ -838,9 +783,6 @@ Do not assume tests exist or pass unless a script is added and run.
 - `/admin/wallet` route guard uses `VIEW_WALLET`, while backend wallet admin routes require `MANAGE_WALLET`.
 - `PERMISSIONS.ADMIN_SUPERVISORS` is referenced but not defined, weakening supervisor-management route protection.
 - Referral pages currently rely on browser localStorage/demo data rather than confirmed backend integration.
-- Some legacy clone identifiers remain in package metadata, storage keys, mock data, referral defaults, and transition utilities. Audit and migrate them before treating the product identity or external integrations as complete.
-- No realtime transport is implemented, so wallet, order, deposit, target, and notification changes rely on manual refreshes/polling rather than server push.
-- The Android APK depends on the remote `https://na-hub.online` deployment; App Links still require a real certificate fingerprint, and push notifications require Firebase configuration and end-to-end testing.
 - `APP_URL`, `VITE_APP_MODE`, and non-Vite `ADMIN_WHATSAPP_NUMBER` are stale or ineffective for browser code.
 - The `clean` script is Unix-specific.
 - There is no frontend test script, ESLint script, or Prettier script.

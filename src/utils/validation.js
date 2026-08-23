@@ -7,19 +7,19 @@ export const validateUsername = (username) => {
 };
 
 export const validateEmail = (email) => {
-  if (!email) return 'البريد الإلكتروني مطلوب';
+  if (!email) return 'اكتب البريد الإلكتروني.';
   // Simple regex for email validation
   const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!re.test(email)) return 'البريد الإلكتروني غير صالح';
+  if (!re.test(email)) return 'البريد غير صحيح. اكتبه مثل name@example.com.';
   return null;
 };
 
 export const validatePassword = (password) => {
-  if (!password) return 'كلمة المرور مطلوبة';
-  if (password.length < 8) return 'كلمة المرور يجب أن تكون 8 أحرف على الأقل';
-  if (!/[A-Z]/.test(password)) return 'كلمة المرور يجب أن تحتوي على حرف كبير واحد على الأقل';
-  if (!/[a-z]/.test(password)) return 'كلمة المرور يجب أن تحتوي على حرف صغير واحد على الأقل';
-  if (!/[0-9]/.test(password)) return 'كلمة المرور يجب أن تحتوي على رقم واحد على الأقل';
+  if (!password) return 'اكتب كلمة المرور.';
+  if (password.length < 8) return 'كلمة المرور قصيرة. اكتب 8 أحرف على الأقل.';
+  if (!/[A-Z]/.test(password)) return 'أضف حرفًا إنجليزيًا كبيرًا واحدًا على الأقل.';
+  if (!/[a-z]/.test(password)) return 'أضف حرفًا إنجليزيًا صغيرًا واحدًا على الأقل.';
+  if (!/[0-9]/.test(password)) return 'أضف رقمًا واحدًا على الأقل إلى كلمة المرور.';
   return null;
 };
 

@@ -5,11 +5,14 @@ import {
   AlertCircle,
   ArrowLeft,
   ArrowRight,
+  Check,
+  ChevronDown,
   Eye,
   EyeOff,
   Globe,
   Lock,
   Mail,
+  Search,
   TicketCheck,
   User,
 } from 'lucide-react';
@@ -29,7 +32,7 @@ import {
   validateFullName,
   validatePassword,
 } from '../utils/validation';
-import { COUNTRY_CATALOG } from '../data/countryCatalog';
+import { WORLD_CURRENCY_COUNTRIES } from '../data/worldCurrencyCatalog';
 import { getDefaultRouteForRole } from '../utils/authRoles';
 import { getAccountAccessRoute, normalizeAccountStatus } from '../utils/accountStatus';
 import {
@@ -70,8 +73,119 @@ const StepTwo = ({ children }) => (
   </motion.div>
 );
 
+const CountryFlag = ({ code, className = '' }) => (
+  <span
+    aria-hidden="true"
+    className={`fi fi-${String(code || '').toLowerCase()} ${styles.countryFlag} ${className}`.trim()}
+  />
+);
+
+const CountrySelect = ({ dir, options, value, onChange }) => {
+  const rootRef = useRef(null);
+  const searchRef = useRef(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const selectedOption = options.find((item) => item.cca2 === value) || options[0] || null;
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  const filteredOptions = normalizedQuery
+    ? options.filter((item) => item.searchText.includes(normalizedQuery))
+    : options;
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const handleOutsideClick = (event) => {
+      if (!rootRef.current?.contains(event.target)) setIsOpen(false);
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setIsOpen(false);
+    };
+
+    document.addEventListener('pointerdown', handleOutsideClick);
+    document.addEventListener('keydown', handleKeyDown);
+    const frame = window.requestAnimationFrame(() => searchRef.current?.focus());
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      document.removeEventListener('pointerdown', handleOutsideClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
+
+  const selectCountry = (nextCountry) => {
+    onChange(nextCountry);
+    setQuery('');
+    setIsOpen(false);
+  };
+
+  return (
+    <div ref={rootRef} className={styles.countrySelect} dir={dir}>
+      <button
+        type="button"
+        className={cn(styles.authSelect, styles.countrySelectButton, isOpen && styles.countrySelectButtonOpen)}
+        onClick={() => setIsOpen((current) => !current)}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+      >
+        <span className={styles.countrySelectValue}>
+          {selectedOption ? <CountryFlag code={selectedOption.cca2} /> : <Globe className="h-4 w-4" />}
+          <span className={styles.countrySelectName}>{selectedOption?.label || '-'}</span>
+        </span>
+        <ChevronDown className={cn('h-4 w-4 shrink-0 transition-transform', isOpen && 'rotate-180')} />
+      </button>
+
+      <AnimatePresence>
+        {isOpen ? (
+          <motion.div
+            initial={{ opacity: 0, y: -6, scale: 0.985 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.99 }}
+            transition={{ duration: 0.16, ease: 'easeOut' }}
+            className={styles.countryMenu}
+          >
+            <div className={styles.countrySearchWrap}>
+              <Search className={styles.countrySearchIcon} />
+              <input
+                ref={searchRef}
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={dir === 'rtl' ? 'ابحث عن دولة...' : 'Search countries...'}
+                className={styles.countrySearch}
+                autoComplete="off"
+              />
+            </div>
+            <div className={styles.countryOptions} role="listbox" aria-label={dir === 'rtl' ? 'قائمة الدول' : 'Country list'}>
+              {filteredOptions.map((item) => {
+                const isSelected = item.cca2 === value;
+                return (
+                  <button
+                    key={item.cca2}
+                    type="button"
+                    role="option"
+                    aria-selected={isSelected}
+                    className={cn(styles.countryOption, isSelected && styles.countryOptionSelected)}
+                    onClick={() => selectCountry(item.cca2)}
+                  >
+                    <CountryFlag code={item.cca2} />
+                    <span className={styles.countryOptionName}>{item.label}</span>
+                    <span className={styles.countryCode}>{item.cca2}</span>
+                    {isSelected ? <Check className={styles.countryCheck} /> : null}
+                  </button>
+                );
+              })}
+              {!filteredOptions.length ? (
+                <p className={styles.countryEmpty}>{dir === 'rtl' ? 'لا توجد دولة مطابقة' : 'No matching country'}</p>
+              ) : null}
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </div>
+  );
+};
+
 const Auth = () => {
-  const fallbackCountries = useMemo(() => COUNTRY_CATALOG, []);
   const navigate = useNavigate();
   const location = useLocation();
   const oauthHandledRef = useRef(false);
@@ -104,7 +218,6 @@ const Auth = () => {
   const [country, setCountry] = useState('US');
   const [currency, setCurrency] = useState('USD');
   const [referralCode, setReferralCode] = useState(() => readReferralCodeFromSearch(location.search) || readReferralBridge());
-  const [countries] = useState(COUNTRY_CATALOG);
   const [errors, setErrors] = useState({});
   const [forgotModalOpen, setForgotModalOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
@@ -123,15 +236,22 @@ const Auth = () => {
       : (new URLSearchParams(window.location.search).get('completionToken') || '')
   ));
 
-const countryOptions = useMemo(() => {
-    const source = countries.length ? countries : fallbackCountries;
-    return [...source].sort((a, b) => (a?.name?.common || '').localeCompare(b?.name?.common || ''));
-  }, [countries, fallbackCountries]);
-
-  const selectedCountry = useMemo(
-    () => countryOptions.find((item) => item.cca2 === country) || countryOptions[0],
-    [countryOptions, country]
-  );
+  const countryOptions = useMemo(() => (
+    WORLD_CURRENCY_COUNTRIES
+      .map((item) => {
+        const label = dir === 'rtl' ? item.countryNameAr : item.countryNameEn;
+        return {
+          cca2: item.countryCode,
+          label,
+          currencyCodes: (item.currencies || []).map((currencyItem) => currencyItem.code),
+          searchText: [item.countryNameAr, item.countryNameEn, item.countryCode]
+            .filter(Boolean)
+            .join(' ')
+            .toLocaleLowerCase(),
+        };
+      })
+      .sort((left, right) => left.label.localeCompare(right.label, dir === 'rtl' ? 'ar' : 'en'))
+  ), [dir]);
 
   const availableCurrencyOptions = useMemo(() => {
     const list = Array.isArray(systemCurrencies) ? systemCurrencies : [];
@@ -150,6 +270,18 @@ const countryOptions = useMemo(() => {
 
     return normalized;
   }, [systemCurrencies]);
+
+  const handleCountryChange = (nextCountryCode) => {
+    const normalizedCode = String(nextCountryCode || '').toUpperCase();
+    const nextCountry = countryOptions.find((item) => item.cca2 === normalizedCode);
+    setCountry(normalizedCode);
+    setErrors((current) => ({ ...current, country: null }));
+
+    const matchingCurrency = nextCountry?.currencyCodes?.find((currencyCode) => (
+      availableCurrencyOptions.some((item) => item.code === currencyCode)
+    ));
+    if (matchingCurrency) setCurrency(matchingCurrency);
+  };
 
   useEffect(() => {
     loadCurrencies();
@@ -287,7 +419,9 @@ const countryOptions = useMemo(() => {
   const validateForm = () => {
     const nextErrors = {};
     const emailError = validateEmail(email);
-    const passwordError = validatePassword(password);
+    const passwordError = isLogin
+      ? (!password ? 'اكتب كلمة المرور.' : null)
+      : validatePassword(password);
 
     if (emailError) nextErrors.email = emailError;
     if (passwordError) nextErrors.password = passwordError;
@@ -373,8 +507,8 @@ const countryOptions = useMemo(() => {
       if (result.status === 'verification_required') {
         addToast(
           mode === 'signup'
-            ? 'أرسلنا رابط تأكيد إلى بريدك الإلكتروني. افتح الرسالة واضغط رابط التفعيل أولاً.'
-            : 'البريد غير مؤكد: افتح رابط التفعيل المرسل إلى بريدك ثم سجّل الدخول.',
+            ? 'أرسلنا كودًا من 4 أرقام إلى بريدك الإلكتروني. أدخله لتفعيل الحساب.'
+            : 'بريدك الإلكتروني غير مؤكد. أدخل الكود المرسل إلى بريدك لإكمال الدخول.',
           'warning'
         );
       } else if (result.status === 'legacy_pending') {
@@ -828,20 +962,12 @@ const countryOptions = useMemo(() => {
                       <label className="mb-1.5 block text-sm font-medium text-[var(--color-text-secondary)]">
                         {t('auth.country')}
                       </label>
-                      <div className="relative">
-                        <select
-                          value={country}
-                          onChange={(event) => setCountry(event.target.value)}
-                          className={cn(authSelectClassName, styles.authSelect, dir === 'rtl' ? 'pr-10' : 'pl-10')}
-                        >
-                          {countryOptions.map((item) => (
-                            <option key={item.cca2} value={item.cca2}>
-                              {item.name?.common || item.cca2}
-                            </option>
-                          ))}
-                        </select>
-                        <Globe className={`pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-muted)] ${dir === 'rtl' ? 'right-3' : 'left-3'}`} />
-                      </div>
+                      <CountrySelect
+                        dir={dir}
+                        options={countryOptions}
+                        value={country}
+                        onChange={handleCountryChange}
+                      />
                       {errors.country && <p role="alert" className="mt-2 flex items-center gap-1.5 rounded-lg border border-rose-400/25 bg-rose-500/[0.07] px-2.5 py-2 text-xs font-semibold text-rose-700 dark:text-rose-300"><AlertCircle className="h-3.5 w-3.5 shrink-0" />{errors.country}</p>}
                     </div>
 

@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { mockProducts, mockCategories } from '../data/mockData';
 import apiClient from '../services/client';
-import { isRealProvider } from '../config/dataProvider';
 
+const dataProvider = (import.meta.env.VITE_DATA_PROVIDER || 'mock').toLowerCase();
+const isRealProvider = dataProvider === 'real';
 
 const CATEGORIES_CACHE_KEY = 'kanz-coins:categories-cache:v1';
 const LEGACY_PRODUCT_CACHE_KEYS = [

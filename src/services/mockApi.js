@@ -8,7 +8,7 @@ import {
   mockCurrencies,
   mockSuppliers
 } from '../data/mockData';
-import { normalizeAccountStatus, normalizeSignupMethod } from '../utils/accountStatus';
+import { isVerificationRequiredStatus, normalizeAccountStatus, normalizeSignupMethod } from '../utils/accountStatus';
 import { getWalletBalanceSummary, normalizeMoneyAmount } from '../utils/money';
 import { getDefaultWhatsAppNumber, normalizeWhatsAppNumber } from '../utils/whatsapp';
 import { createDefaultPaymentGroups, normalizePaymentGroups } from '../utils/paymentSettings';
@@ -819,11 +819,47 @@ const mockApi = {
 
     resendVerification: async (email) => {
       await new Promise(resolve => setTimeout(resolve, DELAY));
+      const normalizedEmail = String(email || '').trim().toLowerCase();
+      if (normalizedEmail && typeof window !== 'undefined') {
+        window.sessionStorage.setItem(`mock-email-verification:${normalizedEmail}`, '1234');
+      }
       return {
         success: true,
         message: email
-          ? 'If that email exists, a verification link has been sent.'
+          ? 'If that email exists, a 4-digit verification code has been sent.'
           : 'Email is required.',
+      };
+    },
+
+    verifyEmailCode: async ({ email, code } = {}) => {
+      await new Promise(resolve => setTimeout(resolve, DELAY));
+      const normalizedEmail = String(email || '').trim().toLowerCase();
+      const normalizedCode = String(code || '').replace(/\D/g, '').slice(0, 4);
+      const storedCode = typeof window !== 'undefined'
+        ? window.sessionStorage.getItem(`mock-email-verification:${normalizedEmail}`)
+        : null;
+
+      if (!normalizedEmail) throw new Error('Email is required.');
+      if (normalizedCode !== (storedCode || '1234')) {
+        throw new Error('Invalid verification code');
+      }
+
+      const db = getDB('admin-storage', { state: { users: mockUsers } });
+      const users = db.state.users || mockUsers;
+      const user = users.find((entry) => String(entry.email || '').trim().toLowerCase() === normalizedEmail);
+      if (user) {
+        user.verified = true;
+        if (isVerificationRequiredStatus(user.status)) user.status = 'pending';
+        saveDB('admin-storage', db);
+      }
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.removeItem(`mock-email-verification:${normalizedEmail}`);
+      }
+
+      return {
+        success: true,
+        message: 'Email verified successfully.',
+        user: user ? sanitizeUser(user) : null,
       };
     },
     
@@ -879,11 +915,6 @@ const mockApi = {
       await new Promise(resolve => setTimeout(resolve, Math.min(DELAY, 250)));
       clearAuthLocalStorage();
       return { success: true };
-    },
-
-    refreshSession: async () => {
-      await new Promise(resolve => setTimeout(resolve, 50));
-      return { token: 'mock-jwt-token-12345' };
     }
   },
 

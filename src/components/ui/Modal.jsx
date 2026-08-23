@@ -13,7 +13,17 @@ const sizeClassNames = {
   xl: 'max-w-4xl',
 };
 
-const Modal = ({ isOpen, onClose, title, children, footer, size = 'md', className: modalClassName, placement = 'center' }) => {
+const Modal = ({
+  isOpen,
+  onClose,
+  title,
+  children,
+  footer,
+  size = 'md',
+  className: modalClassName,
+  placement = 'center',
+  dismissible = true,
+}) => {
   const backdropZ = modalClassName || 'z-[220]';
   const isCentered = placement === 'center';
   useBodyScrollLock(isOpen);
@@ -26,7 +36,7 @@ const Modal = ({ isOpen, onClose, title, children, footer, size = 'md', classNam
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={dismissible ? onClose : undefined}
             className={cn('fixed inset-0 bg-black/70 backdrop-blur-sm', backdropZ)}
           />
           <div className={cn(
@@ -42,14 +52,18 @@ const Modal = ({ isOpen, onClose, title, children, footer, size = 'md', classNam
                 'premium-card-premium pointer-events-auto flex max-h-[92vh] w-full flex-col overflow-hidden rounded-[1.6rem] sm:max-h-[90vh] sm:rounded-[var(--radius-2xl)]',
                 sizeClassNames[size] || sizeClassNames.md
               )}
+              role="dialog"
+              aria-modal="true"
             >
               <div className="flex items-center justify-between gap-3 border-b border-[color:rgb(var(--color-border-rgb)/0.9)] px-4 py-4 sm:p-6">
                 <h3 className="min-w-0 text-base font-semibold text-[var(--color-text)] sm:text-lg">
                   {title}
                 </h3>
-                <Button variant="ghost" size="icon" onClick={onClose}>
-                  <X className="h-5 w-5" />
-                </Button>
+                {dismissible && (
+                  <Button variant="ghost" size="icon" onClick={onClose} aria-label="إغلاق">
+                    <X className="h-5 w-5" />
+                  </Button>
+                )}
               </div>
 
               <div className="overflow-y-auto px-4 py-4 sm:p-6">

@@ -2,11 +2,11 @@ import i18n from '../i18n';
 
 const COPY = {
   loginGeneric: {
-    ar: 'تعذر تسجيل الدخول: تأكد من بيانات الحساب ثم حاول مرة أخرى.',
+    ar: 'لم نتمكن من تسجيل الدخول. راجع البريد الإلكتروني وكلمة المرور ثم حاول مرة أخرى.',
     en: 'Could not sign in. Check your account details and try again.',
   },
   registerGeneric: {
-    ar: 'تعذر إنشاء الحساب: راجع البيانات المطلوبة ثم حاول مرة أخرى.',
+    ar: 'لم نتمكن من إنشاء الحساب. راجع البيانات المكتوبة ثم حاول مرة أخرى.',
     en: 'Could not create the account. Review the required details and try again.',
   },
   googleGeneric: {
@@ -14,11 +14,11 @@ const COPY = {
     en: 'Could not sign in with Google. Try again or use email and password.',
   },
   invalidCredentials: {
-    ar: 'بيانات الدخول غير صحيحة: راجع البريد الإلكتروني وكلمة المرور ثم حاول مرة أخرى.',
+    ar: 'البريد الإلكتروني أو كلمة المرور غير صحيحة. راجعهما ثم حاول مرة أخرى.',
     en: 'The sign-in details are incorrect. Check your email and password, then try again.',
   },
   accountNotFound: {
-    ar: 'الأكونت غير مسجل: تأكد من البريد أو أنشئ حسابًا جديدًا.',
+    ar: 'لا يوجد حساب مسجّل بهذا البريد الإلكتروني. تأكد من البريد أو أنشئ حسابًا جديدًا.',
     en: 'No account exists with this email. Check the address or create a new account.',
   },
   emailExists: {
@@ -42,8 +42,8 @@ const COPY = {
     en: 'Your account is under review. It was created successfully but needs admin approval before sign-in.',
   },
   verifyEmail: {
-    ar: 'البريد غير مؤكد: افتح رسالة التفعيل واضغط رابط التأكيد قبل تسجيل الدخول.',
-    en: 'Your email is not verified. Open the activation email and confirm it before signing in.',
+    ar: 'بريدك الإلكتروني لم يتم تأكيده بعد. أدخل كود التأكيد المرسل إلى بريدك لإكمال الدخول.',
+    en: 'Your email is not verified yet. Enter the verification code sent to your email to continue.',
   },
   accountRejected: {
     ar: 'لا يمكن الدخول بهذا الحساب: الحساب مرفوض أو غير مفعّل، تواصل مع الدعم.',
@@ -54,11 +54,11 @@ const COPY = {
     en: 'Too many attempts in a short time. Wait a minute, then try again.',
   },
   network: {
-    ar: 'يجب التأكد من اتصالك بالـ WI-FI ثم حاول مرة أخرى.',
+    ar: 'لا يوجد اتصال بالخادم. تأكد من الإنترنت ثم حاول مرة أخرى.',
     en: 'Could not reach the server. Check your connection or backend, then try again.',
   },
   server: {
-    ar: 'الخادم لم يكمل طلب الدخول: حاول بعد قليل، وإذا استمرت المشكلة تواصل مع الدعم.',
+    ar: 'حدثت مشكلة مؤقتة في الخادم. انتظر قليلًا ثم حاول مرة أخرى.',
     en: 'The server could not complete sign-in. Try again later, or contact support if it continues.',
   },
   emailRequired: {
@@ -76,6 +76,42 @@ const COPY = {
   twoFactorExpired: {
     ar: 'انتهت صلاحية كود البريد الإلكتروني. سجّل الدخول مرة أخرى لإرسال كود جديد.',
     en: 'The email verification code has expired. Sign in again to send a new code.',
+  },
+  verificationGeneric: {
+    ar: 'لم نتمكن من تأكيد الكود. تأكد من الأرقام الأربعة ثم حاول مرة أخرى.',
+    en: 'We could not verify the code. Check the four digits and try again.',
+  },
+  resendCodeGeneric: {
+    ar: 'لم نتمكن من إرسال كود جديد الآن. انتظر قليلًا ثم حاول مرة أخرى.',
+    en: 'We could not send a new code right now. Wait a moment and try again.',
+  },
+  verificationServiceUnavailable: {
+    ar: 'خدمة تأكيد الكود غير مفعّلة على الخادم حاليًا. تواصل مع الدعم لتفعيل حسابك.',
+    en: 'Code verification is not enabled on the server yet. Contact support to activate your account.',
+  },
+  authServiceUnavailable: {
+    ar: 'خدمة تسجيل الدخول غير متاحة حاليًا. انتظر قليلًا ثم حاول مرة أخرى.',
+    en: 'The sign-in service is currently unavailable. Wait a moment and try again.',
+  },
+  verificationCodeRequired: {
+    ar: 'اكتب كود التأكيد المكوّن من 4 أرقام كاملًا.',
+    en: 'Enter the complete 4-digit verification code.',
+  },
+  verificationCodeInvalid: {
+    ar: 'كود التأكيد غير صحيح. استخدم أحدث كود وصلك ثم حاول مرة أخرى.',
+    en: 'The verification code is incorrect. Use the latest code you received and try again.',
+  },
+  verificationCodeExpired: {
+    ar: 'انتهت صلاحية كود التأكيد. اضغط «إرسال كود جديد» ثم استخدم الكود الجديد.',
+    en: 'The verification code expired. Request a new code, then use the new one.',
+  },
+  verificationCodeUsed: {
+    ar: 'تم استخدام هذا الكود من قبل. اطلب كودًا جديدًا لإكمال التأكيد.',
+    en: 'This code has already been used. Request a new code to continue.',
+  },
+  emailVerificationNotFound: {
+    ar: 'لم نجد طلب تأكيد لهذا البريد. تأكد من البريد ثم اطلب كودًا جديدًا.',
+    en: 'No verification request was found for this email. Check it and request a new code.',
   },
 };
 
@@ -124,7 +160,11 @@ export const formatAuthErrorMessage = (error, { action = 'login' } = {}) => {
     ? 'registerGeneric'
     : action === 'google'
       ? 'googleGeneric'
-      : 'loginGeneric';
+      : action === 'verifyCode'
+        ? 'verificationGeneric'
+        : action === 'resendCode'
+          ? 'resendCodeGeneric'
+          : 'loginGeneric';
 
   if (!raw && !status && !code) return pick(genericKey);
 
@@ -137,6 +177,27 @@ export const formatAuthErrorMessage = (error, { action = 'login' } = {}) => {
 
   if (status >= 500) {
     return pick('server');
+  }
+
+  if (
+    (action === 'verifyCode' || action === 'resendCode')
+    && (
+      status === 404
+      || includesAny(code, ['route_not_found', 'endpoint_not_found', 'not_implemented'])
+      || (includesAny(message, ['route', 'endpoint']) && includesAny(message, ['not found', 'not available', 'not implemented']))
+    )
+  ) {
+    return pick('verificationServiceUnavailable');
+  }
+
+  if (
+    status === 404
+    && (
+      includesAny(code, ['route_not_found', 'endpoint_not_found'])
+      || (includesAny(message, ['route', 'endpoint']) && message.includes('not found'))
+    )
+  ) {
+    return pick('authServiceUnavailable');
   }
 
   if (
@@ -157,6 +218,34 @@ export const formatAuthErrorMessage = (error, { action = 'login' } = {}) => {
     includesAny(message, ['2fa verification has expired', '2fa setup verification has expired', 'two-factor verification has expired', 'temporary token'])
   ) {
     return pick('twoFactorExpired');
+  }
+
+  if (
+    action === 'verifyCode'
+    && includesAny(message, ['code has expired', 'expired code', 'verification code expired', 'verification has expired', 'otp expired'])
+  ) {
+    return pick('verificationCodeExpired');
+  }
+
+  if (
+    action === 'verifyCode'
+    && includesAny(message, ['code already used', 'code has been used', 'already verified', 'otp already used'])
+  ) {
+    return pick('verificationCodeUsed');
+  }
+
+  if (
+    action === 'verifyCode'
+    && includesAny(message, ['invalid verification code', 'incorrect verification code', 'invalid code', 'wrong code', 'invalid otp', 'otp invalid'])
+  ) {
+    return pick('verificationCodeInvalid');
+  }
+
+  if (
+    action === 'verifyCode'
+    && includesAny(message, ['verification not found', 'verification request not found', 'no verification', 'email not found'])
+  ) {
+    return pick('emailVerificationNotFound');
   }
 
   if (
@@ -204,7 +293,16 @@ export const formatAuthErrorMessage = (error, { action = 'login' } = {}) => {
 
   if (message.includes('required')) {
     if (message.includes('email')) return pick('emailRequired');
+    if (action === 'verifyCode' && includesAny(message, ['code', 'otp', 'verification'])) return pick('verificationCodeRequired');
     if (message.includes('password')) return pick('passwordRequired');
+  }
+
+  if (action === 'verifyCode' && (status === 400 || status === 422)) {
+    return pick('verificationGeneric');
+  }
+
+  if (action === 'resendCode' && (status === 400 || status === 404 || status === 422)) {
+    return pick('resendCodeGeneric');
   }
 
   if (/request failed with status code \d+/i.test(raw)) {

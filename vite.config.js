@@ -1,5 +1,6 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
+import { readFileSync } from 'node:fs';
 import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import { fileURLToPath } from 'url';
@@ -7,6 +8,13 @@ import { dirname } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const versionManifestPath = path.resolve(__dirname, 'public/version.json');
+const versionManifest = JSON.parse(readFileSync(versionManifestPath, 'utf8'));
+const siteVersion = String(versionManifest?.version || '').trim();
+
+if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(siteVersion)) {
+  throw new Error(`Invalid website version in ${versionManifestPath}. Expected x.y.z.`);
+}
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
@@ -26,6 +34,7 @@ export default defineConfig(({ mode }) => {
     define: {
       'process.env.VITE_API_BASE_URL': JSON.stringify(env.VITE_API_BASE_URL),
       'process.env.VITE_APP_ENV': JSON.stringify(env.VITE_APP_ENV || mode),
+      'import.meta.env.VITE_SITE_VERSION': JSON.stringify(siteVersion),
     },
     resolve: {
       alias: {

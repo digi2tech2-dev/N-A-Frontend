@@ -19,6 +19,7 @@ import Input, { selectClassName } from '../../components/ui/Input';
 import ConfirmDialog from '../../components/account/ConfirmDialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
 import { useToast } from '../../components/ui/Toast';
+import { buildWorldCurrencyCatalog } from '../../data/worldCurrencyCatalog';
 
 const defaultForm = { code: '', name: '', symbol: '', rate: '1' };
 
@@ -200,6 +201,19 @@ const getArabicCountryName = (country = {}) => {
 
 const getCurrencyDisplayName = (item = {}) => getArabicCurrencyName(item.code, item.name);
 
+const getCountryFlag = (countryCode = '') => {
+  const normalizedCode = String(countryCode || '').trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(normalizedCode)) return '🌍';
+  return String.fromCodePoint(...normalizedCode.split('').map((letter) => 127397 + letter.charCodeAt(0)));
+};
+
+const formatRateAgainstDollar = (item = {}) => {
+  const code = String(item.code || '').trim().toUpperCase();
+  const rate = Number(item.rate);
+  if (!code || !Number.isFinite(rate)) return '—';
+  return code === 'USD' ? '1 USD = 1 USD' : `1 USD = ${rate.toLocaleString('en-US', { maximumFractionDigits: 6 })} ${code}`;
+};
+
 const AdminCurrencies = () => {
   const { user } = useAuthStore();
   const { addToast } = useToast();
@@ -216,8 +230,7 @@ const AdminCurrencies = () => {
   const [editingCode, setEditingCode] = useState('');
   const [originalRate, setOriginalRate] = useState(null);
   const [applyDebtAdjustment, setApplyDebtAdjustment] = useState(false);
-  const [catalogCurrencies, setCatalogCurrencies] = useState([]);
-  const [catalogLoading, setCatalogLoading] = useState(false);
+  const catalogCurrencies = useMemo(() => buildWorldCurrencyCatalog(), []);
   const [selectedCatalogCode, setSelectedCatalogCode] = useState('');
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [catalogSearch, setCatalogSearch] = useState('');
@@ -235,77 +248,6 @@ const AdminCurrencies = () => {
   useEffect(() => {
     loadCurrencies();
   }, [loadCurrencies]);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadCatalogCurrencies = async () => {
-      setCatalogLoading(true);
-      try {
-        const response = await fetch('https://restcountries.com/v3.1/all?fields=name,currencies,cca2,translations');
-        if (!response.ok) throw new Error('فشل جلب كتالوج العملات');
-        const rows = await response.json();
-        const map = new Map();
-
-        (Array.isArray(rows) ? rows : []).forEach((country) => {
-          const countryName = getArabicCountryName(country);
-          const countrySearchName = [
-            countryName,
-            country?.name?.common || '',
-            country?.translations?.eng?.common || '',
-          ].filter(Boolean).join(' ');
-
-          Object.entries(country?.currencies || {}).forEach(([code, info]) => {
-            const normalizedCode = String(code || '').toUpperCase();
-            if (!normalizedCode) return;
-            const englishName = info?.name || normalizedCode;
-            const arabicName = getArabicCurrencyName(normalizedCode, englishName);
-
-            const existing = map.get(normalizedCode);
-            if (!existing) {
-              map.set(normalizedCode, {
-                code: normalizedCode,
-                name: arabicName,
-                englishName,
-                symbol: info?.symbol || normalizedCode,
-                countries: [countryName],
-                countrySearchNames: [countrySearchName],
-              });
-            } else {
-              existing.countries.push(countryName);
-              existing.countrySearchNames.push(countrySearchName);
-            }
-          });
-        });
-
-        const list = Array.from(map.values())
-          .map((item) => ({
-            ...item,
-            countries: Array.from(new Set(item.countries)),
-            countrySearchNames: Array.from(new Set(item.countrySearchNames)),
-          }))
-          .sort((a, b) => a.name.localeCompare(b.name, 'ar'));
-
-        if (isMounted) {
-          setCatalogCurrencies(list);
-        }
-      } catch (_error) {
-        if (isMounted) {
-          setCatalogCurrencies([]);
-        }
-      } finally {
-        if (isMounted) {
-          setCatalogLoading(false);
-        }
-      }
-    };
-
-    loadCatalogCurrencies();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   const existingCodes = useMemo(
     () => new Set((currencies || []).map((item) => String(item.code || '').toUpperCase())),
@@ -335,7 +277,7 @@ const AdminCurrencies = () => {
       ))
       : selectableCatalogCurrencies;
 
-    return rows.slice(0, 120);
+    return rows;
   }, [catalogSearch, selectableCatalogCurrencies]);
 
   const visibleCurrencies = useMemo(() => {
@@ -352,6 +294,11 @@ const AdminCurrencies = () => {
       || String(item.symbol || '').toLocaleLowerCase('ar').includes(query)
     ));
   }, [currencies, currencySearch]);
+
+  const catalogByCurrencyCode = useMemo(
+    () => new Map(catalogCurrencies.map((item) => [item.code, item])),
+    [catalogCurrencies]
+  );
 
   const currencyStats = useMemo(() => ({
     total: (currencies || []).length,
@@ -528,7 +475,6 @@ const AdminCurrencies = () => {
                   ابحث بالكود أو الاسم أو الدولة، ثم اختر العملة لتعبئة البيانات تلقائيًا.
                 </p>
               </div>
-              {catalogLoading ? <RefreshCw className="h-4 w-4 animate-spin text-[var(--color-primary)]" /> : null}
             </div>
 
             <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.55fr)]">
@@ -538,7 +484,6 @@ const AdminCurrencies = () => {
                 onChange={(e) => setCatalogSearch(e.target.value)}
                 placeholder="بحث في الكتالوج مثل EGP أو مصر"
                 icon={<Search className="h-4 w-4" />}
-                disabled={catalogLoading}
               />
 
               <Button type="button" onClick={openAddEditor} className="w-full">
@@ -551,15 +496,13 @@ const AdminCurrencies = () => {
               <select
                 value={selectedCatalogCode}
                 onChange={(e) => handleCatalogPick(e.target.value)}
-                disabled={catalogLoading}
                 className={selectClassName}
               >
-                <option value="">
-                  {catalogLoading ? 'جاري تحميل العملات العالمية...' : 'اختر عملة من الكتالوج لفتح بطاقة الإضافة'}
-                </option>
+                <option value="">اختر عملة من الكتالوج لفتح بطاقة الإضافة</option>
                 {visibleCatalogCurrencies.map((item) => (
                   <option key={item.code} value={item.code}>
-                    {item.name} - {item.code} ({item.symbol})
+                    {item.flags?.[0] || getCountryFlag(item.countryCodes?.[0])} {item.countries?.[0]}
+                    {item.countries.length > 1 ? ` +${item.countries.length - 1}` : ''} • {item.name} • {item.code} ({item.symbol})
                   </option>
                 ))}
               </select>
@@ -600,9 +543,15 @@ const AdminCurrencies = () => {
             {selectedCatalogCurrency && !editingCode ? (
               <div className="mb-4 rounded-[1rem] border border-[color:rgb(var(--color-primary-rgb)/0.22)] bg-[color:rgb(var(--color-primary-rgb)/0.08)] p-3">
                 <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xl font-black text-[var(--color-text)]">{selectedCatalogCurrency.code}</p>
-                    <p className="mt-0.5 text-sm font-semibold text-[var(--color-text-secondary)]">{selectedCatalogCurrency.name}</p>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[color:rgb(var(--color-primary-rgb)/0.25)] bg-[color:rgb(var(--color-card-rgb)/0.82)] text-2xl shadow-sm">
+                      {selectedCatalogCurrency.flags?.[0] || getCountryFlag(selectedCatalogCurrency.countryCodes?.[0])}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-xl font-black text-[var(--color-text)]">{selectedCatalogCurrency.code}</p>
+                      <p className="mt-0.5 truncate text-sm font-semibold text-[var(--color-text-secondary)]">{selectedCatalogCurrency.name}</p>
+                      <p className="mt-1 truncate text-[11px] font-bold text-[var(--color-primary)]">{selectedCatalogCurrency.countries?.[0]}</p>
+                    </div>
                   </div>
                   <span className="flex h-11 min-w-11 items-center justify-center rounded-xl border border-[color:rgb(var(--color-primary-rgb)/0.28)] bg-[color:rgb(var(--color-card-rgb)/0.8)] px-3 text-lg font-black text-[var(--color-primary)]">
                     {selectedCatalogCurrency.symbol}
@@ -724,24 +673,38 @@ const AdminCurrencies = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>الكود</TableHead>
-                <TableHead>اسم العملة</TableHead>
+                <TableHead>الدولة</TableHead>
+                <TableHead>العملة</TableHead>
                 <TableHead>العلامة</TableHead>
                 <TableHead>سعر الصرف</TableHead>
                 <TableHead className="text-end">الإجراءات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {visibleCurrencies.map((item) => (
+              {visibleCurrencies.map((item) => {
+                const countryMeta = catalogByCurrencyCode.get(String(item.code || '').toUpperCase());
+                return (
                 <TableRow key={item.code}>
-                  <TableCell className="font-black text-[var(--color-text)]">{item.code}</TableCell>
-                  <TableCell>{getCurrencyDisplayName(item)}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[color:rgb(var(--color-border-rgb)/0.75)] bg-[color:rgb(var(--color-surface-rgb)/0.62)] text-xl">
+                        {countryMeta?.flags?.[0] || getCountryFlag(countryMeta?.countryCodes?.[0])}
+                      </span>
+                      <span className="max-w-36 truncate text-xs font-bold text-[var(--color-text-secondary)]">
+                        {countryMeta?.countries?.[0] || 'دولية'}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <p className="font-black text-[var(--color-text)]">{item.code}</p>
+                    <p className="mt-0.5 text-xs text-[var(--color-text-secondary)]">{getCurrencyDisplayName(item)}</p>
+                  </TableCell>
                   <TableCell>
                     <span className="inline-flex min-w-10 items-center justify-center rounded-lg border border-[color:rgb(var(--color-border-rgb)/0.72)] bg-[color:rgb(var(--color-surface-rgb)/0.58)] px-2 py-1 font-bold text-[var(--color-text)]">
                       {item.symbol}
                     </span>
                   </TableCell>
-                  <TableCell className="font-semibold text-[var(--color-primary)]">{item.rate}</TableCell>
+                  <TableCell dir="ltr" className="text-end font-semibold text-[var(--color-primary)]">{formatRateAgainstDollar(item)}</TableCell>
                   <TableCell>
                     <div className="flex justify-end gap-2">
                       <Button size="sm" variant="outline" onClick={() => handleEdit(item)}>
@@ -759,7 +722,8 @@ const AdminCurrencies = () => {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
 
               {!isLoadingCurrencies && visibleCurrencies.length === 0 && (
                 <TableRow>
@@ -771,15 +735,23 @@ const AdminCurrencies = () => {
         </div>
 
         <div className="grid gap-3 md:hidden">
-          {visibleCurrencies.map((item) => (
+          {visibleCurrencies.map((item) => {
+            const countryMeta = catalogByCurrencyCode.get(String(item.code || '').toUpperCase());
+            return (
             <article
               key={item.code}
               className="rounded-[1.1rem] border border-[color:rgb(var(--color-border-rgb)/0.78)] bg-[color:rgb(var(--color-card-rgb)/0.78)] p-3 shadow-[var(--shadow-subtle)]"
             >
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-lg font-black text-[var(--color-text)]">{item.code}</p>
-                  <p className="mt-0.5 truncate text-sm font-semibold text-[var(--color-text-secondary)]">{getCurrencyDisplayName(item)}</p>
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[color:rgb(var(--color-border-rgb)/0.75)] bg-[color:rgb(var(--color-surface-rgb)/0.62)] text-2xl">
+                    {countryMeta?.flags?.[0] || getCountryFlag(countryMeta?.countryCodes?.[0])}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-lg font-black text-[var(--color-text)]">{item.code}</p>
+                    <p className="truncate text-sm font-semibold text-[var(--color-text-secondary)]">{getCurrencyDisplayName(item)}</p>
+                    <p className="mt-0.5 truncate text-[10px] font-bold text-[var(--color-primary)]">{countryMeta?.countries?.[0] || 'دولية'}</p>
+                  </div>
                 </div>
                 <span className="flex h-10 min-w-10 items-center justify-center rounded-xl border border-[color:rgb(var(--color-primary-rgb)/0.24)] bg-[color:rgb(var(--color-primary-rgb)/0.1)] px-2 font-black text-[var(--color-primary)]">
                   {item.symbol}
@@ -787,7 +759,7 @@ const AdminCurrencies = () => {
               </div>
               <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-[color:rgb(var(--color-surface-rgb)/0.48)] px-3 py-2">
                 <span className="text-xs font-bold text-[var(--color-muted)]">سعر الصرف</span>
-                <span className="font-black text-[var(--color-primary)]">{item.rate}</span>
+                <span dir="ltr" className="font-black text-[var(--color-primary)]">{formatRateAgainstDollar(item)}</span>
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <Button size="sm" variant="outline" onClick={() => handleEdit(item)}>
@@ -806,7 +778,8 @@ const AdminCurrencies = () => {
                 </Button>
               </div>
             </article>
-          ))}
+            );
+          })}
 
           {!isLoadingCurrencies && visibleCurrencies.length === 0 && (
             <div className="rounded-[1rem] border border-dashed border-[color:rgb(var(--color-border-rgb)/0.82)] p-6 text-center text-sm text-[var(--color-text-secondary)]">

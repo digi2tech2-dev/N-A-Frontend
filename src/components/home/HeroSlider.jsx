@@ -9,7 +9,7 @@ const HeroSlider = ({ slides }) => {
   const isArabic = (i18n.resolvedLanguage || i18n.language || 'ar').toLowerCase().startsWith('ar');
   const verseText = isArabic
     ? 'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ ﴿وَأَحَلَّ اللَّهُ الْبَيْعَ وَحَرَّمَ الرِّبَا﴾ صَدَقَ اللَّهُ الْعَظِيمُ'
-    : 'In the name of Allah, the Most Gracious, the Most Merciful. Do not consume one another’s wealth unjustly, but only through trade by mutual consent.';
+    : 'In the name of Allah, the Most Gracious, the Most Merciful. Allah has permitted trade and forbidden interest. Allah Almighty has spoken the truth.';
 
   useEffect(() => {
     if (!hasMultipleSlides) return undefined;
@@ -80,9 +80,14 @@ const HeroSlider = ({ slides }) => {
       </section>
 
       <div className="px-1 sm:px-1.5">
-        <div className="marquee-wrap" dir={isArabic ? 'rtl' : 'ltr'}>
-          <div className="marquee-track-smooth">
-            <span className="marquee-chunk text-[11px] font-semibold tracking-[0.02em] text-[var(--color-text)] sm:text-[12px]">
+        <div
+          className="marquee-wrap"
+          dir={isArabic ? 'rtl' : 'ltr'}
+          role="note"
+          aria-label={verseText}
+        >
+          <div className="marquee-track-smooth" aria-hidden="true">
+            <span className="marquee-chunk text-[11px] font-semibold tracking-[0.02em] text-[var(--color-text)] sm:text-[12px]" dir={isArabic ? 'rtl' : 'ltr'}>
               {verseText}
             </span>
           </div>

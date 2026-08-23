@@ -73,8 +73,6 @@ const AdminTargetRequests = () => {
       const updated = await updateRequestStatus(id, status, { rejectionReason: '' });
       setSelectedRequest((current) => (String(current?.id) === String(id) ? { ...current, ...updated } : current));
       addToast('تم تحديث حالة طلب التارجت.', 'success');
-    } catch (error) {
-      addToast(error?.message || 'تعذر تحديث حالة طلب التارجت.', 'error');
     } finally {
       setIsStatusUpdating(false);
     }
@@ -88,8 +86,6 @@ const AdminTargetRequests = () => {
       setSelectedRequest((current) => (String(current?.id) === String(rejectingRequest.id) ? { ...current, ...updated } : current));
       setRejectingRequest(null);
       addToast('تم رفض طلب التارجت.', 'success');
-    } catch (error) {
-      addToast(error?.message || 'تعذر رفض طلب التارجت.', 'error');
     } finally {
       setIsStatusUpdating(false);
     }

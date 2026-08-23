@@ -5,8 +5,9 @@ import useNotificationStore from './useNotificationStore';
 import useGroupStore from './useGroupStore';
 import { normalizeAccountStatus } from '../utils/accountStatus';
 import { normalizeMoneyAmount } from '../utils/money';
-import { isRealProvider } from '../config/dataProvider';
 
+const dataProvider = (import.meta.env.VITE_DATA_PROVIDER || 'mock').toLowerCase();
+const isRealProvider = dataProvider === 'real';
 let hasFetchedAdminUsersFromBackendThisSession = false;
 let hasFetchedAdminWalletsFromBackendThisSession = false;
 
@@ -754,38 +755,84 @@ const useAdminStore = create((set, get) => ({
         const nextCurrencyCode = String(currencyCode || '').toUpperCase();
         if (!normalizedUserId || !nextCurrencyCode) return null;
 
-        const existingUser = (get().users || []).find((entry) => String(entry?.id || '').trim() === normalizedUserId) || null;
+        // Always start from the latest persisted account + wallet values. This is
+        // important for consecutive conversions (USD -> EGP -> SAR, for example),
+        // where the second conversion must use the result of the first one.
+        const [freshUserResult, freshWalletResult] = await Promise.allSettled([
+          get().getUserById(normalizedUserId, { force: true }),
+          get().getUserWallet(normalizedUserId, { force: true }),
+        ]);
+        const storedUser = (get().users || []).find((entry) => String(entry?.id || '').trim() === normalizedUserId) || null;
+        const storedWallet = (get().wallets || []).find((entry) => (
+          String(entry?.userId || entry?.id || '').trim() === normalizedUserId
+        )) || null;
+        const existingUser = freshUserResult.status === 'fulfilled' && freshUserResult.value
+          ? freshUserResult.value
+          : storedUser;
+        const existingWallet = freshWalletResult.status === 'fulfilled' && freshWalletResult.value
+          ? freshWalletResult.value
+          : storedWallet;
         const previousCurrencyCode = String(existingUser?.currency || 'USD').toUpperCase();
-        const previousCreditLimit = normalizeMoneyAmount(Math.max(0, toFiniteNumber(existingUser?.creditLimit, 0)));
+        const previousBalance = normalizeMoneyAmount(toFiniteNumber(
+          existingWallet?.walletBalance ?? existingWallet?.balance ?? existingUser?.walletBalance ?? existingUser?.coins,
+          0
+        ));
+        let currencies = [];
+        let convertedBalance = previousBalance;
 
-        // 1. Call the API — backend converts balance + returns updated user
-        const updatedCurrencyUser = await apiClient.users.updateCurrency(normalizedUserId, nextCurrencyCode, actor);
-
-        if (previousCreditLimit > 0 && previousCurrencyCode !== nextCurrencyCode) {
+        if (previousCurrencyCode !== nextCurrencyCode) {
           try {
             const useSystemStore = (await import('./useSystemStore')).default;
-            let currencies = useSystemStore.getState().currencies || [];
-
+            currencies = useSystemStore.getState().currencies || [];
             if (!Array.isArray(currencies) || currencies.length === 0) {
-              currencies = await useSystemStore.getState().loadCurrencies().catch(() => []);
+              currencies = await useSystemStore.getState().loadCurrencies({ force: true }).catch(() => []);
             }
-
-            const convertedCreditLimit = convertAmountBetweenCurrencies(
-              previousCreditLimit,
+            convertedBalance = convertAmountBetweenCurrencies(
+              previousBalance,
               previousCurrencyCode,
               nextCurrencyCode,
               currencies
             );
-
-            await get().updateUserCreditLimit(normalizedUserId, convertedCreditLimit, actor);
           } catch (_error) {
-            // If credit-limit conversion fails, keep the currency update instead of blocking the flow.
+            convertedBalance = previousBalance;
           }
         }
 
-        // 2. Force re-fetch the entire users list from DB (bulletproof — no manual patching)
-        await get().loadUsers({ force: true });
-        await get().getUserWallet(normalizedUserId, { force: true }).catch(() => null);
+        // 1. Call the API — backend converts balance + returns updated user
+        const updatedCurrencyUser = await apiClient.users.updateCurrency(normalizedUserId, nextCurrencyCode, actor);
+
+        // 2. Refresh all related records, then keep a coherent local snapshot so
+        // an immediate second save cannot read a stale currency/balance pair.
+        await Promise.allSettled([
+          get().loadUsers({ force: true }),
+          get().loadWallets({ force: true }),
+          get().getUserWallet(normalizedUserId, { force: true }),
+          get().getUserWalletTransactions(normalizedUserId, { force: true }),
+        ]);
+        set((state) => ({
+          users: (state.users || []).map((entry) => (
+            String(entry?.id || '').trim() === normalizedUserId
+              ? {
+                  ...entry,
+                  currency: nextCurrencyCode,
+                  coins: convertedBalance,
+                  walletBalance: convertedBalance,
+                  balance: convertedBalance,
+                }
+              : entry
+          )),
+          wallets: (state.wallets || []).map((entry) => (
+            String(entry?.userId || entry?.id || '').trim() === normalizedUserId
+              ? {
+                  ...entry,
+                  currency: nextCurrencyCode,
+                  coins: convertedBalance,
+                  walletBalance: convertedBalance,
+                  balance: convertedBalance,
+                }
+              : entry
+          )),
+        }));
 
         // 3. If the updated user is the currently logged-in user,
         //    force re-fetch their profile so navbar/balance updates instantly.
@@ -829,7 +876,7 @@ const useAdminStore = create((set, get) => ({
                 creditLimit: normalizeMoneyAmount(
                   Math.max(
                     0,
-                    toFiniteNumber(updatedUser?.creditLimit, toFiniteNumber(entry?.creditLimit, normalizedCreditLimit))
+                    toFiniteNumber(updatedUser?.creditLimit, normalizedCreditLimit)
                   )
                 ),
               }

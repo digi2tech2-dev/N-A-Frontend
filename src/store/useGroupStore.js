@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { mockGroups } from '../data/mockData';
 import apiClient from '../services/client';
-import { isRealProvider } from '../config/dataProvider';
 
+const dataProvider = (import.meta.env.VITE_DATA_PROVIDER || 'mock').toLowerCase();
+const isRealProvider = dataProvider === 'real';
 let hasFetchedGroupsFromBackendThisSession = false;
 
 const GROUPS_CACHE_KEY = 'kanz-coins:groups-cache:v1';

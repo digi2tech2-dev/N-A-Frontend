@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowUpRight, ShieldCheck, Target } from 'lucide-react';
+import { ArrowUpRight, CheckCircle2, LockKeyhole, ShieldCheck, Sparkles } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import useMediaStore from '../store/useMediaStore';
 import useGroupStore from '../store/useGroupStore';
@@ -155,6 +155,7 @@ const Dashboard = () => {
   }, [navigate]);
 
   const openPurchaseDialog = useCallback((product) => {
+    if (product?.storefrontStatus?.isPurchasable === false) return;
     setSelectedProduct(product);
   }, []);
 
@@ -216,53 +217,36 @@ const Dashboard = () => {
         <div className="mx-auto w-full max-w-5xl px-0.5 sm:px-2">
           <Link
             to="/buy-target"
-            className="group relative mx-auto block w-full max-w-4xl overflow-hidden rounded-[1.5rem] border border-[color:rgb(var(--color-primary-rgb)/0.3)] bg-[color:rgb(var(--color-card-rgb)/0.84)] p-1.5 shadow-[0_24px_70px_-38px_rgb(var(--color-primary-rgb)/0.78),inset_0_1px_0_rgb(255_255_255/0.14)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-[color:rgb(var(--color-primary-rgb)/0.52)] hover:shadow-[0_32px_80px_-38px_rgb(var(--color-primary-rgb)/0.92),inset_0_1px_0_rgb(255_255_255/0.18)] sm:rounded-[2rem] sm:p-2"
+            className="target-sale-card group mx-auto block w-full max-w-4xl"
             aria-label={language === 'ar' ? 'بيع تارجت' : 'Sell Target'}
+            dir={language === 'ar' ? 'rtl' : 'ltr'}
           >
-            <span className="pointer-events-none absolute -right-16 -top-20 h-44 w-44 rounded-full bg-[color:rgb(var(--color-primary-rgb)/0.16)] blur-3xl transition-opacity duration-300 group-hover:opacity-100" aria-hidden="true" />
-            <span className="relative block overflow-hidden rounded-[1.1rem] bg-black sm:rounded-[1.5rem]">
+            <span className="target-sale-card__visual" aria-hidden="true">
               <img
                 src={targetBannerImage}
-                alt={language === 'ar' ? 'بيع تارجت' : 'Sell Target'}
-                className="block aspect-[2048/752] w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.018]"
+                alt=""
+                className="h-full w-full object-cover"
                 loading="lazy"
               />
-              <span className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-white/15" aria-hidden="true" />
-            </span>
-            <span className="relative flex items-center justify-between gap-3 px-2.5 py-2.5 sm:px-4 sm:py-3.5">
-              <span className="flex min-w-0 items-center gap-2.5 sm:gap-3">
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[color:rgb(var(--color-primary-rgb)/0.24)] bg-[linear-gradient(145deg,rgb(var(--color-primary-rgb)/0.18),rgb(var(--color-primary-rgb)/0.07))] text-[var(--color-primary)] shadow-[inset_0_1px_0_rgb(255_255_255/0.16)] sm:h-11 sm:w-11 sm:rounded-2xl">
-                  <Target className="h-5 w-5" strokeWidth={2.2} />
-                </span>
-                <span className="min-w-0 text-start">
-                  <span className="block text-sm font-black text-[var(--color-text)] sm:text-base">
-                    {language === 'ar' ? 'بيع تارجت' : 'Sell Target'}
-                  </span>
-                  <span className="mt-0.5 hidden text-xs font-medium text-[var(--color-text-secondary)] sm:block">
-                    {language === 'ar' ? 'أرسل طلبك بسهولة وتابع حالته من حسابك' : 'Send your request easily and track it from your account'}
-                  </span>
-                </span>
-              </span>
-              <span className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full border border-[color:rgb(var(--color-primary-rgb)/0.3)] bg-[color:rgb(var(--color-primary-rgb)/0.11)] px-3 text-xs font-extrabold text-[var(--color-primary)] transition-all duration-300 group-hover:border-[color:rgb(var(--color-primary-rgb)/0.48)] group-hover:bg-[color:rgb(var(--color-primary-rgb)/0.17)] sm:h-10 sm:px-4 sm:text-sm">
-                <span>{language === 'ar' ? 'ابدأ الآن' : 'Start now'}</span>
-                <ArrowUpRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" strokeWidth={2.4} />
-              </span>
             </span>
           </Link>
         </div>
       ) : null}
 
       {bestSellingProducts.length ? (
-        <section className="mx-auto w-full max-w-5xl overflow-hidden rounded-[1.35rem] border border-[color:rgb(var(--color-primary-rgb)/0.16)] bg-[linear-gradient(145deg,rgb(var(--color-card-rgb)/0.9),rgb(var(--color-primary-rgb)/0.045))] p-3 shadow-[0_20px_55px_-45px_rgb(var(--color-primary-rgb)/0.65)] sm:p-5" aria-labelledby="best-selling-title">
-          <div className="mb-3.5 flex items-center justify-between gap-3 sm:mb-4">
-            <div className="flex items-center gap-2.5">
-              <span className="h-7 w-1 rounded-full bg-[linear-gradient(180deg,var(--color-primary),rgb(var(--color-primary-rgb)/0.35))]" aria-hidden="true" />
-              <h2 id="best-selling-title" className="text-base font-black text-[var(--color-text)] sm:text-lg">
+        <section className="best-selling-section mx-auto w-full max-w-5xl overflow-hidden p-2.5 sm:p-4" aria-labelledby="best-selling-title">
+          <div className="mb-2.5 flex items-center justify-between gap-2 sm:mb-3">
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="best-selling-heading-icon" aria-hidden="true">
+                <Sparkles className="h-3.5 w-3.5" />
+              </span>
+              <h2 id="best-selling-title" className="truncate text-sm font-black text-[var(--color-text)] sm:text-base">
                 {language === 'ar' ? 'الأكثر مبيعًا' : 'Best sellers'}
               </h2>
             </div>
-            <Link to="/products" className="inline-flex min-h-8 items-center rounded-full border border-[color:rgb(var(--color-primary-rgb)/0.2)] bg-[color:rgb(var(--color-primary-rgb)/0.08)] px-3 text-[0.7rem] font-extrabold text-[var(--color-primary)] transition-all hover:-translate-y-0.5 hover:border-[color:rgb(var(--color-primary-rgb)/0.38)] hover:bg-[color:rgb(var(--color-primary-rgb)/0.13)] sm:text-xs">
-              {language === 'ar' ? 'عرض الكل' : 'View all'}
+            <Link to="/products" className="best-selling-view-all">
+              <span>{language === 'ar' ? 'عرض الكل' : 'View all'}</span>
+              <ArrowUpRight className="h-3 w-3" />
             </Link>
           </div>
 
@@ -284,25 +268,25 @@ const Dashboard = () => {
                     if (!isUnavailable) openPurchaseDialog(product);
                   }}
                   disabled={isUnavailable}
-                  className={`group relative isolate min-w-[42%] snap-start overflow-hidden rounded-[1rem] border border-[color:rgb(var(--color-border-rgb)/0.72)] bg-[color:rgb(var(--color-card-rgb)/0.82)] p-2 text-start shadow-[0_14px_34px_-30px_rgb(var(--color-primary-rgb)/0.72)] transition-all hover:-translate-y-1 hover:border-[color:rgb(var(--color-primary-rgb)/0.38)] hover:shadow-[0_20px_42px_-30px_rgb(var(--color-primary-rgb)/0.82)] min-[430px]:min-w-[32%] sm:min-w-[23%] sm:p-2.5 lg:min-w-[18%] ${isUnavailable ? 'cursor-not-allowed hover:translate-y-0' : ''}`}
+                  className={`best-selling-card group relative isolate min-w-[41%] snap-start p-1.5 text-center min-[430px]:min-w-[31%] sm:min-w-[22%] sm:p-2 lg:min-w-[17%] ${isUnavailable ? 'is-unavailable cursor-not-allowed' : ''}`}
                   aria-label={productName}
                 >
-                  <span className="best-selling-media relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-[0.78rem] border border-[color:rgb(var(--color-border-rgb)/0.45)] bg-[radial-gradient(circle_at_50%_36%,rgb(var(--color-primary-rgb)/0.09),rgb(var(--color-surface-rgb)/0.78))]">
+                  <span className="best-selling-media relative flex aspect-square w-full items-center justify-center overflow-hidden">
                     <img
                       src={imageSrc}
-                      alt={productName}
-                      className={`best-selling-image h-full w-full object-contain p-3 transition-transform duration-500 group-hover:scale-[1.06] ${isUnavailable ? 'opacity-45 grayscale-[0.35]' : ''}`}
+                      alt=""
+                      aria-hidden="true"
+                      className={`best-selling-image h-full w-full object-contain p-2.5 ${isUnavailable ? 'opacity-40 grayscale-[0.35]' : ''}`}
                       loading="lazy"
                       decoding="async"
                     />
-                    {isUnavailable ? <span className="absolute inset-0 bg-[color:rgb(var(--color-card-rgb)/0.22)]" aria-hidden="true" /> : null}
+                    <span className={`best-selling-status ${isUnavailable ? 'is-unavailable' : 'is-available'}`}>
+                      {isUnavailable ? <LockKeyhole /> : <CheckCircle2 />}
+                      <span>{isUnavailable ? unavailableLabel : (language === 'ar' ? 'متوفر' : 'Available')}</span>
+                    </span>
                   </span>
-                  <span className="mt-2.5 line-clamp-2 block min-h-10 text-[0.75rem] font-extrabold leading-5 text-[var(--color-text)] sm:text-[0.82rem]">
+                  <span className="best-selling-name mt-2 line-clamp-2 block min-h-8 px-1 text-[0.68rem] font-extrabold leading-4 text-[var(--color-text)] sm:text-[0.75rem]">
                     {productName}
-                  </span>
-                  <span className={`mt-1.5 inline-flex items-center gap-1.5 text-[0.65rem] font-bold sm:text-[0.7rem] ${isUnavailable ? 'text-rose-500' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                    <span className={`h-1.5 w-1.5 rounded-full ${isUnavailable ? 'bg-rose-500' : 'bg-emerald-500'}`} aria-hidden="true" />
-                    {isUnavailable ? unavailableLabel : (language === 'ar' ? 'متوفر للطلب' : 'Available now')}
                   </span>
                 </button>
               );

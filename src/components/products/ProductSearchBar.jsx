@@ -55,6 +55,7 @@ const ProductSearchBar = ({
   };
 
   const handleSelect = (product) => {
+    if (product?.storefrontStatus?.isPurchasable === false) return;
     updateValue('');
     setIsFocused(false);
 
@@ -164,13 +165,14 @@ const ProductSearchBar = ({
                   <button
                     key={product.id}
                     type="button"
+                    disabled={isUnavailable}
                     onMouseDown={(event) => {
                       event.preventDefault();
                       handleSelect(product);
                     }}
                     className={cn(
                       'relative isolate flex w-full items-center gap-2.5 px-2.5 py-2 text-start transition-colors hover:bg-[color:rgb(var(--color-primary-rgb)/0.08)]',
-                      isUnavailable && 'hover:bg-[color:rgb(var(--color-primary-rgb)/0.05)]'
+                      isUnavailable && 'cursor-not-allowed hover:bg-[color:rgb(var(--color-primary-rgb)/0.05)]'
                     )}
                   >
                     {isUnavailable ? (

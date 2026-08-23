@@ -19,7 +19,7 @@ const StatsGrid = ({ stats, isLoading }) => {
   return (
     <div className="mx-auto grid w-[calc(100vw-1.5rem)] max-w-[42rem] grid-cols-2 justify-items-center gap-3 sm:w-full sm:gap-4 xl:max-w-none xl:grid-cols-5">
       {stats.map((stat) => (
-        <StatCard key={stat.title} {...stat} />
+        <StatCard key={stat.id || stat.title} {...stat} />
       ))}
     </div>
   );

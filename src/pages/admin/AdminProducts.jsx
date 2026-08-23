@@ -1,5 +1,20 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Edit, Image as ImageIcon, Plus, Trash2, Info, Search, Check, Package, RefreshCw, Power } from 'lucide-react';
+import {
+    Boxes,
+    Check,
+    Edit,
+    FolderTree,
+    Image as ImageIcon,
+    Info,
+    Layers3,
+    Package,
+    Plus,
+    Power,
+    RefreshCw,
+    Search,
+    Sparkles,
+    Trash2,
+} from 'lucide-react';
 import { resolveImageUrl } from '../../utils/imageUrl';
 import { uploadImage } from '../../services/realApi';
 import useMediaStore from '../../store/useMediaStore';
@@ -1373,17 +1388,17 @@ const AdminProducts = () => {
             ? (isEnglish ? 'Deactivate' : 'إيقاف')
             : (isEnglish ? 'Activate' : 'تفعيل');
         const actionButtonClassName = isMobile
-            ? 'h-7 min-w-0 gap-1 rounded-md px-1 text-[9px] sm:h-9 sm:rounded-lg sm:px-2 sm:text-xs'
+            ? 'catalog-product-action h-9 min-w-0 gap-1.5 rounded-xl px-2 text-[10px] sm:h-10 sm:px-3 sm:text-xs'
             : 'h-9 rounded-lg px-2.5 text-xs';
         const actionIconClassName = isMobile ? 'h-3 w-3 sm:h-4 sm:w-4' : 'h-4 w-4';
 
         return (
-            <div className={isMobile ? 'grid grid-cols-3 gap-1 sm:gap-2' : 'flex justify-end gap-1.5'}>
+            <div className={isMobile ? 'catalog-product-actions grid grid-cols-3 gap-1.5 sm:gap-2' : 'flex justify-end gap-1.5'}>
                 <Button
                     type="button"
                     size="sm"
                     variant="ghost"
-                    className={`${actionButtonClassName} ${isActive
+                    className={`${actionButtonClassName} ${isMobile ? `catalog-product-action--toggle ${isActive ? 'is-warning' : 'is-success'}` : ''} ${isActive
                         ? 'text-amber-700 hover:bg-amber-50 hover:text-amber-800 dark:hover:bg-amber-500/10'
                         : 'text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 dark:hover:bg-emerald-500/10'}`}
                     onClick={() => handleToggleProductStatus(product)}
@@ -1405,7 +1420,7 @@ const AdminProducts = () => {
                     type="button"
                     size="sm"
                     variant="ghost"
-                    className={`${actionButtonClassName} ${isMobile ? '' : 'w-9 px-0'}`}
+                    className={`${actionButtonClassName} ${isMobile ? 'catalog-product-action--edit' : 'w-9 px-0'}`}
                     onClick={() => openProductModal(product)}
                     title={isEnglish ? 'Edit product' : 'تعديل المنتج'}
                 >
@@ -1416,7 +1431,7 @@ const AdminProducts = () => {
                     type="button"
                     size="sm"
                     variant="ghost"
-                    className={`${actionButtonClassName} ${isMobile ? '' : 'w-9 px-0'} text-red-600 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-500/10`}
+                    className={`${actionButtonClassName} ${isMobile ? 'catalog-product-action--delete' : 'w-9 px-0'} text-red-600 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-500/10`}
                     onClick={() => handleDeleteProduct(product)}
                     title={isEnglish ? 'Delete product' : 'حذف المنتج'}
                 >
@@ -1442,33 +1457,89 @@ const AdminProducts = () => {
     };
 
     return (
-        <div className="min-w-0 space-y-6">
-            <section className="admin-premium-hero">
-            <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
-                <div className="flex items-center gap-3">
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('productsManager')}</h1>
+        <div className="product-manager-page min-w-0 space-y-5">
+            <section className="product-manager-hero">
+                <span className="product-manager-hero__orb product-manager-hero__orb--blue" />
+                <span className="product-manager-hero__orb product-manager-hero__orb--violet" />
+
+                <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex min-w-0 items-start gap-3 sm:gap-4">
+                        <span className="product-manager-hero__icon">
+                            <Sparkles className="h-6 w-6 sm:h-7 sm:w-7" />
+                        </span>
+                        <div className="min-w-0">
+                            <p className="product-manager-hero__eyebrow">
+                                {isEnglish ? 'N&A HUB · Catalog control' : 'N&A HUB · مركز تحكم الكتالوج'}
+                            </p>
+                            <h1 className="mt-1 text-2xl font-black tracking-tight text-white sm:text-3xl">
+                                {t('productsManager')}
+                            </h1>
+                            <p className="mt-2 max-w-2xl text-xs leading-6 text-blue-100/85 sm:text-sm">
+                                {isEnglish
+                                    ? 'Organize the storefront from one place: main categories, sub-categories, and every product.'
+                                    : 'نظّم واجهة المتجر من مكان واحد: الأقسام الرئيسية والفرعية وكل المنتجات.'}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0">
+                        <button type="button" className="product-manager-hero__button product-manager-hero__button--secondary" onClick={() => openCategoryModal()}>
+                            <FolderTree className="h-4 w-4" />
+                            {isEnglish ? 'New category' : 'قسم جديد'}
+                        </button>
+                        <button type="button" className="product-manager-hero__button product-manager-hero__button--primary" onClick={() => openProductModal()}>
+                            <Plus className="h-4 w-4" />
+                            {t('addProduct')}
+                        </button>
+                    </div>
                 </div>
-            </div>
             </section>
 
-            <div className="admin-premium-panel overflow-hidden">
-                <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="min-w-0">
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{isEnglish ? 'Catalog (Categories)' : 'الكاتلوج (الأقسام)'}</h2>
-                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                            {isEnglish ? 'Control category display order (lower number shows first).' : 'حدد ترتيب ظهور الأقسام (الرقم الأقل يظهر أولاً).'}
-                        </p>
-                    </div>
-                    <Button onClick={() => openCategoryModal()}>
-                        <Plus className="mr-2 h-4 w-4" /> {isEnglish ? 'Add Category' : 'إضافة قسم'}
-                    </Button>
-                </div>
+            <section className="grid grid-cols-1 gap-3 md:grid-cols-3" aria-label={isEnglish ? 'Catalog overview' : 'ملخص الكتالوج'}>
+                <button type="button" className="catalog-stat-card catalog-stat-card--cyan" onClick={() => document.getElementById('main-categories-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+                    <span className="catalog-stat-card__icon"><FolderTree className="h-5 w-5" /></span>
+                    <span className="min-w-0 text-start">
+                        <span className="block text-xs font-bold text-[var(--color-text-secondary)]">{isEnglish ? 'Main categories' : 'الأقسام الرئيسية'}</span>
+                        <strong className="mt-1 block text-2xl font-black text-[var(--color-text)]">{formatNumber(mainAdminCategories.length, isEnglish ? 'en-US' : 'ar-EG')}</strong>
+                    </span>
+                    <span className="catalog-stat-card__hint">{isEnglish ? 'Manage' : 'إدارة'}</span>
+                </button>
 
-                <div className="space-y-5 px-4 pb-4">
-                    <div className="space-y-3">
-                        <h3 className="text-sm font-bold text-gray-900 dark:text-white">
-                            {isEnglish ? 'Main categories' : 'الأقسام الرئيسية'}
-                        </h3>
+                <button type="button" className="catalog-stat-card catalog-stat-card--blue" onClick={() => document.getElementById('sub-categories-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+                    <span className="catalog-stat-card__icon"><Layers3 className="h-5 w-5" /></span>
+                    <span className="min-w-0 text-start">
+                        <span className="block text-xs font-bold text-[var(--color-text-secondary)]">{isEnglish ? 'Sub-categories' : 'الأقسام الفرعية'}</span>
+                        <strong className="mt-1 block text-2xl font-black text-[var(--color-text)]">{formatNumber(subAdminCategories.length, isEnglish ? 'en-US' : 'ar-EG')}</strong>
+                    </span>
+                    <span className="catalog-stat-card__hint">{isEnglish ? 'Manage' : 'إدارة'}</span>
+                </button>
+
+                <button type="button" className="catalog-stat-card catalog-stat-card--violet" onClick={() => document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+                    <span className="catalog-stat-card__icon"><Boxes className="h-5 w-5" /></span>
+                    <span className="min-w-0 text-start">
+                        <span className="block text-xs font-bold text-[var(--color-text-secondary)]">{isEnglish ? 'Products' : 'المنتجات'}</span>
+                        <strong className="mt-1 block text-2xl font-black text-[var(--color-text)]">{formatNumber(sortedAdminProducts.length, isEnglish ? 'en-US' : 'ar-EG')}</strong>
+                    </span>
+                    <span className="catalog-stat-card__hint">{isEnglish ? 'Manage' : 'إدارة'}</span>
+                </button>
+            </section>
+
+            <div className="grid min-w-0 grid-cols-1 gap-4 2xl:grid-cols-2">
+                <section id="main-categories-section" className="catalog-section-card scroll-mt-24">
+                    <div className="catalog-section-card__header">
+                        <div className="flex min-w-0 items-center gap-3">
+                            <span className="catalog-section-card__icon catalog-section-card__icon--cyan"><FolderTree className="h-5 w-5" /></span>
+                            <div className="min-w-0">
+                                <h2 className="text-base font-black text-[var(--color-text)] sm:text-lg">{isEnglish ? 'Main categories' : 'الأقسام الرئيسية'}</h2>
+                                <p className="mt-1 text-xs text-[var(--color-text-secondary)]">{isEnglish ? 'The first level customers see in the store.' : 'المستوى الأول الذي يظهر للعملاء داخل المتجر.'}</p>
+                            </div>
+                        </div>
+                        <Button size="sm" onClick={() => openCategoryModal()} className="shrink-0">
+                            <Plus className="h-4 w-4" /> <span className="hidden sm:inline">{isEnglish ? 'Add' : 'إضافة'}</span>
+                        </Button>
+                    </div>
+
+                    <div className="p-3 sm:p-4">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -1527,18 +1598,29 @@ const AdminProducts = () => {
                             </TableBody>
                         </Table>
                     </div>
+                </section>
 
-                    <div className="space-y-3">
-                        <h3 className="text-sm font-bold text-gray-900 dark:text-white">
-                            {isEnglish ? 'Sub-categories' : 'الأقسام الفرعية'}
-                        </h3>
+                <section id="sub-categories-section" className="catalog-section-card scroll-mt-24">
+                    <div className="catalog-section-card__header">
+                        <div className="flex min-w-0 items-center gap-3">
+                            <span className="catalog-section-card__icon catalog-section-card__icon--violet"><Layers3 className="h-5 w-5" /></span>
+                            <div className="min-w-0">
+                                <h2 className="text-base font-black text-[var(--color-text)] sm:text-lg">{isEnglish ? 'Sub-categories' : 'الأقسام الفرعية'}</h2>
+                                <p className="mt-1 text-xs text-[var(--color-text-secondary)]">{isEnglish ? 'Group products neatly under their parent sections.' : 'رتّب المنتجات داخل مجموعات واضحة تحت أقسامها.'}</p>
+                            </div>
+                        </div>
+                        <Button size="sm" onClick={() => openCategoryModal()} className="shrink-0">
+                            <Plus className="h-4 w-4" /> <span className="hidden sm:inline">{isEnglish ? 'Add' : 'إضافة'}</span>
+                        </Button>
+                    </div>
 
+                    <div className="p-3 sm:p-4">
                         {subAdminCategories.length ? (
-                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                                 {subAdminCategories.map((category) => (
                                     <div
                                         key={category.id}
-                                        className="flex items-center justify-between gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-sm dark:border-gray-800 dark:bg-gray-900"
+                                        className="catalog-subcategory-item"
                                     >
                                         <div className="flex min-w-0 items-center gap-2">
                                             <div className="h-9 w-9 shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800">
@@ -1575,24 +1657,33 @@ const AdminProducts = () => {
                                 ))}
                             </div>
                         ) : (
-                            <div className="rounded-xl border border-dashed border-gray-200 bg-white p-4 text-center text-sm text-gray-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
+                            <div className="catalog-empty-state">
                                 {isEnglish ? 'No sub-categories yet.' : 'لا توجد أقسام فرعية حتى الآن.'}
                             </div>
                         )}
                     </div>
+                </section>
+            </div>
+
+            <section id="products-section" className="catalog-section-card scroll-mt-24 overflow-hidden">
+                <div className="catalog-section-card__header">
+                    <div className="flex min-w-0 items-center gap-3">
+                        <span className="catalog-section-card__icon catalog-section-card__icon--blue"><Boxes className="h-5 w-5" /></span>
+                        <div className="min-w-0">
+                            <h2 className="text-base font-black text-[var(--color-text)] sm:text-lg">{isEnglish ? 'Products' : 'المنتجات'}</h2>
+                            <p className="mt-1 text-xs text-[var(--color-text-secondary)]">{isEnglish ? 'Search, filter, update status, and manage pricing.' : 'ابحث وصفِّ المنتجات وعدّل الحالة والأسعار بسهولة.'}</p>
+                        </div>
+                    </div>
+                    <Button size="sm" onClick={() => openProductModal()} className="shrink-0">
+                        <Plus className="h-4 w-4" /> <span className="hidden sm:inline">{t('addProduct')}</span>
+                    </Button>
                 </div>
-            </div>
 
-            <div className="flex justify-end">
-                <Button onClick={() => openProductModal()} className="w-full sm:w-auto">
-                    <Plus className="mr-2 h-4 w-4" /> {t('addProduct')}
-                </Button>
-            </div>
-
-            <div className="admin-premium-panel p-1.5">
-                <div className="grid min-w-0 grid-cols-2 gap-1 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,0.85fr)_minmax(0,1fr)_auto] lg:items-end">
-                    <label className="min-w-0">
-                        <span className="mb-0.5 block text-[10px] font-bold leading-none text-gray-600 dark:text-gray-300">
+                <div className="catalog-product-filters">
+                    <div className="grid min-w-0 grid-cols-2 gap-2 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,0.85fr)_minmax(0,1.3fr)_auto] lg:items-end">
+                    <label className="catalog-filter-field min-w-0">
+                        <span className="catalog-filter-label">
+                            <FolderTree className="h-3.5 w-3.5" />
                             {isEnglish ? 'Main' : 'رئيسي'}
                         </span>
                         <select
@@ -1601,7 +1692,7 @@ const AdminProducts = () => {
                                 setSelectedMainCategoryId(event.target.value);
                                 setSelectedSubCategoryId('');
                             }}
-                            className={`${selectClassName} !h-6 w-full !rounded-md !px-1.5 !py-0 !text-[10px] !shadow-none`}
+                            className={`${selectClassName} catalog-filter-control !h-10 w-full !rounded-xl !px-3 !py-0 !text-xs !shadow-none`}
                         >
                             <option value="">{isEnglish ? 'All main categories' : 'كل الأقسام الرئيسية'}</option>
                             {mainAdminCategories.map((category) => (
@@ -1612,14 +1703,15 @@ const AdminProducts = () => {
                         </select>
                     </label>
 
-                    <label className="min-w-0">
-                        <span className="mb-0.5 block text-[10px] font-bold leading-none text-gray-600 dark:text-gray-300">
+                    <label className="catalog-filter-field min-w-0">
+                        <span className="catalog-filter-label">
+                            <Layers3 className="h-3.5 w-3.5" />
                             {isEnglish ? 'Sub' : 'فرعي'}
                         </span>
                         <select
                             value={selectedSubCategoryId}
                             onChange={(event) => setSelectedSubCategoryId(event.target.value)}
-                            className={`${selectClassName} !h-6 w-full !rounded-md !px-1.5 !py-0 !text-[10px] !shadow-none`}
+                            className={`${selectClassName} catalog-filter-control !h-10 w-full !rounded-xl !px-3 !py-0 !text-xs !shadow-none`}
                         >
                             <option value="">{isEnglish ? 'All sub-categories' : 'كل الأقسام الفرعية'}</option>
                             {productFilterSubCategories.map((category) => (
@@ -1630,8 +1722,9 @@ const AdminProducts = () => {
                         </select>
                     </label>
 
-                    <label className="min-w-0">
-                        <span className="mb-0.5 block text-[10px] font-bold leading-none text-gray-600 dark:text-gray-300">
+                    <label className="catalog-filter-field col-span-2 min-w-0 lg:col-span-1">
+                        <span className="catalog-filter-label">
+                            <Search className="h-3.5 w-3.5" />
                             {isEnglish ? 'Search' : 'بحث'}
                         </span>
                         <input
@@ -1639,12 +1732,12 @@ const AdminProducts = () => {
                             value={productSearchQuery}
                             onChange={(event) => setProductSearchQuery(event.target.value)}
                             placeholder={isEnglish ? 'Search products...' : 'بحث عن المنتجات...'}
-                            className={`${inputBaseClassName} !h-6 w-full !rounded-md !px-1.5 !py-0 !text-[10px] !shadow-none focus:!shadow-none`}
+                            className={`${inputBaseClassName} catalog-filter-control !h-10 w-full !rounded-xl !px-3 !py-0 !text-xs !shadow-none focus:!shadow-none`}
                         />
                     </label>
 
-                    <div className="grid min-w-0 grid-cols-2 gap-1.5 self-end">
-                        <Badge variant="outline" className="flex h-7 min-w-0 justify-center rounded-lg px-1.5 text-[10px]">
+                    <div className="col-span-2 grid min-w-0 grid-cols-2 gap-2 self-end lg:col-span-1">
+                        <Badge variant="outline" className="catalog-filter-count flex h-10 min-w-0 justify-center rounded-xl px-2 text-[11px]">
                             {isEnglish
                                 ? `${filteredAdminProducts.length}/${sortedAdminProducts.length}`
                                 : `${formatNumber(filteredAdminProducts.length, 'ar-EG')}/${formatNumber(sortedAdminProducts.length, 'ar-EG')}`}
@@ -1652,7 +1745,7 @@ const AdminProducts = () => {
                         <Button
                             type="button"
                             variant="secondary"
-                            className="h-7 min-w-0 rounded-lg px-2 text-[10px]"
+                            className="catalog-filter-clear h-10 min-w-0 rounded-xl px-2.5 text-[11px]"
                             onClick={() => {
                                 setSelectedMainCategoryId('');
                                 setSelectedSubCategoryId('');
@@ -1663,10 +1756,10 @@ const AdminProducts = () => {
                             {isEnglish ? 'Clear' : 'مسح'}
                         </Button>
                     </div>
+                    </div>
                 </div>
-            </div>
 
-            <div className="admin-premium-panel overflow-hidden">
+                <div className="catalog-products-list">
                 <div className="space-y-2 p-2 sm:space-y-3 sm:p-3 xl:hidden">
                     {filteredAdminProducts.length === 0 ? (
                         <div className="rounded-xl border border-dashed border-[color:rgb(var(--color-border-rgb)/0.82)] bg-[color:rgb(var(--color-card-rgb)/0.56)] p-5 text-center text-sm text-gray-500 dark:text-gray-400">
@@ -1691,7 +1784,7 @@ const AdminProducts = () => {
                         return (
                             <article
                                 key={product.id}
-                                className="rounded-lg border border-[color:rgb(var(--color-border-rgb)/0.78)] bg-[linear-gradient(180deg,rgb(var(--color-card-rgb)/0.9),rgb(var(--color-elevated-rgb)/0.72))] p-2 shadow-[var(--shadow-subtle)] transition hover:border-[color:rgb(var(--color-primary-rgb)/0.26)] sm:rounded-xl sm:p-3"
+                                className="catalog-product-mobile-card p-2.5 sm:p-3.5"
                             >
                                 <div className="flex min-w-0 items-start gap-2 sm:gap-3">
                                     {renderProductImage(product, 'h-10 w-10 !rounded-lg sm:h-14 sm:w-14 sm:!rounded-xl')}
@@ -1710,39 +1803,39 @@ const AdminProducts = () => {
                                             </Badge>
                                         </div>
 
-                                        <div className="mt-1 flex flex-wrap gap-1 sm:mt-2">
-                                            <Badge variant={isHidden ? 'secondary' : 'success'} className="px-1.5 py-0.5 text-[9px] sm:px-2 sm:text-[10px]">
+                                        <div className="catalog-product-statuses mt-1.5 flex flex-wrap gap-1 sm:mt-2">
+                                            <Badge variant={isHidden ? 'secondary' : 'success'} className="px-2 py-0.5 text-[9px] sm:text-[10px]">
                                                 {visibilityLabel}
                                             </Badge>
-                                            <Badge variant={isUnavailable ? 'danger' : 'success'} className="px-1.5 py-0.5 text-[9px] sm:px-2 sm:text-[10px]">
+                                            <Badge variant={isUnavailable ? 'danger' : 'success'} className="px-2 py-0.5 text-[9px] sm:text-[10px]">
                                                 {availabilityLabel}
                                             </Badge>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="mt-2 grid grid-cols-2 gap-1 text-[10px] sm:mt-3 sm:gap-2 sm:text-xs">
-                                    <div className="min-w-0 rounded-lg border border-[color:rgb(var(--color-border-rgb)/0.62)] bg-[color:rgb(var(--color-surface-rgb)/0.36)] p-1.5 sm:rounded-xl sm:p-2">
-                                        <span className="block text-[8px] font-bold text-gray-500 sm:text-[10px] dark:text-gray-400">{isEnglish ? 'Provider' : 'المزود'}</span>
-                                        <strong className="mt-0.5 block truncate text-[10px] text-[var(--color-text)] sm:mt-1 sm:text-xs">{providerLabel}</strong>
+                                <div className="mt-3 grid grid-cols-2 gap-1.5 text-[10px] sm:gap-2 sm:text-xs">
+                                    <div className="catalog-product-detail catalog-product-detail--provider">
+                                        <span>{isEnglish ? 'Provider' : 'المزود'}</span>
+                                        <strong>{providerLabel}</strong>
                                     </div>
-                                    <div className="min-w-0 rounded-lg border border-[color:rgb(var(--color-border-rgb)/0.62)] bg-[color:rgb(var(--color-surface-rgb)/0.36)] p-1.5 sm:rounded-xl sm:p-2">
-                                        <span className="block text-[8px] font-bold text-gray-500 sm:text-[10px] dark:text-gray-400">{isEnglish ? 'Category' : 'القسم'}</span>
-                                        <strong className="mt-0.5 block truncate text-[10px] text-[var(--color-text)] sm:mt-1 sm:text-xs">{categoryLabel}</strong>
+                                    <div className="catalog-product-detail catalog-product-detail--category">
+                                        <span>{isEnglish ? 'Category' : 'القسم'}</span>
+                                        <strong>{categoryLabel}</strong>
                                     </div>
-                                    <div className="min-w-0 rounded-lg border border-[color:rgb(var(--color-border-rgb)/0.62)] bg-[color:rgb(var(--color-surface-rgb)/0.36)] p-1.5 sm:rounded-xl sm:p-2">
-                                        <span className="block text-[8px] font-bold text-gray-500 sm:text-[10px] dark:text-gray-400">{isEnglish ? 'Order' : 'الترتيب'}</span>
-                                        <strong className="mt-0.5 block text-[10px] text-[var(--color-text)] sm:mt-1 sm:text-xs">{Number(product?.displayOrder || 0)}</strong>
+                                    <div className="catalog-product-detail catalog-product-detail--order">
+                                        <span>{isEnglish ? 'Order' : 'الترتيب'}</span>
+                                        <strong>{Number(product?.displayOrder || 0)}</strong>
                                     </div>
-                                    <div className="min-w-0 rounded-lg border border-[color:rgb(var(--color-primary-rgb)/0.18)] bg-[color:rgb(var(--color-primary-rgb)/0.07)] p-1.5 sm:rounded-xl sm:p-2">
-                                        <span className="block text-[8px] font-bold text-gray-500 sm:text-[10px] dark:text-gray-400">{t('basePrice')}</span>
-                                        <strong className="mt-0.5 block break-all font-mono text-[9px] leading-tight text-[var(--color-primary)] sm:mt-1 sm:text-[11px] sm:leading-snug">
+                                    <div className="catalog-product-detail catalog-product-detail--price">
+                                        <span>{t('basePrice')}</span>
+                                        <strong className="break-all font-mono text-[10px] sm:text-xs">
                                             {priceLabel}
                                         </strong>
                                     </div>
                                 </div>
 
-                                <div className="mt-2 border-t border-[color:rgb(var(--color-border-rgb)/0.58)] pt-2 sm:mt-3 sm:pt-3">
+                                <div className="catalog-product-actions-wrap mt-3 pt-3">
                                     {renderProductActions(product, true)}
                                 </div>
                             </article>
@@ -1837,7 +1930,8 @@ const AdminProducts = () => {
                         </TableBody>
                     </Table>
                 </div>
-            </div>
+                </div>
+            </section>
 
             <Modal
                 isOpen={isCategoryModalOpen}

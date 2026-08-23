@@ -5,8 +5,9 @@ import useNotificationStore from './useNotificationStore';
 import useAuthStore from './useAuthStore';
 import useAdminStore from './useAdminStore';
 import { formatTime } from '../utils/intl';
-import { isRealProvider } from '../config/dataProvider';
 
+const dataProvider = (import.meta.env.VITE_DATA_PROVIDER || 'mock').toLowerCase();
+const isRealProvider = dataProvider === 'real';
 let hasFetchedTopupsFromBackendThisSession = false;
 
 const TOPUPS_CACHE_TTL = 15 * 1000; // short TTL to reduce refetch storms while keeping data fresh

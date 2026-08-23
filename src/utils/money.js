@@ -98,6 +98,29 @@ export const formatRawPriceString = (value) => {
   return `${sign}${groupedInteger}${fractionPart}`;
 };
 
+/**
+ * Multiply a raw decimal product price by a whole-number quantity without
+ * passing the USD amount through IEEE-754 floating point arithmetic.
+ */
+export const multiplyRawPriceByQuantity = (value, quantity) => {
+  const rawPrice = toRawPriceString(value).trim();
+  const safeQuantity = Number(quantity);
+
+  if (!/^\d+(?:\.\d+)?$/.test(rawPrice) || !Number.isSafeInteger(safeQuantity) || safeQuantity < 0) {
+    return '0';
+  }
+
+  const [integerPart, fractionPart = ''] = rawPrice.split('.');
+  const decimalPlaces = fractionPart.length;
+  const digits = `${integerPart}${fractionPart}`.replace(/^0+(?=\d)/, '') || '0';
+  const multiplied = (BigInt(digits) * BigInt(safeQuantity)).toString().padStart(decimalPlaces + 1, '0');
+
+  if (decimalPlaces === 0) return multiplied;
+
+  const splitAt = multiplied.length - decimalPlaces;
+  return toRawPriceString(`${multiplied.slice(0, splitAt)}.${multiplied.slice(splitAt)}`);
+};
+
 const getResolvedMoneyFractionDigits = (value, maxFractionDigits = DEFAULT_MONEY_FRACTION_DIGITS) => {
   const safeValue = Math.abs(toFiniteMoneyNumber(value, 0));
   const normalized = safeValue.toFixed(maxFractionDigits).replace(/0+$/, '').replace(/\.$/, '');
