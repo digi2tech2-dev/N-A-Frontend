@@ -161,14 +161,7 @@ const Referral = () => {
 
   const loadRealReferralData = async () => {
     if (!useRealReferralApi || !user?.id) return;
-    const [
-      dashboard,
-      methods,
-      currentRequest,
-      requestHistory,
-      payouts,
-      commissions,
-    ] = await Promise.all([
+    const results = await Promise.allSettled([
       apiClient.referrals.dashboard({ limit: 50 }),
       apiClient.referrals.payoutMethods(),
       apiClient.referrals.currentSubAgentRequest(),
@@ -177,12 +170,28 @@ const Referral = () => {
       apiClient.referrals.commissions({ limit: 50 }),
     ]);
 
-    setReferralDashboard(dashboard);
+    const valueAt = (index) => (
+      results[index]?.status === 'fulfilled' ? results[index].value : null
+    );
+    const dashboard = valueAt(0);
+    const methods = valueAt(1);
+    const currentRequest = valueAt(2);
+    const requestHistory = valueAt(3);
+    const payouts = valueAt(4);
+    const commissions = valueAt(5);
+
+    if (dashboard) setReferralDashboard(dashboard);
     if (Array.isArray(methods) && methods.length) setWithdrawalMethods(methods);
-    setAgentRequest(currentRequest?.request || null);
-    setAgentRequestHistory(Array.isArray(requestHistory?.requests) ? requestHistory.requests : []);
-    setPayoutHistory(Array.isArray(payouts?.payouts) ? payouts.payouts : []);
-    setCommissionHistory(Array.isArray(commissions?.commissions) ? commissions.commissions : []);
+    if (currentRequest) setAgentRequest(currentRequest?.request || null);
+    if (requestHistory) {
+      setAgentRequestHistory(Array.isArray(requestHistory?.requests) ? requestHistory.requests : []);
+    }
+    if (payouts) setPayoutHistory(Array.isArray(payouts?.payouts) ? payouts.payouts : []);
+    if (commissions) setCommissionHistory(Array.isArray(commissions?.commissions) ? commissions.commissions : []);
+
+    if (results.every((result) => result.status === 'rejected')) {
+      throw results[0]?.reason || new Error('Referral API unavailable.');
+    }
   };
 
   useEffect(() => {
@@ -1201,3 +1210,4 @@ const Referral = () => {
 };
 
 export default Referral;
+

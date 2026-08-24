@@ -1906,12 +1906,11 @@ html[data-page-transition="running"] {
 .page-route-loader__spinner {
   width: 2.25rem;
   height: 2.25rem;
-  border: 2px solid rgb(var(--color-border-rgb) / 0.5);
-  border-top-color: rgb(var(--color-primary-rgb) / 0.95);
-  border-right-color: rgb(192 38 211 / 0.78);
+  border: 2px solid rgb(var(--color-primary-rgb) / 0.28);
+  border-top-color: rgb(var(--color-primary-rgb) / 0.72);
   border-radius: 999px;
   box-shadow: 0 0 24px -8px rgb(var(--color-primary-rgb) / 0.8);
-  animation: page-route-spinner 680ms linear infinite;
+  animation: none;
 }
 
 :root:not(.dark) .page-transition-overlay {
@@ -4980,6 +4979,43 @@ body {
     linear-gradient(180deg, #01050f 0%, #020b1c 52%, #010713 100%) !important;
 }
 
+/* Compact N&A HUB signature footer. */
+.site-copyright-footer__card{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) minmax(15rem,.9fr);align-items:center;gap:1rem;min-height:6.1rem;overflow:hidden;padding:1rem 1.15rem;border:1px solid rgb(var(--color-brand-cyan-rgb)/.2);border-radius:1.45rem;background:radial-gradient(circle at 5% 0%,rgb(var(--color-brand-cyan-rgb)/.13),transparent 32%),radial-gradient(circle at 100% 100%,rgb(var(--color-brand-violet-rgb)/.14),transparent 38%),linear-gradient(125deg,rgb(4 20 45/.97),rgb(8 15 39/.94));box-shadow:inset 0 1px rgb(255 255 255/.08),0 20px 55px -40px rgb(0 0 0/.9);isolation:isolate}
+.site-copyright-footer__orb{position:absolute;z-index:-1;border-radius:999px;pointer-events:none;filter:blur(34px)}.site-copyright-footer__orb--one{top:-4rem;inset-inline-start:28%;width:10rem;height:7rem;background:rgb(var(--color-brand-cyan-rgb)/.12)}.site-copyright-footer__orb--two{right:-3rem;bottom:-4rem;width:11rem;height:8rem;background:rgb(var(--color-brand-violet-rgb)/.16)}
+.site-copyright-footer__identity{display:flex;align-items:center;gap:.7rem;min-width:max-content}.site-copyright-footer__mark{display:grid;width:2.55rem;height:2.55rem;place-items:center;border:1px solid rgb(var(--color-brand-cyan-rgb)/.34);border-radius:.9rem;background:linear-gradient(145deg,rgb(var(--color-brand-cyan-rgb)/.16),rgb(var(--color-brand-violet-rgb)/.2));box-shadow:inset 0 1px rgb(255 255 255/.15),0 0 22px -12px rgb(var(--color-brand-cyan-rgb)/.85)}.site-copyright-footer__mark img{width:2.15rem;height:2.15rem;object-fit:contain;filter:drop-shadow(0 4px 8px rgb(8 125 255/.32))}.site-copyright-footer__eyebrow{margin:0 0 .15rem;color:rgb(186 230 253/.64);font-size:.58rem;font-weight:700}.site-copyright-footer__title{margin:0;color:#f4fbff;font-family:"Cinzel Decorative",Georgia,serif;font-size:.9rem;font-weight:900;letter-spacing:.04em}.site-copyright-footer__title span{color:#67e8f9;font-family:Montserrat,sans-serif;font-size:.58em;letter-spacing:.28em}.site-copyright-footer__copy{min-width:0;color:rgb(219 234 254/.65);font-size:.64rem;line-height:1.7}.site-copyright-footer__copy p{display:flex;align-items:center;gap:.35rem;margin:0}.site-copyright-footer__copy p+p{margin-top:.2rem}.site-copyright-footer__copy svg{width:.85rem;height:.85rem;flex:0 0 auto;color:#67e8f9}.site-copyright-footer__copy strong{color:#f8fdff;font-weight:800}
+.site-copyright-footer__actions{display:grid;gap:.35rem;min-width:0}.site-copyright-footer__contact{display:flex;align-items:center;gap:.42rem;min-width:0;max-width:14rem;padding:.38rem .48rem;border:1px solid rgb(52 211 153/.14);border-radius:.72rem;color:rgb(236 253 245/.78);background:rgb(16 185 129/.055);text-decoration:none;transition:transform 180ms ease,border-color 180ms ease,background 180ms ease}.site-copyright-footer__contact:hover{transform:translateY(-1px);border-color:rgb(52 211 153/.35);background:rgb(16 185 129/.1)}.site-copyright-footer__contact--admin{border-color:rgb(125 211 252/.15);color:rgb(224 242 254/.78);background:rgb(14 165 233/.05)}.site-copyright-footer__contact-icon{display:grid;width:1.45rem;height:1.45rem;flex:0 0 auto;place-items:center;border-radius:.48rem;color:rgb(236 253 245/.9);background:rgb(16 185 129/.2)}.site-copyright-footer__contact-icon svg{width:.8rem;height:.8rem}.site-copyright-footer__contact--admin .site-copyright-footer__contact-icon{color:rgb(186 230 253/.9);background:rgb(14 165 233/.18)}.site-copyright-footer__contact small,.site-copyright-footer__contact strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.site-copyright-footer__contact small{color:rgb(167 243 208/.56);font-size:.46rem;font-weight:600}.site-copyright-footer__contact strong{margin-top:.08rem;font-size:.55rem;font-weight:800}.site-copyright-footer__arrow{width:.72rem;height:.72rem;margin-inline-start:auto;flex:0 0 auto;color:rgb(110 231 183/.68)}
+:root:not(.dark) .site-copyright-footer__card{border-color:rgb(14 165 233/.2);background:radial-gradient(circle at 5% 0%,rgb(14 165 233/.1),transparent 32%),radial-gradient(circle at 100% 100%,rgb(124 58 237/.1),transparent 38%),linear-gradient(125deg,#f8fbff,#f4f2ff);box-shadow:inset 0 1px #fff,0 18px 42px -34px rgb(30 64 175/.3)}:root:not(.dark) .site-copyright-footer__eyebrow,:root:not(.dark) .site-copyright-footer__copy{color:rgb(51 65 85/.7)}:root:not(.dark) .site-copyright-footer__title,:root:not(.dark) .site-copyright-footer__copy strong{color:#172554}:root:not(.dark) .site-copyright-footer__contact{color:rgb(6 95 70/.78);border-color:rgb(16 185 129/.18);background:rgb(16 185 129/.06)}:root:not(.dark) .site-copyright-footer__contact small{color:rgb(6 95 70/.58)}:root:not(.dark) .site-copyright-footer__contact--admin{color:rgb(30 64 175/.78);border-color:rgb(14 165 233/.18);background:rgb(14 165 233/.06)}
+@media(max-width:700px){.site-copyright-footer__card{grid-template-columns:1fr auto;gap:.8rem;padding:.95rem}.site-copyright-footer__copy{grid-column:1/-1;padding-top:.15rem;border-top:1px solid rgb(125 211 252/.13)}.site-copyright-footer__actions{grid-column:1/-1;grid-template-columns:repeat(2,minmax(0,1fr))}.site-copyright-footer__contact{max-width:none}}
+
+/* Low-cost mobile rendering: keep the visual identity, remove the effects
+   that force continuous GPU compositing and make taps feel delayed on older
+   phones/WebViews. */
+@media (max-width: 768px) {
+  .ambient-background__mesh,
+  .ambient-background__glow,
+  .ambient-background__particle {
+    display: none !important;
+  }
+
+  .ambient-background__veil {
+    opacity: 0.7;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    background: linear-gradient(180deg, rgb(2 8 23 / 0.18), rgb(2 8 23 / 0.46));
+  }
+
+  [class*="backdrop-blur"] {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .floating-whatsapp-button::before,
+  .floating-whatsapp-ring,
+  .wallet-balance-shimmer::after {
+    animation: none !important;
+  }
+}
+
 :root.dark .ambient-background__veil {
   background:
     linear-gradient(180deg, rgb(1 5 15 / 0.12), rgb(1 7 19 / 0.82)),
@@ -7037,3 +7073,4 @@ body {
   border-color: rgb(var(--color-brand-cyan-rgb) / 0.28) !important;
   background: linear-gradient(110deg, rgb(var(--color-brand-cyan-rgb) / 0.1), rgb(var(--color-brand-violet-rgb) / 0.1)) !important;
 }
+

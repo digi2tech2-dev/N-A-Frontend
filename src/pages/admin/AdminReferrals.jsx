@@ -150,18 +150,31 @@ const AdminReferrals = () => {
 
   const loadRealReferralAdminData = async () => {
     if (!isRealProvider) return;
-    const [agents, requests, payouts, methods, defaultRate] = await Promise.all([
+    const results = await Promise.allSettled([
       apiClient.referrals.adminAgents({ limit: 100, search: query }),
       apiClient.referrals.adminSubAgentRequests({ limit: 100 }),
       apiClient.referrals.adminPayouts({ limit: 100 }),
       apiClient.referrals.adminPayoutMethods(),
       apiClient.referrals.getDefaultCommissionRate(),
     ]);
-    setAdminReferralOwners(Array.isArray(agents?.agents) ? agents.agents : []);
-    setAgentRequests(Array.isArray(requests?.requests) ? requests.requests : []);
-    setLocalRequests(Array.isArray(payouts?.payouts) ? payouts.payouts : []);
+    const valueAt = (index) => (
+      results[index]?.status === 'fulfilled' ? results[index].value : null
+    );
+    const agents = valueAt(0);
+    const requests = valueAt(1);
+    const payouts = valueAt(2);
+    const methods = valueAt(3);
+    const defaultRate = valueAt(4);
+
+    if (agents) setAdminReferralOwners(Array.isArray(agents?.agents) ? agents.agents : []);
+    if (requests) setAgentRequests(Array.isArray(requests?.requests) ? requests.requests : []);
+    if (payouts) setLocalRequests(Array.isArray(payouts?.payouts) ? payouts.payouts : []);
     if (Array.isArray(methods) && methods.length) setWithdrawalMethods(methods);
-    setCommissionRate(defaultRate);
+    if (defaultRate !== null) setCommissionRate(defaultRate);
+
+    if (results.every((result) => result.status === 'rejected')) {
+      throw results[0]?.reason || new Error('Referral admin API unavailable.');
+    }
   };
 
   useEffect(() => {
@@ -588,3 +601,4 @@ const AdminReferrals = () => {
 };
 
 export default AdminReferrals;
+

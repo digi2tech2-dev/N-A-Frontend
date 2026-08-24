@@ -11,6 +11,11 @@ import { StatusBar, Style as StatusBarStyle } from '@capacitor/status-bar';
 const APP_ORIGIN = 'https://na-hub.online';
 const NATIVE_EVENT_PREFIX = 'nahub:native';
 const EXTERNAL_SCHEMES = new Set(['geo:', 'intent:', 'mailto:', 'market:', 'sms:', 'tel:', 'whatsapp:']);
+// FCM cannot be registered safely until android/app/google-services.json is
+// supplied and the Firebase application is configured.  Keep this disabled
+// by default so Android's notification permission result can never terminate
+// the WebView when a Firebase project is not present.
+const PUSH_NOTIFICATIONS_ENABLED = import.meta.env.VITE_PUSH_NOTIFICATIONS_ENABLED === 'true';
 
 const isNative = () => Capacitor.isNativePlatform();
 
@@ -92,17 +97,53 @@ const scheduleLocalNotification = async ({ id = Date.now() % 2_147_483_647, titl
 
 let pushListenerHandles = [];
 
+const showForegroundPushAsLocalNotification = async (notification) => {
+  const title = String(notification?.title || notification?.data?.title || 'N&A HUB');
+  const body = String(notification?.body || notification?.data?.body || notification?.data?.message || 'لديك إشعار جديد');
+
+  try {
+    const permissions = await ensurePermission(LocalNotifications, 'display');
+    if (permissions.display !== 'granted') return;
+    await LocalNotifications.schedule({
+      notifications: [{
+        id: Math.floor(Date.now() % 2_147_000_000),
+        title,
+        body,
+        extra: notification?.data || {},
+      }],
+    });
+  } catch {
+    // A foreground notification must never interrupt the app UI.
+  }
+};
+
 const registerPushNotifications = async () => {
   if (!isNative()) return { receive: 'unsupported' };
+  if (!PUSH_NOTIFICATIONS_ENABLED) {
+    dispatchNativeEvent('push-disabled', {
+      reason: 'Firebase push notifications are not configured for this build.',
+    });
+    return { receive: 'disabled' };
+  }
 
   const permissions = await ensurePermission(PushNotifications, 'receive');
   if (permissions.receive !== 'granted') throw new Error('Push notification permission was not granted.');
 
   await Promise.all(pushListenerHandles.map((handle) => handle.remove()));
   pushListenerHandles = await Promise.all([
-    PushNotifications.addListener('registration', (token) => dispatchNativeEvent('push-registration', token)),
+    PushNotifications.addListener('registration', (token) => {
+      try {
+        window.localStorage.setItem('nahub:push-token', token?.value || '');
+      } catch {
+        // Ignore storage restrictions in private WebViews.
+      }
+      dispatchNativeEvent('push-registration', token);
+    }),
     PushNotifications.addListener('registrationError', (error) => dispatchNativeEvent('push-error', error)),
-    PushNotifications.addListener('pushNotificationReceived', (notification) => dispatchNativeEvent('push-received', notification)),
+    PushNotifications.addListener('pushNotificationReceived', (notification) => {
+      dispatchNativeEvent('push-received', notification);
+      void showForegroundPushAsLocalNotification(notification);
+    }),
     PushNotifications.addListener('pushNotificationActionPerformed', (action) => dispatchNativeEvent('push-action', action)),
   ]);
 
@@ -129,7 +170,12 @@ const syncStatusBarTheme = async () => {
   if (!isNative()) return;
   const isDark = document.documentElement.classList.contains('dark')
     || document.documentElement.dataset.theme === 'dark';
-  await StatusBar.setStyle({ style: isDark ? StatusBarStyle.Light : StatusBarStyle.Dark });
+  // Keep the WebView below Android's status bar so the header never sits
+  // underneath the clock, signal and battery icons on edge-to-edge devices.
+  await Promise.all([
+    StatusBar.setOverlaysWebView({ overlay: false }),
+    StatusBar.setStyle({ style: isDark ? StatusBarStyle.Light : StatusBarStyle.Dark }),
+  ]);
 };
 
 const installLinkHandling = () => {
@@ -199,9 +245,16 @@ export const initializeNativeApp = async () => {
   installLinkHandling();
   await Promise.all([installBackHandling(), installDeepLinkHandling(), syncStatusBarTheme()]);
 
+  // Do not request Android's Push permission during startup.  Calling FCM
+  // registration without google-services.json makes Firebase throw a native
+  // exception immediately after the user accepts the permission dialog.  A
+  // configured build can opt in through VITE_PUSH_NOTIFICATIONS_ENABLED=true
+  // and invoke registerPushNotifications explicitly.
+
   const themeObserver = new MutationObserver(() => void syncStatusBarTheme());
   themeObserver.observe(document.documentElement, {
     attributes: true,
     attributeFilter: ['class', 'data-theme'],
   });
 };
+

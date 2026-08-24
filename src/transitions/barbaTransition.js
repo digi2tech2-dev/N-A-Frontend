@@ -3,8 +3,8 @@ import barba from '@barba/core';
 const BARBA_REACT_ADAPTER = Symbol.for('kanz-coins.barba-react-adapter');
 const ENTER_EASING = 'cubic-bezier(0.16, 1, 0.3, 1)';
 const LEAVE_EASING = 'cubic-bezier(0.4, 0, 0.2, 1)';
-const LEAVE_DURATION = 90;
-const ENTER_DURATION = 230;
+const LEAVE_DURATION = 40;
+const ENTER_DURATION = 110;
 
 const prefersReducedMotion = () => (
   typeof window !== 'undefined'
@@ -220,3 +220,4 @@ export const runBarbaEnter = async ({ data, container, signal }) => {
 };
 
 export const resetBarbaTransitionStyles = clearTransitionStyles;
+

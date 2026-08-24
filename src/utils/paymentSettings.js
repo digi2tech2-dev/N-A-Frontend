@@ -200,6 +200,21 @@ export const isPaymentMethodAllowed = (method, allowedValues = []) => {
   ].some((value) => getPaymentMethodTokenVariants(value).some((token) => allowedTokens.has(token)));
 };
 
+export const resolveAllowedPaymentMethodValue = (method, allowedValues = []) => {
+  const methodTokens = new Set([
+    method?.id,
+    method?.name,
+    method?.paymentMethod,
+    method?.paymentMethodName,
+  ].flatMap(getPaymentMethodTokenVariants).filter(Boolean));
+
+  const exactAllowedValue = (Array.isArray(allowedValues) ? allowedValues : []).find((value) => (
+    getPaymentMethodTokenVariants(value).some((token) => methodTokens.has(token))
+  ));
+
+  return String(exactAllowedValue || method?.id || method?.name || '').trim();
+};
+
 export const isSiteWalletPaymentMethod = (methodOrValue) => {
   const values = typeof methodOrValue === 'object' && methodOrValue !== null
     ? [methodOrValue.id, methodOrValue.name, methodOrValue.paymentMethod, methodOrValue.paymentMethodName, methodOrValue.type]

@@ -6,14 +6,11 @@ import React, {
   useState,
 } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
-import NavigationOverlay from './NavigationOverlay';
 import { preloadRoute } from '../../transitions/routeModules';
 import {
   getBarbaNamespace,
   resetBarbaTransitionStyles,
-  runBarbaEnter,
   runBarbaInitialReveal,
-  runBarbaLeave,
 } from '../../transitions/barbaTransition';
 
 const locationIdentity = (location) => [
@@ -23,11 +20,7 @@ const locationIdentity = (location) => [
   location?.hash || '',
 ].join('|');
 
-const nextPaint = () => new Promise((resolve) => {
-  window.requestAnimationFrame(() => {
-    window.requestAnimationFrame(resolve);
-  });
-});
+const COMMON_CUSTOMER_ROUTES = ['/dashboard', '/products', '/orders', '/wallet/add-balance'];
 
 const scrollToHash = (hash) => {
   if (!hash) return false;
@@ -70,7 +63,6 @@ const PageTransition = ({ children }) => {
   const routerLocation = useLocation();
   const navigationType = useNavigationType();
   const [displayedLocation, setDisplayedLocation] = useState(routerLocation);
-  const [isTransitioning, setIsTransitioning] = useState(false);
   const containerRef = useRef(null);
   const displayedLocationRef = useRef(routerLocation);
   const latestNavigationRef = useRef({
@@ -95,6 +87,35 @@ const PageTransition = ({ children }) => {
       commitResolverRef.current?.resolve();
       resetBarbaTransitionStyles(containerRef.current);
       delete document.documentElement.dataset.pageTransition;
+    };
+  }, []);
+
+  // Warm the most-used customer routes only while the browser is idle. This
+  // removes the first-tap chunk download on normal connections without
+  // competing with the initial render or data-saver networks.
+  useEffect(() => {
+    const connection = navigator.connection;
+    if (
+      typeof window === 'undefined'
+      || connection?.saveData
+      || ['slow-2g', '2g'].includes(connection?.effectiveType)
+    ) return undefined;
+
+    const warm = () => {
+      COMMON_CUSTOMER_ROUTES.forEach((path) => {
+        void preloadRoute(path).catch(() => {});
+      });
+    };
+    const idleHandle = 'requestIdleCallback' in window
+      ? window.requestIdleCallback(warm, { timeout: 2200 })
+      : window.setTimeout(warm, 1800);
+
+    return () => {
+      if ('cancelIdleCallback' in window && typeof idleHandle === 'number') {
+        window.cancelIdleCallback(idleHandle);
+      } else {
+        window.clearTimeout(idleHandle);
+      }
     };
   }, []);
 
@@ -135,30 +156,14 @@ const PageTransition = ({ children }) => {
         abortControllerRef.current = controller;
         initialRevealControllerRef.current?.abort();
 
-        const container = containerRef.current;
         const fallbackPosition = { x: window.scrollX, y: window.scrollY };
         scrollPositionsRef.current.set(from.key, fallbackPosition);
 
-        setIsTransitioning(true);
-        document.documentElement.dataset.pageTransition = 'running';
-        document.activeElement?.blur?.();
-
+        // Start the lazy import in the background. Navigation itself is
+        // committed immediately so the first tap always takes effect.
         const preloadPromise = preloadRoute(to.pathname);
-        await nextPaint();
-
-        const barbaData = await runBarbaLeave({
-          from,
-          to,
-          container,
-          trigger: targetNavigation.navigationType.toLowerCase(),
-          signal: controller.signal,
-        });
-
-        if (controller.signal.aborted || !mountedRef.current) break;
-
-        await preloadPromise;
+        void preloadPromise.catch(() => {});
         await commitLocation(to);
-        await nextPaint();
 
         restoreScroll(
           to,
@@ -166,14 +171,6 @@ const PageTransition = ({ children }) => {
           scrollPositionsRef.current,
           fallbackPosition
         );
-
-        await runBarbaEnter({
-          data: barbaData,
-          container: containerRef.current,
-          signal: controller.signal,
-        });
-
-        if (controller.signal.aborted || !mountedRef.current) break;
         displayedLocationRef.current = to;
       }
     } finally {
@@ -182,7 +179,6 @@ const PageTransition = ({ children }) => {
 
       if (mountedRef.current) {
         resetBarbaTransitionStyles(containerRef.current);
-        setIsTransitioning(false);
         delete document.documentElement.dataset.pageTransition;
 
         if (
@@ -244,13 +240,12 @@ const PageTransition = ({ children }) => {
         data-barba="container"
         data-barba-namespace={namespace}
         className="barba-page-container"
-        aria-busy={isTransitioning}
       >
         {children(displayedLocation)}
       </div>
-      <NavigationOverlay active={isTransitioning} />
     </div>
   );
 };
 
 export default PageTransition;
+

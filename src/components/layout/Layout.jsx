@@ -8,7 +8,6 @@ import AmbientBackground from './AmbientBackground';
 import { useLanguage } from '../../context/LanguageContext';
 import useAuthStore from '../../store/useAuthStore';
 import { isAdminRole } from '../../utils/authRoles';
-import BackToTopButton from '../ui/BackToTopButton';
 import SiteCopyrightFooter from './SiteCopyrightFooter';
 import {
   getDashboardPathForRole,
@@ -89,6 +88,11 @@ const Layout = ({ children = null }) => {
   );
 
   const handleGoBack = () => {
+    if (isBuyTargetPage) {
+      window.dispatchEvent(new Event('ka:buy-target-back'));
+      return;
+    }
+
     if (window.history.length > 1) {
       navigate(-1);
       return;
@@ -123,7 +127,7 @@ const Layout = ({ children = null }) => {
                 <span>{dir === 'rtl' ? 'رجوع' : 'Back'}</span>
               </button>
 
-              {isBuyTargetPage || isWalletTopupPage ? (
+              {isWalletTopupPage ? (
                 <button
                   type="button"
                   onClick={() => navigate(isBuyTargetPage ? '/target-orders' : '/wallet/topup-history')}
@@ -151,9 +155,9 @@ const Layout = ({ children = null }) => {
           />
         ) : null}
       </div>
-      <BackToTopButton />
     </div>
   );
 };
 
 export default Layout;
+

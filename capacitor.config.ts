@@ -7,11 +7,13 @@ const config: CapacitorConfig = {
   appId: 'online.nahub.app',
   appName: '𝑵&𝑨(HUB)',
 
-  // This folder intentionally contains only the tiny native-shell fallback.
-  // The React/Vite production bundle is NOT copied into the APK.
+  // Keep the APK as a lightweight native shell. The live website is loaded
+  // below so clients receive frontend updates without reinstalling the APK.
+  // The website service worker keeps repeat launches fast and provides a
+  // cached shell when the connection briefly drops.
   webDir: 'capacitor-shell',
 
-  // SECURITY: only the plugins needed by this native shell are registered.
+  // SECURITY: only the plugins needed by this app are registered.
   includePlugins: [
     '@capacitor/app',
     '@capacitor/app-launcher',
@@ -24,8 +26,6 @@ const config: CapacitorConfig = {
   ],
 
   server: {
-    // REMOTE UI SOURCE: changing this value changes the website loaded by Android.
-    // Keep HTTPS enabled; do not point release APKs at localhost or an HTTP server.
     url: 'https://na-hub.online',
     cleartext: false,
     androidScheme: 'https',
@@ -49,7 +49,8 @@ const config: CapacitorConfig = {
     },
   },
 
-  loggingBehavior: 'debug',
+  // Avoid noisy Capacitor logging in production APKs.
+  loggingBehavior: 'none',
 };
 
 export default config;

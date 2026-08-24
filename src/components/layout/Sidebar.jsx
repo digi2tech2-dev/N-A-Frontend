@@ -508,6 +508,14 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
             </div>
           </div>
 
+          <div className="relative z-10 shrink-0 border-t border-cyan-200/10 px-4 py-2.5 text-center">
+            {isExpanded ? (
+              <span className="text-[0.62rem] font-semibold tracking-wide text-cyan-100/45">© 2026 N&amp;A HUB</span>
+            ) : (
+              <span className="mx-auto block h-1.5 w-1.5 rounded-full bg-cyan-300/60 shadow-[0_0_10px_rgb(34_211_238/0.7)]" aria-label="© 2026 N&A HUB" />
+            )}
+          </div>
+
         </div>
       </motion.aside>
       <ConfirmDialog
@@ -524,3 +532,4 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
 };
 
 export default Sidebar;
+

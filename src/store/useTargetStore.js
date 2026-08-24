@@ -13,6 +13,7 @@ const normalizeApp = (app = {}) => {
     ...app,
     id: app.id || app._id,
     name: app.name || '',
+    image: app.image || app.imageUrl || app.logo || '',
     targetAccountId: String(app.targetAccountId || app.receivingAccountId || app.receiverAccountId || app.recipientAccountId || app.targetRecipientId || app.receivingAccount || app.targetAccount || app.destinationAccountId || app.accountId || app.accountNumber || '').trim(),
     receivingAccountId: String(app.receivingAccountId || app.targetAccountId || app.receiverAccountId || app.recipientAccountId || app.targetRecipientId || app.receivingAccount || app.targetAccount || app.destinationAccountId || app.accountId || app.accountNumber || '').trim(),
     unitPrice: Number(app.unitPrice || 0),
@@ -202,3 +203,4 @@ const useTargetStore = create((set, get) => ({
 }));
 
 export default useTargetStore;
+

@@ -1,41 +1,42 @@
 import React from 'react';
-import { Phone } from 'lucide-react';
+import { ArrowUpLeft, MessageCircle, ShieldCheck, UserRound } from 'lucide-react';
+import logo from '../../assets/logo.PNG';
 
 const ENGINEERS_WHATSAPP_URL = `https://wa.me/201019603238?text=${encodeURIComponent('كنت محتاج تفاصيل عن انشاء موقع')}`;
 
 const SiteCopyrightFooter = ({ isArabic, showEngineerContact = true }) => (
-  <footer className="mx-auto w-full max-w-[var(--shell-max-width)] px-3 pb-6 sm:px-4 md:px-6 lg:px-8">
-    <div className="relative overflow-hidden rounded-[1.45rem] border border-[color:rgb(var(--color-border-rgb)/0.72)] bg-[linear-gradient(135deg,rgb(var(--color-card-rgb)/0.82),rgb(var(--color-elevated-rgb)/0.58))] px-4 py-4 text-center shadow-[var(--shadow-subtle)] backdrop-blur-xl">
-      <div className="pointer-events-none absolute inset-x-10 -top-20 h-28 rounded-full bg-[color:rgb(var(--color-primary-rgb)/0.16)] blur-3xl" />
-      <div className="relative space-y-2">
-        <div className="flex flex-col items-center justify-center gap-1.5 text-xs text-[var(--color-text-secondary)] sm:flex-row sm:flex-wrap sm:gap-2 sm:text-sm">
-          <span className="font-semibold text-[var(--color-text)]">
-            {isArabic ? 'حقوق الملكية محفوظة بعناية' : 'Copyright protected'}
-          </span>
-          <span className="hidden h-1 w-1 rounded-full bg-[color:rgb(var(--color-primary-rgb)/0.62)] sm:inline-flex" />
-          <span>© 2026 N&amp;A HUB</span>
-          <span className="hidden h-1 w-1 rounded-full bg-[color:rgb(var(--color-primary-rgb)/0.62)] sm:inline-flex" />
-          <span>
-            {isArabic
-              ? 'صُنعت الهوية والتجربة لتبقى خاصة بالعلامة.'
-              : 'Brand identity and experience are reserved for this store.'}
-          </span>
+  <footer className="site-copyright-footer mx-auto w-full max-w-[var(--shell-max-width)] px-3 pb-6 sm:px-4 md:px-6 lg:px-8">
+    <div className="site-copyright-footer__card">
+      <span className="site-copyright-footer__orb site-copyright-footer__orb--one" aria-hidden="true" />
+      <span className="site-copyright-footer__orb site-copyright-footer__orb--two" aria-hidden="true" />
+      <div className="site-copyright-footer__identity">
+        <span className="site-copyright-footer__mark" aria-hidden="true"><img src={logo} alt="" /></span>
+        <div>
+          <p className="site-copyright-footer__eyebrow">{isArabic ? 'مساحة N&A HUB الرسمية' : 'The official N&A HUB space'}</p>
+          <p className="site-copyright-footer__title">N&amp;A <span>HUB</span></p>
         </div>
-
-        {showEngineerContact ? (
-          <a
-            href={ENGINEERS_WHATSAPP_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="mx-auto inline-flex items-center justify-center gap-1 text-[0.65rem] font-semibold text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-primary)]"
-          >
-            <Phone className="h-3 w-3" />
-            <span>{isArabic ? 'تواصل مع مهندسين البرنامج' : 'Contact software engineers'}</span>
-          </a>
-        ) : null}
       </div>
+      <div className="site-copyright-footer__copy">
+        <p><ShieldCheck aria-hidden="true" /> <strong>{isArabic ? 'حقوق الملكية محفوظة بعناية' : 'Copyright protected'}</strong></p>
+        <p>© 2026 N&amp;A HUB · {isArabic ? 'صُنعت الهوية والتجربة لتبقى خاصة بالعلامة.' : 'Brand identity and experience are reserved for this store.'}</p>
+      </div>
+      {showEngineerContact ? (
+        <div className="site-copyright-footer__actions">
+          <a href="/contact-us" className="site-copyright-footer__contact site-copyright-footer__contact--admin">
+            <span className="site-copyright-footer__contact-icon"><UserRound /></span>
+            <span><small>{isArabic ? 'الدعم والمساعدة' : 'Support & help'}</small><strong>{isArabic ? 'تواصل مع المسؤول' : 'Contact the admin'}</strong></span>
+            <ArrowUpLeft className="site-copyright-footer__arrow" aria-hidden="true" />
+          </a>
+          <a href={ENGINEERS_WHATSAPP_URL} target="_blank" rel="noreferrer" className="site-copyright-footer__contact">
+            <span className="site-copyright-footer__contact-icon"><MessageCircle /></span>
+            <span><small>{isArabic ? 'هل تريد تجربة مشابهة؟' : 'Want a similar experience?'}</small><strong>{isArabic ? 'تواصل مع مهندسي البرنامج' : 'Contact the software engineers'}</strong></span>
+            <ArrowUpLeft className="site-copyright-footer__arrow" aria-hidden="true" />
+          </a>
+        </div>
+      ) : null}
     </div>
   </footer>
 );
 
 export default SiteCopyrightFooter;
+

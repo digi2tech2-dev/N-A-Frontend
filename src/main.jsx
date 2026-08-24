@@ -75,6 +75,26 @@ const hideBootLoader = () => {
   });
 };
 
+const registerServiceWorker = () => {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
+
+  const register = () => {
+    const version = String(import.meta.env.VITE_SITE_VERSION || 'latest');
+    navigator.serviceWorker.register(`/service-worker.js?v=${encodeURIComponent(version)}`, {
+      updateViaCache: 'none',
+    }).then((registration) => {
+      // Check once on every launch so a newly deployed site is picked up
+      // without requiring an APK reinstall or a manual cache clear.
+      void registration.update();
+    }).catch(() => {
+      // Service workers are an enhancement; the website remains usable without one.
+    });
+  };
+
+  if (document.readyState === 'complete') register();
+  else window.addEventListener('load', register, { once: true });
+};
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />
@@ -82,6 +102,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 );
 
 hideBootLoader();
+registerServiceWorker();
 
 // No-op in normal browsers; installs the Capacitor bridge when this remote site
 // is running inside the Android shell.
