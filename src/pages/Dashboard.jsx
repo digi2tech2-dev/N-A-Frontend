@@ -200,12 +200,22 @@ const Dashboard = () => {
 
       <HeroSlider slides={heroSlides} />
 
-      <section id="categories" className="scroll-mt-28 space-y-3 sm:space-y-3.5">
+      <section id="categories" className="-mt-2 scroll-mt-28 space-y-3 sm:-mt-1 sm:space-y-3.5">
         <div className="relative z-10 mx-auto flex w-full max-w-5xl justify-center px-0.5 sm:px-2">
-          <ProductSearchBar products={storefrontProducts} language={language} onSelectProduct={handleProductSelect} onOpenSearch={() => setIsSearchOpen(true)} forceIconRight placeholder={language === 'ar' ? 'ابحث عن منتج معين...' : 'Search for a specific product...'} noResultsLabel={language === 'ar' ? 'لا يوجد منتج مطابق' : 'No matching product found'} className="mx-auto w-full" inputClassName="h-10 rounded-full" />
+          <ProductSearchBar
+            products={storefrontProducts}
+            language={language}
+            onSelectProduct={handleProductSelect}
+            onOpenSearch={() => setIsSearchOpen(true)}
+            forceIconRight
+            placeholder={language === 'ar' ? 'ابحث عن منتج معين...' : 'Search for a specific product...'}
+            noResultsLabel={language === 'ar' ? 'لا يوجد منتج مطابق' : 'No matching product found'}
+            className="mx-auto w-full max-w-3xl"
+            inputClassName="!h-11 rounded-[1.15rem] border-[color:rgb(var(--color-primary-rgb)/0.3)] bg-[linear-gradient(135deg,rgb(var(--color-surface-rgb)/0.94),rgb(var(--color-card-rgb)/0.82))] font-semibold shadow-[0_12px_28px_-20px_rgb(var(--color-primary-rgb)/0.8),inset_0_1px_rgb(255_255_255/0.1)] placeholder:text-[var(--color-text-secondary)] focus:border-[color:rgb(var(--color-primary-rgb)/0.62)] focus:bg-[color:rgb(var(--color-surface-rgb)/0.98)] focus:shadow-[0_0_0_3px_rgb(var(--color-primary-rgb)/0.1),0_16px_34px_-20px_rgb(var(--color-primary-rgb)/0.9)] sm:!h-12 sm:rounded-[1.3rem]"
+          />
         </div>
 
-        <div className="relative z-0 grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-2.5 md:grid-cols-3 xl:grid-cols-4">
+        <div className="relative z-0 grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-2.5 md:grid-cols-3 xl:grid-cols-4">
           {visibleHomepageCategories.map((category, index) => (
             <CategoryCard key={category.id} category={category} active={false} index={index} onSelect={handleCategorySelect} />
           ))}
@@ -235,7 +245,7 @@ const Dashboard = () => {
 
       {bestSellingProducts.length ? (
         <section className="best-selling-section mx-auto w-full max-w-5xl overflow-hidden p-2.5 sm:p-4" aria-labelledby="best-selling-title">
-          <div className="mb-2.5 flex items-center justify-between gap-2 sm:mb-3">
+          <div className="mb-2.5 flex items-center gap-2 sm:mb-3">
             <div className="flex min-w-0 items-center gap-2">
               <span className="best-selling-heading-icon" aria-hidden="true">
                 <Sparkles className="h-3.5 w-3.5" />
@@ -244,10 +254,6 @@ const Dashboard = () => {
                 {language === 'ar' ? 'الأكثر مبيعًا' : 'Best sellers'}
               </h2>
             </div>
-            <Link to="/products" className="best-selling-view-all">
-              <span>{language === 'ar' ? 'عرض الكل' : 'View all'}</span>
-              <ArrowUpRight className="h-3 w-3" />
-            </Link>
           </div>
 
           <div

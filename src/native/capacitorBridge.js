@@ -16,6 +16,7 @@ const EXTERNAL_SCHEMES = new Set(['geo:', 'intent:', 'mailto:', 'market:', 'sms:
 // by default so Android's notification permission result can never terminate
 // the WebView when a Firebase project is not present.
 const PUSH_NOTIFICATIONS_ENABLED = import.meta.env.VITE_PUSH_NOTIFICATIONS_ENABLED === 'true';
+const STARTUP_PERMISSIONS_KEY = 'nahub:startup-permissions-requested:v1';
 
 const isNative = () => Capacitor.isNativePlatform();
 
@@ -83,6 +84,42 @@ const requestNotificationPermission = async () => {
   }
 
   return ensurePermission(LocalNotifications, 'display');
+};
+
+// Ask for the permissions used by the app once, on the first native launch.
+// Each permission is independent: a denial must not prevent the remaining
+// prompts (or stop the WebView from loading).
+const requestStartupPermissions = async () => {
+  if (!isNative()) return { skipped: true };
+
+  try {
+    if (window.localStorage.getItem(STARTUP_PERMISSIONS_KEY) === '1') {
+      return { alreadyRequested: true };
+    }
+  } catch {
+    // Continue if storage is unavailable; native permission APIs are still safe.
+  }
+
+  const result = {};
+  const request = async (name, callback) => {
+    try {
+      result[name] = await callback();
+    } catch (error) {
+      result[name] = { error: String(error?.message || error) };
+    }
+  };
+
+  await request('camera', () => ensurePermission(Camera, 'camera'));
+  await request('location', () => ensurePermission(Geolocation, 'location'));
+  await request('notifications', requestNotificationPermission);
+
+  try {
+    window.localStorage.setItem(STARTUP_PERMISSIONS_KEY, '1');
+  } catch {
+    // Ignore storage restrictions in private/managed WebViews.
+  }
+
+  return result;
 };
 
 const scheduleLocalNotification = async ({ id = Date.now() % 2_147_483_647, title, body, schedule, extra } = {}) => {
@@ -204,7 +241,18 @@ const installLinkHandling = () => {
 
 const installBackHandling = async () => {
   await App.addListener('backButton', ({ canGoBack }) => {
-    if (canGoBack) {
+    // Let the React Router shell handle the back action first. This mirrors
+    // the in-app Back button (including page-specific behavior) instead of
+    // relying solely on WebView's canGoBack flag, which can be false for
+    // history entries created by pushState.
+    const backEvent = new CustomEvent(`${NATIVE_EVENT_PREFIX}:back`, {
+      cancelable: true,
+      detail: { handled: false },
+    });
+    window.dispatchEvent(backEvent);
+    if (backEvent.defaultPrevented || backEvent.detail?.handled) return;
+
+    if (canGoBack || window.history.length > 1) {
       window.history.back();
       return;
     }
@@ -230,6 +278,7 @@ export const nativeBridge = Object.freeze({
   pickImage,
   getCurrentPosition,
   requestNotificationPermission,
+  requestStartupPermissions,
   scheduleLocalNotification,
   registerPushNotifications,
   openExternalUrl,
@@ -245,6 +294,10 @@ export const initializeNativeApp = async () => {
   installLinkHandling();
   await Promise.all([installBackHandling(), installDeepLinkHandling(), syncStatusBarTheme()]);
 
+  // Runtime permission prompts are intentionally limited to the first launch.
+  // Never let a plugin failure prevent the remote UI from starting.
+  await requestStartupPermissions();
+
   // Do not request Android's Push permission during startup.  Calling FCM
   // registration without google-services.json makes Firebase throw a native
   // exception immediately after the user accepts the permission dialog.  A
@@ -257,4 +310,3 @@ export const initializeNativeApp = async () => {
     attributeFilter: ['class', 'data-theme'],
   });
 };
-

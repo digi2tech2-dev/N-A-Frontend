@@ -5,7 +5,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'online.nahub.app',
-  appName: '𝑵&𝑨(HUB)',
+  appName: 'N&A',
 
   // Keep the APK as a lightweight native shell. The live website is loaded
   // below so clients receive frontend updates without reinstalling the APK.

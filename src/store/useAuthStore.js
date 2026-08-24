@@ -373,7 +373,7 @@ const useAuthStore = create((set, get) => ({
             blockedUser: outcome.canAccessApp ? null : response.user,
             profileLastLoadedAt: Date.now(),
           });
-          await loadAdminUsersSilently();
+          void loadAdminUsersSilently();
           return outcome;
         } catch (err) {
           const blockedStatus = inferBlockedStatusFromError(err);
@@ -430,7 +430,7 @@ const useAuthStore = create((set, get) => ({
             profileLastLoadedAt: Date.now(),
           });
 
-          await loadAdminUsersSilently();
+          void loadAdminUsersSilently();
           return outcome;
         } catch (err) {
           const formattedError = formatAuthErrorMessage(err, { action: 'google' });
@@ -474,7 +474,9 @@ const useAuthStore = create((set, get) => ({
               profileLastLoadedAt: Date.now(),
             });
 
-            await loadAdminUsersSilently();
+            // Do not make the customer wait for an unrelated admin-cache
+            // refresh after registration has already succeeded.
+            void loadAdminUsersSilently();
             return outcome;
           }
 
@@ -482,8 +484,6 @@ const useAuthStore = create((set, get) => ({
           const effectiveStatus = status === 'pending' ? 'approved' : status;
           const requiresEmailVerification = response?.user?.verified === false
             && String(response?.user?.signupMethod || userData?.signupMethod || 'email').toLowerCase() !== 'google';
-
-          await loadAdminUsersSilently();
 
           set({
             user: null,
@@ -499,6 +499,11 @@ const useAuthStore = create((set, get) => ({
               : null,
           });
           clearStoredAuthState();
+
+          // Admin data is only a best-effort cache refresh. It must never keep
+          // the registration action in a loading state (especially when the
+          // account still needs email verification and no admin token exists).
+          void loadAdminUsersSilently();
 
           if (requiresEmailVerification) {
             return buildVerificationRequiredOutcome(response?.user || {

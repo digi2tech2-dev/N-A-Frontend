@@ -42,7 +42,9 @@ import {
   readReferralCodeFromSearch,
 } from '../utils/referralCode';
 import brandIconImage from '../assets/logo.PNG';
-import authBackgroundVideo from '../assets/فيديو مقدمه.MP4';
+// Keep the extension lowercase so static hosts and Android WebView return the
+// correct video/mp4 MIME type (some hosts treat `.MP4` as an unknown binary).
+import authBackgroundVideo from '../assets/auth-background.mp4';
 import styles from './Auth.module.css';
 
 const GoogleMark = () => (
@@ -189,23 +191,25 @@ const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const oauthHandledRef = useRef(false);
+  const authVideoRef = useRef(null);
   const reduceMotion = useReducedMotion();
+  const [shouldLoadAuthVideo, setShouldLoadAuthVideo] = useState(false);
   const { dir } = useLanguage();
   const { t } = useTranslation();
   const { addToast } = useToast();
-  const {
-    login,
-    verifyTwoFactor,
-    loginWithGoogle,
-    completeGoogleProfile,
-    signup,
-    isLoading,
-    error: storeError,
-    isAuthenticated,
-    user,
-    blockedStatus,
-  } = useAuthStore();
-  const { currencies: systemCurrencies, loadCurrencies } = useSystemStore();
+  // Subscribe to only the auth fields this route renders. The previous full
+  // store subscription made the form rerender for unrelated app requests.
+  const login = useAuthStore((state) => state.login);
+  const verifyTwoFactor = useAuthStore((state) => state.verifyTwoFactor);
+  const loginWithGoogle = useAuthStore((state) => state.loginWithGoogle);
+  const completeGoogleProfile = useAuthStore((state) => state.completeGoogleProfile);
+  const signup = useAuthStore((state) => state.signup);
+  const storeError = useAuthStore((state) => state.error);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const user = useAuthStore((state) => state.user);
+  const blockedStatus = useAuthStore((state) => state.blockedStatus);
+  const systemCurrencies = useSystemStore((state) => state.currencies);
+  const loadCurrencies = useSystemStore((state) => state.loadCurrencies);
 
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
@@ -223,6 +227,11 @@ const Auth = () => {
   const [forgotEmail, setForgotEmail] = useState('');
   const [privacyModalOpen, setPrivacyModalOpen] = useState(false);
   const [registerStep, setRegisterStep] = useState(1);
+  // Keep the form action state local. The auth store is shared by the whole
+  // app, so an unrelated auth request must not replace "إكمال" with a
+  // loading label on a freshly opened registration page.
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitLockRef = useRef(false);
   const [twoFactorChallenge, setTwoFactorChallenge] = useState(null);
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const [googleSetupPending, setGoogleSetupPending] = useState(() => (
@@ -235,6 +244,52 @@ const Auth = () => {
       ? ''
       : (new URLSearchParams(window.location.search).get('completionToken') || '')
   ));
+
+  // Background video is decorative, so let the form paint and become
+  // interactive before asking the browser to download the 3.8 MB asset.
+  useEffect(() => {
+    if (reduceMotion || typeof window === 'undefined') return undefined;
+
+    const schedule = window.requestIdleCallback
+      ? window.requestIdleCallback(() => setShouldLoadAuthVideo(true), { timeout: 1400 })
+      : window.setTimeout(() => setShouldLoadAuthVideo(true), 700);
+
+    return () => {
+      if (window.cancelIdleCallback && typeof schedule === 'number') {
+        window.cancelIdleCallback(schedule);
+      } else {
+        window.clearTimeout(schedule);
+      }
+    };
+  }, [reduceMotion]);
+
+  // Android WebView can ignore the declarative autoPlay attribute until the
+  // media element has loaded. Explicitly retry muted playback when ready.
+  useEffect(() => {
+    if (reduceMotion || !shouldLoadAuthVideo) return undefined;
+
+    const video = authVideoRef.current;
+    if (!video) return undefined;
+
+    video.muted = true;
+    video.defaultMuted = true;
+    const play = () => {
+      video.muted = true;
+      void video.play().catch(() => {
+        // Autoplay may still be blocked by a browser; the poster/background
+        // remains visible and no error is surfaced to the user.
+      });
+    };
+
+    video.load();
+    video.addEventListener('loadeddata', play);
+    video.addEventListener('canplay', play);
+    play();
+    return () => {
+      video.removeEventListener('loadeddata', play);
+      video.removeEventListener('canplay', play);
+    };
+  }, [reduceMotion, shouldLoadAuthVideo]);
 
   const countryOptions = useMemo(() => (
     WORLD_CURRENCY_COUNTRIES
@@ -579,56 +634,65 @@ const Auth = () => {
       return;
     }
 
-    if (googleSetupPending) {
-      if (!country || !currency) {
-        addToast('اختر الدولة والعملة لإكمال حساب Google.', 'error');
+    if (submitLockRef.current) return;
+    submitLockRef.current = true;
+    setIsSubmitting(true);
+
+    try {
+      if (googleSetupPending) {
+        if (!country || !currency) {
+          addToast('اختر الدولة والعملة لإكمال حساب Google.', 'error');
+          return;
+        }
+
+        try {
+          const result = await completeGoogleProfile({
+            completionToken: googleCompletionToken,
+            country,
+            currency,
+          });
+          window.sessionStorage.removeItem('auth:google-signup-intent');
+          clearReferralBridge();
+          setGoogleSetupPending(false);
+          setGoogleCompletionToken('');
+          addToast('تم استكمال إعداد حساب Google بنجاح.', 'success');
+          navigate(getDefaultRouteForRole(result?.user?.role || useAuthStore.getState().user?.role), { replace: true });
+        } catch (error) {
+          addToast(error?.message || 'تعذر حفظ إعدادات حساب Google. حاول مرة أخرى.', 'error');
+        }
         return;
       }
 
-      try {
-        const result = await completeGoogleProfile({
-          completionToken: googleCompletionToken,
-          country,
-          currency,
-        });
-        window.sessionStorage.removeItem('auth:google-signup-intent');
-        clearReferralBridge();
-        setGoogleSetupPending(false);
-        setGoogleCompletionToken('');
-        addToast('تم استكمال إعداد حساب Google بنجاح.', 'success');
-        navigate(getDefaultRouteForRole(result?.user?.role || useAuthStore.getState().user?.role), { replace: true });
-      } catch (error) {
-        addToast(error?.message || 'تعذر حفظ إعدادات حساب Google. حاول مرة أخرى.', 'error');
+      const result = isLogin
+        ? await login(email, password)
+        : await signup({
+            name,
+            email,
+            password,
+            country,
+            currency,
+            signupMethod: 'email',
+            referralCode: referralCode.trim().toUpperCase(),
+          });
+
+      if (isLogin && result?.requires2FA) {
+        setTwoFactorChallenge(result);
+        setTwoFactorCode('');
+        addToast('أدخل كود التحقق المرسل إلى بريدك الإلكتروني لإكمال تسجيل الدخول.', 'warning');
+        return;
       }
-      return;
+
+      if (!isLogin) {
+        if (result?.ok !== false) clearReferralBridge();
+        consumeAuthResult(result, { source: 'email', mode: 'signup' });
+        return;
+      }
+
+      consumeAuthResult(result, { source: 'email', mode: 'login' });
+    } finally {
+      submitLockRef.current = false;
+      setIsSubmitting(false);
     }
-
-    const result = isLogin
-      ? await login(email, password)
-      : await signup({
-          name,
-          email,
-          password,
-          country,
-          currency,
-          signupMethod: 'email',
-          referralCode: referralCode.trim().toUpperCase(),
-        });
-
-    if (isLogin && result?.requires2FA) {
-      setTwoFactorChallenge(result);
-      setTwoFactorCode('');
-      addToast('أدخل كود التحقق المرسل إلى بريدك الإلكتروني لإكمال تسجيل الدخول.', 'warning');
-      return;
-    }
-
-    if (!isLogin) {
-      if (result?.ok !== false) clearReferralBridge();
-      consumeAuthResult(result, { source: 'email', mode: 'signup' });
-      return;
-    }
-
-    consumeAuthResult(result, { source: 'email', mode: 'login' });
   };
 
   const handleTwoFactorSubmit = async () => {
@@ -638,29 +702,45 @@ const Auth = () => {
       return;
     }
 
-    const result = await verifyTwoFactor({
-      tempToken,
-      code: twoFactorCode,
-    });
+    if (submitLockRef.current) return;
+    submitLockRef.current = true;
+    setIsSubmitting(true);
+    try {
+      const result = await verifyTwoFactor({
+        tempToken,
+        code: twoFactorCode,
+      });
 
-    if (result?.canAccessApp) {
-      setTwoFactorChallenge(null);
-      setTwoFactorCode('');
-      addToast('تم تأكيد كود البريد الإلكتروني وتسجيل الدخول بنجاح.', 'success');
+      if (result?.canAccessApp) {
+        setTwoFactorChallenge(null);
+        setTwoFactorCode('');
+        addToast('تم تأكيد كود البريد الإلكتروني وتسجيل الدخول بنجاح.', 'success');
+      }
+
+      consumeAuthResult(result, { source: 'email', mode: 'login' });
+    } finally {
+      submitLockRef.current = false;
+      setIsSubmitting(false);
     }
-
-    consumeAuthResult(result, { source: 'email', mode: 'login' });
   };
 
   const handleGoogleAuth = async () => {
-    if (typeof window !== 'undefined') {
-      persistReferralBridge(referralCode);
-      if (isLogin) window.sessionStorage.removeItem('auth:google-signup-intent');
-      else window.sessionStorage.setItem('auth:google-signup-intent', '1');
+    if (submitLockRef.current) return;
+    submitLockRef.current = true;
+    setIsSubmitting(true);
+    try {
+      if (typeof window !== 'undefined') {
+        persistReferralBridge(referralCode);
+        if (isLogin) window.sessionStorage.removeItem('auth:google-signup-intent');
+        else window.sessionStorage.setItem('auth:google-signup-intent', '1');
+      }
+      const result = await loginWithGoogle();
+      if (!result) return;
+      consumeAuthResult(result, { source: 'google', mode: isLogin ? 'login' : 'signup' });
+    } finally {
+      submitLockRef.current = false;
+      setIsSubmitting(false);
     }
-    const result = await loginWithGoogle();
-    if (!result) return;
-    consumeAuthResult(result, { source: 'google', mode: isLogin ? 'login' : 'signup' });
   };
 
   const handleAuthFormKeyDown = (event) => {
@@ -704,7 +784,7 @@ const Auth = () => {
 
     if (isLogin && twoFactorChallenge) {
       event.preventDefault();
-      if (twoFactorCode.length === 6 && !isLoading) {
+      if (twoFactorCode.length === 6 && !isSubmitting) {
         handleTwoFactorSubmit();
       }
     }
@@ -755,15 +835,17 @@ const Auth = () => {
   return (
     <div className={styles.authPage}>
       <video
+        ref={authVideoRef}
         className={styles.authVideoBackground}
-        autoPlay={!reduceMotion}
+        autoPlay={!reduceMotion && shouldLoadAuthVideo}
         muted
+        defaultMuted
         loop
         playsInline
-        preload="auto"
+        preload={shouldLoadAuthVideo ? 'metadata' : 'none'}
         aria-hidden="true"
       >
-        <source src={authBackgroundVideo} type="video/mp4" />
+        {shouldLoadAuthVideo ? <source src={authBackgroundVideo} type="video/mp4" /> : null}
       </video>
       <div className={styles.authVideoOverlay} aria-hidden="true" />
 
@@ -847,7 +929,7 @@ const Auth = () => {
                       <h2>المصادقة الثنائية</h2>
                       <p>أدخل كود التحقق المرسل إلى بريدك الإلكتروني لإكمال تسجيل الدخول.</p>
                     </div>
-                    <OtpInput value={twoFactorCode} onChange={setTwoFactorCode} disabled={isLoading} />
+                    <OtpInput value={twoFactorCode} onChange={setTwoFactorCode} disabled={isSubmitting} />
                   </motion.div>
                 ) : isLogin ? (
                   <motion.div key="login" {...stepMotion} className="space-y-4">
@@ -1054,7 +1136,7 @@ const Auth = () => {
                       setTwoFactorChallenge(null);
                       setTwoFactorCode('');
                     }}
-                    disabled={isLoading}
+                    disabled={isSubmitting}
                   >
                     رجوع
                   </Button>
@@ -1062,15 +1144,15 @@ const Auth = () => {
                     type="button"
                     className={styles.primaryButton}
                     onClick={handleTwoFactorSubmit}
-                    disabled={isLoading || twoFactorCode.length !== 6}
+                    disabled={isSubmitting || twoFactorCode.length !== 6}
                   >
-                    {isLoading ? t('common.loading') : 'تأكيد الدخول'}
+                    {isSubmitting ? t('common.loading') : 'تأكيد الدخول'}
                   </Button>
                 </div>
               ) : isLogin ? (
-                <Button type="submit" className={styles.primaryButton} disabled={isLoading}>
-                  {isLoading ? t('common.loading') : t('auth.signIn')}
-                  {!isLoading && <ArrowRight className={`h-4 w-4 ${dir === 'rtl' ? 'mr-1 rotate-180' : 'ml-1'}`} />}
+                <Button type="submit" className={styles.primaryButton} disabled={isSubmitting}>
+                  {isSubmitting ? t('common.loading') : t('auth.signIn')}
+                  {!isSubmitting && <ArrowRight className={`h-4 w-4 ${dir === 'rtl' ? 'mr-1 rotate-180' : 'ml-1'}`} />}
                 </Button>
               ) : registerStep === 1 ? (
                 <Button
@@ -1089,17 +1171,17 @@ const Auth = () => {
                     variant="secondary"
                     className={styles.secondaryStepButton}
                     onClick={() => setRegisterStep(1)}
-                    disabled={isLoading}
+                    disabled={isSubmitting}
                   >
                     السابق
                   </Button>}
                   <Button
                     type="submit"
                     className={styles.primaryButton}
-                    disabled={isLoading || !isStepTwoReady}
+                    disabled={isSubmitting || !isStepTwoReady}
                   >
-                    {isLoading ? t('common.processing') : 'إكمال'}
-                    {!isLoading && <ArrowRight className={`h-4 w-4 ${dir === 'rtl' ? 'mr-1 rotate-180' : 'ml-1'}`} />}
+                    {isSubmitting ? t('common.loading') : 'إكمال'}
+                    {!isSubmitting && <ArrowRight className={`h-4 w-4 ${dir === 'rtl' ? 'mr-1 rotate-180' : 'ml-1'}`} />}
                   </Button>
                 </div>
               )}
@@ -1121,7 +1203,7 @@ const Auth = () => {
                   whileHover={reduceMotion ? undefined : { y: -2, scale: 1.01 }}
                   whileTap={reduceMotion ? undefined : { scale: 0.99 }}
                   onClick={handleGoogleAuth}
-                  disabled={isLoading}
+                  disabled={isSubmitting}
                   className={styles.googleButton}
                 >
                   <span className="relative flex h-9 w-9 items-center justify-center rounded-full border border-white/80 bg-white shadow-[0_10px_22px_-14px_rgba(66,133,244,0.75)]">

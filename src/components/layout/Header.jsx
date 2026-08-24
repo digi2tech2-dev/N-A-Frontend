@@ -228,10 +228,16 @@ const Header = ({ toggleSidebar }) => {
               <button
                 type="button"
                 onClick={handleNotificationsToggle}
-                className="header-control-button header-control-button--square relative inline-flex h-[2.125rem] w-[2.125rem] shrink-0 items-center justify-center sm:h-9 sm:w-9"
+                className={cn(
+                  'header-control-button header-control-button--square relative inline-flex h-[2.125rem] w-[2.125rem] shrink-0 items-center justify-center sm:h-9 sm:w-9',
+                  isNotificationsOpen && 'header-control-button--notifications-open'
+                )}
                 aria-label="الإشعارات"
+                aria-expanded={isNotificationsOpen}
+                aria-controls="header-notifications-menu"
               >
                 <Bell className="h-[1.05rem] w-[1.05rem] drop-shadow-[0_0_5px_rgb(25_214_255/0.42)] sm:h-[1.1rem] sm:w-[1.1rem]" strokeWidth={1.9} />
+                {isNotificationsOpen ? <span className="header-notifications-open-indicator" aria-hidden="true" /> : null}
                 {unreadCount > 0 ? (
                   <span className="absolute -end-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-[linear-gradient(135deg,#087dff,#19d6ff)] px-1 text-[9px] font-black text-white shadow-[0_0_16px_rgb(25_214_255/0.55)]">
                     {unreadCount > 9 ? '+9' : unreadCount}
@@ -240,11 +246,11 @@ const Header = ({ toggleSidebar }) => {
               </button>
 
               {isNotificationsOpen ? (
-                <div className={`absolute top-10 z-50 w-[min(20rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-[color:rgb(var(--color-primary-rgb)/0.18)] bg-[color:rgb(var(--color-card-rgb)/0.96)] shadow-[0_26px_70px_-42px_rgb(0_0_0/0.92)] backdrop-blur-xl ${isRTL ? 'left-0' : 'right-0'}`}>
+                <div id="header-notifications-menu" className={`header-notifications-popover absolute top-10 z-50 w-[min(20rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-[color:rgb(var(--color-primary-rgb)/0.18)] bg-[color:rgb(var(--color-card-rgb)/0.96)] shadow-[0_26px_70px_-42px_rgb(0_0_0/0.92)] backdrop-blur-xl ${isRTL ? 'left-0' : 'right-0'}`}>
                   <div className="border-b border-[color:rgb(var(--color-border-rgb)/0.68)] px-4 py-3">
                     <p className="text-sm font-bold text-[var(--color-text)]">الإشعارات</p>
                   </div>
-                  <div className="max-h-[calc(50vh-3.25rem)] overflow-y-auto p-2">
+                  <div className="header-notifications-list max-h-[calc(50vh-3.25rem)] overflow-y-auto p-2">
                     {isLoading ? (
                       <p className="px-3 py-6 text-center text-sm text-[var(--color-text-secondary)]">
                         جاري تحميل الإشعارات...

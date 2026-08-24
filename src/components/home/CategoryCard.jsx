@@ -19,11 +19,11 @@ const CategoryCard = ({
       <button
         type="button"
         onClick={() => onSelect(category.id)}
-        className="storefront-category-card storefront-category-card--plain group relative isolate flex w-full origin-center select-none flex-col rounded-[1.4rem] text-start transition-all duration-200 ease-out hover:-translate-y-0.5 hover:scale-[1.002]"
+        className="storefront-product-card group relative isolate flex w-full origin-center select-none flex-col rounded-[1.25rem] p-2 text-start transition-all duration-200 ease-out hover:-translate-y-0.5 hover:scale-[1.002]"
         aria-label={displayName}
         style={{ animation: 'page-fade-in 280ms ease-out both', animationDelay: `${Math.min(index * 35, 210)}ms` }}
       >
-        <div className="storefront-category-media relative overflow-hidden rounded-[1.2rem]">
+        <div className="storefront-product-media relative overflow-hidden rounded-[1rem]">
           {imageSrc ? (
             <img
               src={imageSrc}
@@ -31,7 +31,7 @@ const CategoryCard = ({
               loading="lazy"
               decoding="async"
               sizes="(max-width: 640px) 45vw, (max-width: 1024px) 24vw, 18vw"
-              className="relative block aspect-square h-full w-full bg-transparent object-contain object-center transition duration-500 group-hover:scale-[1.05]"
+              className="relative block aspect-square h-full w-full bg-transparent object-contain object-center p-2 transition duration-500 group-hover:scale-[1.04]"
             />
           ) : (
             <div
@@ -43,7 +43,7 @@ const CategoryCard = ({
           )}
         </div>
 
-        <h3 className="storefront-category-title mt-2 line-clamp-2 text-sm font-semibold leading-5 text-[var(--color-text)] transition-colors duration-200 group-hover:text-[var(--color-primary)]">
+        <h3 className="storefront-product-title mt-2 line-clamp-1 text-center text-[0.78rem] font-bold leading-5 text-[var(--color-text)] transition-colors duration-200 group-hover:text-[var(--color-primary)] sm:text-sm">
           {displayName}
         </h3>
       </button>
@@ -85,7 +85,7 @@ const CategoryCard = ({
             {activeLabel}
           </span>
         )}
-        <h3 className="line-clamp-2 text-center text-[0.98rem] font-semibold leading-6 text-[var(--color-text)]">
+        <h3 className="line-clamp-2 min-h-10 px-1 text-center text-[0.82rem] font-extrabold leading-5 text-[var(--color-text)] sm:text-[0.98rem] sm:leading-6">
           {category.title}
         </h3>
       </div>

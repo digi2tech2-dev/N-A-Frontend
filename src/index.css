@@ -778,19 +778,18 @@ input[type="number"] {
     width: 100%;
     max-width: 100%;
     padding-block: 0.15rem;
-    mask-image: linear-gradient(to right, transparent, #000 3%, #000 97%, transparent);
-    -webkit-mask-image: linear-gradient(to right, transparent, #000 3%, #000 97%, transparent);
+    /* Keep every word visible until it physically leaves the viewport. */
+    mask-image: none;
+    -webkit-mask-image: none;
   }
 
   .marquee-track-smooth {
     position: relative;
-    left: 0;
     display: block;
     width: max-content;
     min-width: max-content;
     white-space: nowrap;
     direction: ltr;
-    animation: marquee-smooth-loop 18s linear infinite;
     will-change: transform;
   }
 
@@ -2044,12 +2043,11 @@ html[data-page-transition="running"] {
 
 @keyframes marquee-smooth-loop {
   from {
-    left: 0;
-    transform: translate3d(-100%, 0, 0);
+    transform: translateX(calc(-100% - 1rem));
   }
   to {
-    left: 100%;
-    transform: translate3d(0, 0, 0);
+    /* Stop as soon as the complete text clears the viewport. */
+    transform: translateX(calc(100vw + 1rem));
   }
 }
 
@@ -4501,6 +4499,12 @@ body {
 }
 
 @media (max-width: 640px) {
+  .best-selling-section .best-selling-card {
+    /* Show two complete cards instead of a clipped third card. */
+    min-width: calc(50% - 0.45rem) !important;
+    max-width: calc(50% - 0.45rem);
+  }
+
   .storefront-product-card,
   .storefront-category-card--plain {
     padding: 0.42rem !important;
@@ -7074,3 +7078,219 @@ body {
   background: linear-gradient(110deg, rgb(var(--color-brand-cyan-rgb) / 0.1), rgb(var(--color-brand-violet-rgb) / 0.1)) !important;
 }
 
+/* Website-only Android download call-to-action in the official footer. */
+.site-copyright-footer__download {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid rgb(34 211 238 / 0.38);
+  border-radius: 0.85rem;
+  color: #ecfeff;
+  background:
+    radial-gradient(circle at 8% 0%, rgb(34 211 238 / 0.24), transparent 42%),
+    linear-gradient(115deg, rgb(8 125 255 / 0.42), rgb(124 58 237 / 0.5));
+  box-shadow: inset 0 1px rgb(255 255 255 / 0.14), 0 10px 26px -20px rgb(34 211 238 / 0.9);
+  text-decoration: none;
+  transition: transform 180ms ease, border-color 180ms ease, filter 180ms ease;
+}
+
+.site-copyright-footer__download:hover {
+  transform: translateY(-1px);
+  border-color: rgb(103 232 249 / 0.72);
+  filter: brightness(1.08);
+}
+
+.site-copyright-footer__download-icon {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 0.24);
+  border-radius: 0.65rem;
+  color: #a7f3d0;
+  background: rgb(3 24 48 / 0.48);
+}
+
+.site-copyright-footer__download-icon svg {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.site-copyright-footer__download small,
+.site-copyright-footer__download strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.site-copyright-footer__download small {
+  color: rgb(207 250 254 / 0.72);
+  font-size: 0.5rem;
+  font-weight: 700;
+}
+
+.site-copyright-footer__download strong {
+  margin-top: 0.12rem;
+  font-size: 0.62rem;
+  font-weight: 900;
+}
+
+.site-copyright-footer__download-arrow {
+  width: 0.9rem;
+  height: 0.9rem;
+  margin-inline-start: auto;
+  flex: 0 0 auto;
+  color: #a7f3d0;
+}
+
+:root:not(.dark) .site-copyright-footer__download {
+  border-color: rgb(14 165 233 / 0.38);
+  color: #172554;
+  background:
+    radial-gradient(circle at 8% 0%, rgb(34 211 238 / 0.2), transparent 42%),
+    linear-gradient(115deg, rgb(224 242 254 / 0.95), rgb(237 233 254 / 0.96));
+}
+
+:root:not(.dark) .site-copyright-footer__download-icon {
+  border-color: rgb(14 116 144 / 0.22);
+  color: #047857;
+  background: rgb(255 255 255 / 0.72);
+}
+
+:root:not(.dark) .site-copyright-footer__download small {
+  color: rgb(30 64 175 / 0.68);
+}
+
+:root:not(.dark) .site-copyright-footer__download-arrow {
+  color: #047857;
+}
+
+@media (max-width: 700px) {
+  .site-copyright-footer__download {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 700px) {
+  .site-copyright-footer__card,
+  .site-copyright-footer__identity,
+  .site-copyright-footer__actions,
+  .site-copyright-footer__contact,
+  .site-copyright-footer__download {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .site-copyright-footer__identity > div,
+  .site-copyright-footer__contact > span:nth-child(2),
+  .site-copyright-footer__download > span:nth-child(2) {
+    min-width: 0;
+  }
+
+  .site-copyright-footer__title {
+    font-size: 0.82rem;
+  }
+
+  .site-copyright-footer__actions {
+    overflow: hidden;
+  }
+}
+
+/* The notification menu gets its own mobile viewport so it cannot be clipped by the header. */
+@media (max-width: 640px) {
+  .header-notifications-popover {
+    position: fixed !important;
+    top: calc(env(safe-area-inset-top) + 5.25rem) !important;
+    right: 0.5rem !important;
+    left: 0.5rem !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: 62vh !important;
+    max-height: min(62dvh, 32rem) !important;
+    border-radius: 1.35rem !important;
+    z-index: 80 !important;
+  }
+
+  .header-notifications-list {
+    max-height: calc(62vh - 4.25rem) !important;
+    max-height: min(calc(62dvh - 4.25rem), 27.75rem) !important;
+    min-height: 0;
+    overscroll-behavior: contain;
+  }
+}
+
+/* Keep product and subcategory items as clean tiles, without a card shell. */
+.products-grid--items .storefront-product-card,
+.products-grid--mixed .storefront-product-card,
+.products-grid--mixed .storefront-category-card--plain,
+:root.dark .products-grid--items .storefront-product-card,
+:root.dark .products-grid--mixed .storefront-product-card,
+:root.dark .products-grid--mixed .storefront-category-card--plain,
+.products-grid--items .storefront-product-card:hover,
+.products-grid--mixed .storefront-product-card:hover,
+.products-grid--mixed .storefront-category-card--plain:hover {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.products-grid--items .storefront-product-media,
+.products-grid--mixed .storefront-product-media {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Make it obvious which control opened the notifications menu. */
+.header-control-button--notifications-open {
+  border-color: rgb(25 214 255 / 0.92) !important;
+  background:
+    radial-gradient(circle at 50% 18%, rgb(25 214 255 / 0.28), transparent 52%) padding-box,
+    linear-gradient(145deg, rgb(8 55 98 / 0.98), rgb(4 20 48 / 0.98)) padding-box,
+    linear-gradient(135deg, #6ff1ff, #087dff 58%, #a855f7) border-box !important;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.24),
+    0 0 22px -7px rgb(25 214 255 / 0.96),
+    0 0 28px -14px rgb(168 85 247 / 0.9) !important;
+}
+
+.header-notifications-open-indicator {
+  position: absolute;
+  inset-inline-start: 0.22rem;
+  bottom: 0.18rem;
+  width: 0.42rem;
+  height: 0.42rem;
+  border: 1px solid rgb(236 254 255 / 0.95);
+  border-radius: 999px;
+  background: #19d6ff;
+  box-shadow: 0 0 0 2px rgb(8 37 75 / 0.9), 0 0 11px rgb(25 214 255 / 0.98);
+  animation: header-notifications-open-pulse 1.7s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes header-notifications-open-pulse {
+  0%,
+  100% {
+    transform: scale(0.9);
+    opacity: 0.82;
+  }
+
+  50% {
+    transform: scale(1.18);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header-notifications-open-indicator {
+    animation: none;
+  }
+}

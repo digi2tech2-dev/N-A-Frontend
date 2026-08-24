@@ -101,6 +101,17 @@ const Layout = ({ children = null }) => {
     navigate(getDashboardPathForRole(user?.role));
   };
 
+  useEffect(() => {
+    const handleNativeBack = (event) => {
+      handleGoBack();
+      event.preventDefault();
+      if (event.detail) event.detail.handled = true;
+    };
+
+    window.addEventListener('nahub:native:back', handleNativeBack);
+    return () => window.removeEventListener('nahub:native:back', handleNativeBack);
+  }, [handleGoBack]);
+
   return (
     <div className={`relative min-h-screen overflow-x-clip bg-transparent text-[var(--color-text)] ${isAdminPage ? 'layout-admin-light' : ''}`}>
       <AmbientBackground />
@@ -160,4 +171,3 @@ const Layout = ({ children = null }) => {
 };
 
 export default Layout;
-
