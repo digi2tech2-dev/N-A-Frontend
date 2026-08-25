@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { AlertTriangle } from 'lucide-react';
 import Button from '../ui/Button';
 import { useBodyScrollLock } from '../../utils/bodyScrollLock';
+import { useNativeBackOverlay } from '../../hooks/useNativeBackOverlay';
 
 const ConfirmDialog = ({
   open,
@@ -18,6 +19,7 @@ const ConfirmDialog = ({
   children
 }) => {
   useBodyScrollLock(open);
+  useNativeBackOverlay(open, isLoading ? undefined : onCancel);
 
   const dialog = (
     <AnimatePresence>

@@ -40,8 +40,9 @@ const config: CapacitorConfig = {
 
   plugins: {
     App: {
-      // src/native/capacitorBridge.js owns back navigation for React Router.
-      disableBackButtonHandler: true,
+      // Keep Capacitor's AndroidX system-back callback enabled. The React
+      // Router shell registers the single App.backButton listener.
+      disableBackButtonHandler: false,
     },
     LocalNotifications: {
       smallIcon: 'ic_stat_na_hub',

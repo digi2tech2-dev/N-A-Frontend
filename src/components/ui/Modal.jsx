@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import Button, { cn } from './Button';
 import { useBodyScrollLock } from '../../utils/bodyScrollLock';
+import { useNativeBackOverlay } from '../../hooks/useNativeBackOverlay';
 
 const sizeClassNames = {
   xxs: 'max-w-[20rem]',
@@ -27,6 +28,7 @@ const Modal = ({
   const backdropZ = modalClassName || 'z-[220]';
   const isCentered = placement === 'center';
   useBodyScrollLock(isOpen);
+  useNativeBackOverlay(isOpen, dismissible ? onClose : undefined);
 
   const modal = (
     <AnimatePresence>

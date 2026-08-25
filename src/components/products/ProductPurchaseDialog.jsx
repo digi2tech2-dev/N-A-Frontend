@@ -47,6 +47,7 @@ import { getWalletBalanceSummary, multiplyRawPriceByQuantity, normalizeMoneyAmou
 import { getProductStatus } from '../../utils/productStatus';
 import { devLogger } from '../../utils/devLogger';
 import { useBodyScrollLock } from '../../utils/bodyScrollLock';
+import { useNativeBackOverlay } from '../../hooks/useNativeBackOverlay';
 import AddBalance from '../../pages/AddBalance';
 import PaymentDetails from '../../pages/PaymentDetails';
 import brandLogo from '../../assets/logo.PNG';
@@ -418,6 +419,7 @@ const ProductPurchaseDialog = ({
   const isPurchasable = resolvedProductStatus?.isPurchasable !== false;
 
   useBodyScrollLock(isOpen && isPurchasable);
+  useNativeBackOverlay(isOpen && isPurchasable, onClose);
 
   useEffect(() => {
     if (isOpen && product && !isPurchasable) onClose?.();

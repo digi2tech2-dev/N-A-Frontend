@@ -13,6 +13,8 @@ import {
   getDashboardPathForRole,
   registerVisitedPath,
 } from '../../utils/navigation';
+import { useNativeBackAction } from '../../hooks/useNativeBackAction';
+import { useNativeBackOverlay } from '../../hooks/useNativeBackOverlay';
 
 const Layout = ({ children = null }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -87,6 +89,8 @@ const Layout = ({ children = null }) => {
     </>
   );
 
+  useNativeBackOverlay(isMobile && isSidebarOpen, () => setIsSidebarOpen(false));
+
   const handleGoBack = () => {
     if (isBuyTargetPage) {
       window.dispatchEvent(new Event('ka:buy-target-back'));
@@ -101,16 +105,10 @@ const Layout = ({ children = null }) => {
     navigate(getDashboardPathForRole(user?.role));
   };
 
-  useEffect(() => {
-    const handleNativeBack = (event) => {
-      handleGoBack();
-      event.preventDefault();
-      if (event.detail) event.detail.handled = true;
-    };
-
-    window.addEventListener('nahub:native:back', handleNativeBack);
-    return () => window.removeEventListener('nahub:native:back', handleNativeBack);
-  }, [handleGoBack]);
+  // Buy Target is the only Layout route whose visible Back control has
+  // screen-specific semantics. Do not register the generic Layout fallback:
+  // ordinary routes must use AndroidBackNavigation's session-owned stack.
+  useNativeBackAction(isBuyTargetPage, handleGoBack);
 
   return (
     <div className={`relative min-h-screen overflow-x-clip bg-transparent text-[var(--color-text)] ${isAdminPage ? 'layout-admin-light' : ''}`}>

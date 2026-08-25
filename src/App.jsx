@@ -7,6 +7,7 @@ import PageTransition from './components/app/PageTransition';
 import SessionBootstrap from './components/app/SessionBootstrap';
 import RouteErrorBoundary from './components/app/RouteErrorBoundary';
 import WebsiteUpdateModal from './components/app/WebsiteUpdateModal';
+import AndroidBackNavigation from './components/app/AndroidBackNavigation';
 import { LanguageProvider } from './context/LanguageContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './components/ui/Toast';
@@ -487,6 +488,7 @@ function App() {
           <SessionBootstrap />
           <WebsiteUpdateModal />
           <BrowserRouter>
+            <AndroidBackNavigation />
             <PageTransition>
               {(location) => <AnimatedAppRoutes location={location} />}
             </PageTransition>

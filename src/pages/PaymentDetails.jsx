@@ -15,6 +15,7 @@ import { findPaymentMethodById } from '../utils/paymentSettings';
 import { devLogger } from '../utils/devLogger';
 import { resolveImageUrl } from '../utils/imageUrl';
 import { buildWhatsAppLink, getDefaultWhatsAppNumber } from '../utils/whatsapp';
+import { useNativeBackOverlay } from '../hooks/useNativeBackOverlay';
 
 const normalizeMethodType = (type) => String(type || '').trim().toLowerCase();
 
@@ -399,6 +400,8 @@ const PaymentDetails = ({
     }
     setSubmitStatus(null);
   };
+
+  useNativeBackOverlay(submitStatus === 'success', handleSuccessCancel);
 
   const fieldConfigs = {
     amount: {

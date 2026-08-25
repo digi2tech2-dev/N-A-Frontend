@@ -34,6 +34,7 @@ import { resolveUserAvatar } from '../../utils/avatar';
 import { resolveImageUrl } from '../../utils/imageUrl';
 import { buildWhatsAppLink, getAdminWhatsAppNumber } from '../../utils/whatsapp';
 import { useBodyScrollLock } from '../../utils/bodyScrollLock';
+import { useNativeBackOverlay } from '../../hooks/useNativeBackOverlay';
 import brandLogo from '../../assets/logo.PNG';
 import './OrderDetailsDrawer.css';
 
@@ -166,6 +167,7 @@ const OrderDetailsDrawer = ({
   const [complaintText, setComplaintText] = useState('');
   const [complaintError, setComplaintError] = useState('');
   const isDrawerVisible = Boolean(isOpen && order);
+  useNativeBackOverlay(isDrawerVisible, onClose);
   const primaryIdentifierField = order?.primaryIdentifierField || null;
   const rawRequestFields = Array.isArray(order?.requestDetails?.fields) ? order.requestDetails.fields : [];
   const requestFields = rawRequestFields.filter((field) => {

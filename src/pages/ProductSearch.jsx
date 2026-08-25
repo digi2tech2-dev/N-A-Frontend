@@ -8,6 +8,7 @@ import useMediaStore from '../store/useMediaStore';
 import SearchBar from '../components/ui/SearchBar';
 import coinsImage from '../assets/logo.PNG';
 import { resolveImageUrl } from '../utils/imageUrl';
+import { useNativeBackOverlay } from '../hooks/useNativeBackOverlay';
 import {
   createStorefrontProducts,
   filterStorefrontProducts,
@@ -53,6 +54,7 @@ const ProductSearch = ({ onClose, onSelectProduct }) => {
   const [history, setHistory] = useState(readSearchHistory);
   const deferredQuery = useDeferredValue(query);
   const normalizedQuery = sanitizeStorefrontQuery(deferredQuery);
+  useNativeBackOverlay(true, onClose);
 
   useEffect(() => {
     void loadProducts();

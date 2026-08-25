@@ -239,27 +239,6 @@ const installLinkHandling = () => {
   }, true);
 };
 
-const installBackHandling = async () => {
-  await App.addListener('backButton', ({ canGoBack }) => {
-    // Let the React Router shell handle the back action first. This mirrors
-    // the in-app Back button (including page-specific behavior) instead of
-    // relying solely on WebView's canGoBack flag, which can be false for
-    // history entries created by pushState.
-    const backEvent = new CustomEvent(`${NATIVE_EVENT_PREFIX}:back`, {
-      cancelable: true,
-      detail: { handled: false },
-    });
-    window.dispatchEvent(backEvent);
-    if (backEvent.defaultPrevented || backEvent.detail?.handled) return;
-
-    if (canGoBack || window.history.length > 1) {
-      window.history.back();
-      return;
-    }
-    void App.exitApp();
-  });
-};
-
 const installDeepLinkHandling = async () => {
   await App.addListener('appUrlOpen', ({ url }) => {
     try {
@@ -292,7 +271,7 @@ export const initializeNativeApp = async () => {
   window.NAHubNative = nativeBridge;
 
   installLinkHandling();
-  await Promise.all([installBackHandling(), installDeepLinkHandling(), syncStatusBarTheme()]);
+  await Promise.all([installDeepLinkHandling(), syncStatusBarTheme()]);
 
   // Runtime permission prompts are intentionally limited to the first launch.
   // Never let a plugin failure prevent the remote UI from starting.

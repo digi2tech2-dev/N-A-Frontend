@@ -13,6 +13,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useToast } from '../components/ui/Toast';
 import { DEFAULT_HUMAN_AVATARS, resolveUserAvatar } from '../utils/avatar';
 import { useBodyScrollLock } from '../utils/bodyScrollLock';
+import { useNativeBackOverlay } from '../hooks/useNativeBackOverlay';
 import { getReadableErrorMessage } from '../utils/errorMessages';
 
 const MAX_AVATAR_FILE_SIZE = 2 * 1024 * 1024;
@@ -185,6 +186,7 @@ const Account = () => {
   const [showPassword, setShowPassword] = useState({ current: false, next: false, confirm: false });
 
   useBodyScrollLock(isPasswordModalOpen);
+  useNativeBackOverlay(isPasswordModalOpen, () => setIsPasswordModalOpen(false));
 
   useEffect(() => {
     const initialProfile = getProfileFromUser(user);
