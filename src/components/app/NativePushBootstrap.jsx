@@ -16,6 +16,9 @@ const PUSH_ROUTE_ALLOWLIST = Object.freeze({
   order_status: '/orders',
   deposit_status: '/wallet/topups',
   target_status: '/target-orders',
+  admin_order_created: '/admin/orders',
+  admin_deposit_created: '/admin/payments',
+  admin_target_created: '/admin/target-requests',
 });
 
 const readActionData = (value) => value?.notification?.data || value?.data || value || {};
