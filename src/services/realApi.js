@@ -26,6 +26,10 @@ import { resolveUserAvatar } from '../utils/avatar';
 import { getAccountAccessRoute, normalizeAccountStatus } from '../utils/accountStatus';
 import { readReferralBridge, readReferralCodeFromSearch } from '../utils/referralCode';
 import { apiBaseUrl } from '../config/dataProvider';
+import {
+  getNativeAndroidGoogleIdToken,
+  isNativeAndroidGoogleSignIn,
+} from '../native/googleAuth';
 
 const API_BASE = apiBaseUrl;
 
@@ -1767,6 +1771,49 @@ const realApi = {
     },
 
     loginWithGoogle: async () => {
+      if (isNativeAndroidGoogleSignIn()) {
+        const idToken = await getNativeAndroidGoogleIdToken();
+        if (!idToken) return { cancelled: true };
+
+        const res = await http.post('/auth/google/native', { idToken });
+        const data = unwrap(res);
+        const user = normaliseUser(data?.user);
+        const token = data?.token || data?.accessToken || null;
+
+        if (data?.status === 'PROFILE_COMPLETION_REQUIRED' || data?.completionToken) {
+          return {
+            user: null,
+            token: null,
+            completionToken: data.completionToken,
+            status: 'profile_completion_required',
+            callbackStatus: 'PROFILE_COMPLETION_REQUIRED',
+            redirectTo: '/auth?status=PROFILE_COMPLETION_REQUIRED',
+            canAccessApp: false,
+          };
+        }
+
+        // Preserve the existing pending-account behavior: a token-less Google
+        // response never creates a frontend session.
+        if (!token) {
+          const status = normalizeAccountStatus(user?.status);
+          return {
+            user: null,
+            token: null,
+            status,
+            redirectTo: getAccountAccessRoute(status),
+            canAccessApp: false,
+          };
+        }
+
+        setStoredAuthTokens(token);
+        return {
+          user,
+          token,
+          status: 'login_complete',
+          callbackStatus: data?.status || 'LOGIN_COMPLETE',
+        };
+      }
+
       // Google OAuth uses redirect flow — open the BE endpoint in the browser.
       // The BE redirects back either with ?token= or ?status=pending.
       // This method is called from FE after capturing the token from the redirect.

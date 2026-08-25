@@ -23,6 +23,7 @@ const config: CapacitorConfig = {
     '@capacitor/local-notifications',
     '@capacitor/push-notifications',
     '@capacitor/status-bar',
+    '@capgo/capacitor-social-login',
   ],
 
   server: {
@@ -47,6 +48,17 @@ const config: CapacitorConfig = {
     LocalNotifications: {
       smallIcon: 'ic_stat_na_hub',
       iconColor: '#7C3AED',
+    },
+    // Only bundle the native Google Credential Manager provider. Other social
+    // providers remain disabled because N&A does not use them.
+    SocialLogin: {
+      providers: {
+        google: true,
+        facebook: false,
+        apple: false,
+        twitter: false,
+      },
+      logLevel: 1,
     },
   },
 
