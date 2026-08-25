@@ -2184,6 +2184,21 @@ const realApi = {
   },
 
   notifications: {
+    registerDevice: async ({ token, platform, provider }) => {
+      const res = await http.post('/me/notifications/devices', { token, platform, provider });
+      return unwrap(res);
+    },
+
+    unregisterDevice: async ({ token, authToken } = {}) => {
+      const res = await http.delete('/me/notifications/devices', {
+        data: { token },
+        // Logout clears local storage immediately, so preserve the already
+        // authenticated request without storing the token anywhere new.
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+      });
+      return unwrap(res);
+    },
+
     unreadCount: async () => {
       const res = await http.get('/me/notifications/unread-count');
       const data = unwrap(res);

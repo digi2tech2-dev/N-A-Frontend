@@ -532,6 +532,21 @@ const useAuthStore = create((set, get) => ({
       },
 
       logout: async () => {
+        const authToken = get().token;
+        let pushToken = '';
+        try {
+          pushToken = String(window.localStorage.getItem('nahub:push-token') || '').trim();
+        } catch {
+          // Logout must still complete if WebView storage is unavailable.
+        }
+
+        // Best effort only. Capture the token before clearing auth storage so
+        // this device stops receiving the previous account's notifications.
+        // Account switching is also safe if this request is offline: the next
+        // authenticated registration atomically reassigns ownership server-side.
+        if (authToken && pushToken) {
+          void apiClient.notifications.unregisterDevice({ token: pushToken, authToken }).catch(() => {});
+        }
         profileRefreshRequest = null;
         set({
           user: null,

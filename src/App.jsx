@@ -8,6 +8,7 @@ import SessionBootstrap from './components/app/SessionBootstrap';
 import RouteErrorBoundary from './components/app/RouteErrorBoundary';
 import WebsiteUpdateModal from './components/app/WebsiteUpdateModal';
 import AndroidBackNavigation from './components/app/AndroidBackNavigation';
+import NativePushBootstrap from './components/app/NativePushBootstrap';
 import { LanguageProvider } from './context/LanguageContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './components/ui/Toast';
@@ -489,6 +490,7 @@ function App() {
           <WebsiteUpdateModal />
           <BrowserRouter>
             <AndroidBackNavigation />
+            <NativePushBootstrap />
             <PageTransition>
               {(location) => <AnimatedAppRoutes location={location} />}
             </PageTransition>

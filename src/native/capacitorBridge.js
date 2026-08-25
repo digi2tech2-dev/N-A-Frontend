@@ -11,12 +11,10 @@ import { StatusBar, Style as StatusBarStyle } from '@capacitor/status-bar';
 const APP_ORIGIN = 'https://na-hub.online';
 const NATIVE_EVENT_PREFIX = 'nahub:native';
 const EXTERNAL_SCHEMES = new Set(['geo:', 'intent:', 'mailto:', 'market:', 'sms:', 'tel:', 'whatsapp:']);
-// FCM cannot be registered safely until android/app/google-services.json is
-// supplied and the Firebase application is configured.  Keep this disabled
-// by default so Android's notification permission result can never terminate
-// the WebView when a Firebase project is not present.
-const PUSH_NOTIFICATIONS_ENABLED = import.meta.env.VITE_PUSH_NOTIFICATIONS_ENABLED === 'true';
 const STARTUP_PERMISSIONS_KEY = 'nahub:startup-permissions-requested:v1';
+const PUSH_PERMISSION_REQUESTED_KEY = 'nahub:push-permission-requested:v1';
+const PUSH_TOKEN_KEY = 'nahub:push-token';
+const PENDING_PUSH_ACTION_KEY = 'nahub:pending-push-action:v1';
 
 const isNative = () => Capacitor.isNativePlatform();
 
@@ -113,6 +111,14 @@ const requestStartupPermissions = async () => {
   await request('location', () => ensurePermission(Geolocation, 'location'));
   await request('notifications', requestNotificationPermission);
 
+  // Android exposes one notification permission to both Capacitor plugins.
+  // Record this so an account/session rerender never asks repeatedly.
+  try {
+    window.localStorage.setItem(PUSH_PERMISSION_REQUESTED_KEY, '1');
+  } catch {
+    // Ignore storage restrictions in private/managed WebViews.
+  }
+
   try {
     window.localStorage.setItem(STARTUP_PERMISSIONS_KEY, '1');
   } catch {
@@ -133,59 +139,83 @@ const scheduleLocalNotification = async ({ id = Date.now() % 2_147_483_647, titl
 };
 
 let pushListenerHandles = [];
+let pushListenersInstalled = false;
+let pushRegistrationPromise = null;
+let nativeAppInitialized = false;
 
-const showForegroundPushAsLocalNotification = async (notification) => {
-  const title = String(notification?.title || notification?.data?.title || 'N&A HUB');
-  const body = String(notification?.body || notification?.data?.body || notification?.data?.message || 'لديك إشعار جديد');
-
+const getStoredPushToken = () => {
   try {
-    const permissions = await ensurePermission(LocalNotifications, 'display');
-    if (permissions.display !== 'granted') return;
-    await LocalNotifications.schedule({
-      notifications: [{
-        id: Math.floor(Date.now() % 2_147_000_000),
-        title,
-        body,
-        extra: notification?.data || {},
-      }],
-    });
+    return String(window.localStorage.getItem(PUSH_TOKEN_KEY) || '').trim();
   } catch {
-    // A foreground notification must never interrupt the app UI.
+    return '';
   }
 };
 
-const registerPushNotifications = async () => {
-  if (!isNative()) return { receive: 'unsupported' };
-  if (!PUSH_NOTIFICATIONS_ENABLED) {
-    dispatchNativeEvent('push-disabled', {
-      reason: 'Firebase push notifications are not configured for this build.',
-    });
-    return { receive: 'disabled' };
-  }
+const installPushListeners = async () => {
+  if (pushListenersInstalled) return;
 
-  const permissions = await ensurePermission(PushNotifications, 'receive');
-  if (permissions.receive !== 'granted') throw new Error('Push notification permission was not granted.');
-
-  await Promise.all(pushListenerHandles.map((handle) => handle.remove()));
   pushListenerHandles = await Promise.all([
     PushNotifications.addListener('registration', (token) => {
       try {
-        window.localStorage.setItem('nahub:push-token', token?.value || '');
+        window.localStorage.setItem(PUSH_TOKEN_KEY, token?.value || '');
       } catch {
         // Ignore storage restrictions in private WebViews.
       }
       dispatchNativeEvent('push-registration', token);
     }),
     PushNotifications.addListener('registrationError', (error) => dispatchNativeEvent('push-error', error)),
+    // A notification payload is rendered by Android when the app is not active.
+    // While active, NativePushBootstrap refreshes the existing inbox instead of
+    // scheduling a local duplicate.
     PushNotifications.addListener('pushNotificationReceived', (notification) => {
       dispatchNativeEvent('push-received', notification);
-      void showForegroundPushAsLocalNotification(notification);
     }),
-    PushNotifications.addListener('pushNotificationActionPerformed', (action) => dispatchNativeEvent('push-action', action)),
+    PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+      // Preserve a cold-start tap until React has restored its session and can
+      // decide whether the allowlisted internal route is safe to open.
+      try {
+        window.sessionStorage.setItem(
+          PENDING_PUSH_ACTION_KEY,
+          JSON.stringify(action?.notification?.data || {})
+        );
+      } catch {
+        // Navigation is an enhancement; never block native delivery on storage.
+      }
+      dispatchNativeEvent('push-action', action);
+    }),
   ]);
+  pushListenersInstalled = true;
+};
 
-  await PushNotifications.register();
-  return permissions;
+const requestPushPermissionOnce = async () => {
+  const current = await PushNotifications.checkPermissions();
+  if (current.receive === 'granted') return current;
+
+  try {
+    if (window.localStorage.getItem(PUSH_PERMISSION_REQUESTED_KEY) === '1') return current;
+    window.localStorage.setItem(PUSH_PERMISSION_REQUESTED_KEY, '1');
+  } catch {
+    // If storage is unavailable, request once for this bridge lifetime.
+  }
+
+  return PushNotifications.requestPermissions();
+};
+
+const registerPushNotifications = async () => {
+  if (!isNative()) return { receive: 'unsupported' };
+  if (pushRegistrationPromise) return pushRegistrationPromise;
+
+  pushRegistrationPromise = (async () => {
+    await installPushListeners();
+    const permissions = await requestPushPermissionOnce();
+    if (permissions.receive !== 'granted') return permissions;
+    await PushNotifications.register();
+    return permissions;
+  })().finally(() => {
+    pushRegistrationPromise = null;
+  });
+
+  return pushRegistrationPromise;
 };
 
 const openExternalUrl = async (url) => {
@@ -260,11 +290,13 @@ export const nativeBridge = Object.freeze({
   requestStartupPermissions,
   scheduleLocalNotification,
   registerPushNotifications,
+  getStoredPushToken,
   openExternalUrl,
 });
 
 export const initializeNativeApp = async () => {
-  if (!isNative()) return;
+  if (!isNative() || nativeAppInitialized) return;
+  nativeAppInitialized = true;
 
   // Exposed intentionally for remotely hosted UI code. Permission prompts still
   // happen only when the website explicitly calls one of these functions.
@@ -276,12 +308,9 @@ export const initializeNativeApp = async () => {
   // Runtime permission prompts are intentionally limited to the first launch.
   // Never let a plugin failure prevent the remote UI from starting.
   await requestStartupPermissions();
-
-  // Do not request Android's Push permission during startup.  Calling FCM
-  // registration without google-services.json makes Firebase throw a native
-  // exception immediately after the user accepts the permission dialog.  A
-  // configured build can opt in through VITE_PUSH_NOTIFICATIONS_ENABLED=true
-  // and invoke registerPushNotifications explicitly.
+  // Install receivers immediately so a notification tap that cold-starts the
+  // app is captured. FCM registration itself waits for an authenticated user.
+  await installPushListeners();
 
   const themeObserver = new MutationObserver(() => void syncStatusBarTheme());
   themeObserver.observe(document.documentElement, {
