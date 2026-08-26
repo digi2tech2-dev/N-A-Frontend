@@ -152,7 +152,7 @@
     "validationReceipt": "Please upload payment receipt",
     "fields": {
       "amount": "Amount",
-      "amountPlaceholder": "Enter amount in EGP",
+      "amountPlaceholder": "Enter amount",
       "senderNumber": "Sender Number",
       "senderNumberPlaceholder": "Enter your phone number",
       "transactionId": "Transaction ID",

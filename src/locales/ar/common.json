@@ -152,7 +152,7 @@
     "validationReceipt": "يرجى رفع إيصال الدفع",
     "fields": {
       "amount": "المبلغ",
-      "amountPlaceholder": "أدخل المبلغ بالجنيه المصري",
+      "amountPlaceholder": "أدخل المبلغ",
       "senderNumber": "رقم المرسل",
       "senderNumberPlaceholder": "أدخل رقم هاتفك",
       "transactionId": "رقم المعاملة",

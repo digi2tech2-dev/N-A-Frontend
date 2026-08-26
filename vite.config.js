@@ -40,8 +40,23 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@': path.resolve(__dirname, '.'),
       },
+      // Keep React and React DOM on one physical module instance in dev/HMR.
+      // Multiple instances make Zustand/react-i18next report Invalid hook call.
+      dedupe: ['react', 'react-dom'],
     },
     build: {
+      target: 'es2020',
+      // Keep production output small and fast to parse in Android WebViews.
+      minify: 'esbuild',
+      cssMinify: 'esbuild',
+      sourcemap: false,
+      cssCodeSplit: true,
+      assetsInlineLimit: 4096,
+      chunkSizeWarningLimit: 700,
+      esbuild: {
+        legalComments: 'none',
+        drop: mode === 'production' ? ['debugger'] : [],
+      },
       rollupOptions: {
         output: {
           manualChunks(id) {
