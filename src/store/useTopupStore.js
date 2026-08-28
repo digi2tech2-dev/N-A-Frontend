@@ -250,6 +250,8 @@ const useTopupStore = create((set, get) => ({
           topupId: finalTopup?.id,
           targetUrl: '/wallet/topups',
         });
+
+        return finalTopup;
       },
 
       updateTopupStatus: async (id, status, review = {}) => {

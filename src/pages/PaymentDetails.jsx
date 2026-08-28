@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
-import { AlertCircle, Banknote, CheckCircle, Copy, Hash, Landmark, Loader, MessageCircle, ReceiptText, ShieldCheck, Smartphone } from 'lucide-react';
+import { AlertCircle, Banknote, Bot, CheckCircle, Copy, Hash, Landmark, Loader, MessageCircle, ReceiptText, ShieldCheck, Smartphone, TimerReset } from 'lucide-react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import UploadReceiptBox from '../components/wallet/UploadReceiptBox';
@@ -18,6 +18,11 @@ import { buildWhatsAppLink, getDefaultWhatsAppNumber } from '../utils/whatsapp';
 import { useNativeBackOverlay } from '../hooks/useNativeBackOverlay';
 
 const normalizeMethodType = (type) => String(type || '').trim().toLowerCase();
+
+const isVodafoneCashMethod = (method) => {
+  const token = `${method?.id || ''} ${method?.name || ''}`.toLowerCase();
+  return token.includes('vodafone') || token.includes('فودافون');
+};
 
 const getCurrencyInputLabel = (currencyCode) => ({
   USD: '$',
@@ -136,6 +141,7 @@ const PaymentDetails = ({
   const [uploadedFile, setUploadedFile] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(null);
+  const [autoVerification, setAutoVerification] = useState(null);
   const [formError, setFormError] = useState('');
   const [accountCopied, setAccountCopied] = useState(false);
   const copyResetTimer = useRef(null);
@@ -145,7 +151,7 @@ const PaymentDetails = ({
   }, []);
 
   useEffect(() => {
-    if (submitStatus !== 'success') return undefined;
+    if (submitStatus !== 'success' && !autoVerification) return undefined;
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -153,7 +159,7 @@ const PaymentDetails = ({
     return () => {
       document.body.style.overflow = previousOverflow;
     };
-  }, [submitStatus]);
+  }, [autoVerification, submitStatus]);
 
   useEffect(() => {
     loadPaymentSettings({ force: true });
@@ -167,6 +173,7 @@ const PaymentDetails = ({
 
   const group = selectedMethodEntry?.group || null;
   const method = selectedMethodEntry?.method || null;
+  const isVodafoneCash = isVodafoneCashMethod(method);
   const methodPresentation = useMemo(
     () => getMethodPresentation(method),
     [method]
@@ -206,6 +213,44 @@ const PaymentDetails = ({
       ? `مرحبًا، أواجه مشكلة في الدفع عبر ${method?.name || 'وسيلة الدفع'}. أرجو مساعدتي.`
       : `Hello, I need help with a payment using ${method?.name || 'this payment method'}.`,
   });
+
+  useEffect(() => {
+    if (!autoVerification || autoVerification.status !== 'checking') return undefined;
+
+    let active = true;
+    const inspectTopupStatus = async () => {
+      try {
+        const latest = await useTopupStore.getState().getTopupById(autoVerification.topupId, user?.id);
+        if (!active || !latest) return;
+        const status = String(latest.status || '').trim().toLowerCase();
+        if (['approved', 'completed', 'success'].includes(status)) {
+          setAutoVerification((current) => current ? { ...current, status: 'approved', secondsLeft: 0 } : current);
+        }
+      } catch (_error) {
+        // Keep the countdown running; a transient polling failure should not hide the request.
+      }
+    };
+
+    const tick = () => {
+      const secondsLeft = Math.max(0, Math.ceil((autoVerification.expiresAt - Date.now()) / 1000));
+      if (!active) return;
+      if (secondsLeft <= 0) {
+        setAutoVerification((current) => current ? { ...current, status: 'manual', secondsLeft: 0 } : current);
+        return;
+      }
+      setAutoVerification((current) => current ? { ...current, secondsLeft } : current);
+    };
+
+    tick();
+    void inspectTopupStatus();
+    const countdownId = window.setInterval(tick, 1000);
+    const pollingId = window.setInterval(() => void inspectTopupStatus(), 5000);
+    return () => {
+      active = false;
+      window.clearInterval(countdownId);
+      window.clearInterval(pollingId);
+    };
+  }, [autoVerification?.expiresAt, autoVerification?.status, autoVerification?.topupId, user?.id]);
   useEffect(() => {
     if (automaticTopupPrefilled.current || !isAutomaticTopup) return;
     if (!Number.isFinite(automaticTopupAmount) || automaticTopupAmount <= 0 || !method) return;
@@ -351,7 +396,7 @@ const PaymentDetails = ({
       } : null;
       const { requestTopup } = useTopupStore.getState();
 
-      await requestTopup({
+      const createdTopup = await requestTopup({
         requestedAmount: baseAmount,
         amount: baseAmount,
         paymentMethodId: freshMethod?.id || '',
@@ -375,7 +420,16 @@ const PaymentDetails = ({
         type: 'regular',
       });
 
-      setSubmitStatus('success');
+      if (isVodafoneCashMethod(freshMethod)) {
+        setAutoVerification({
+          topupId: createdTopup?.id || '',
+          expiresAt: Date.now() + (3 * 60 * 1000),
+          secondsLeft: 3 * 60,
+          status: 'checking',
+        });
+      } else {
+        setSubmitStatus('success');
+      }
     } catch (error) {
       devLogger.warnUnlessBenign('Topup submission failed:', error);
       setFormError(t('payments.submitErrorDesc'));
@@ -396,9 +450,10 @@ const PaymentDetails = ({
       return;
     }
     setSubmitStatus(null);
+    setAutoVerification(null);
   };
 
-  useNativeBackOverlay(submitStatus === 'success', handleSuccessCancel);
+  useNativeBackOverlay(submitStatus === 'success' || Boolean(autoVerification), handleSuccessCancel);
 
   const fieldConfigs = {
     amount: {
@@ -471,9 +526,9 @@ const PaymentDetails = ({
           className="relative overflow-hidden rounded-2xl border border-sky-200/80 bg-white/90 p-4 shadow-[0_18px_48px_-38px_rgba(14,116,144,0.65)] backdrop-blur-xl dark:border-sky-400/15 dark:bg-slate-950/72 sm:p-5"
         >
           <div className="flex items-center gap-3">
-            {method.image && !isWalletMethod ? (
+            {method.image || group?.image ? (
               <img
-                src={resolveImageUrl(method.image)}
+                src={resolveImageUrl(method.image || group.image)}
                 alt={method.name}
                 loading="lazy"
                 decoding="async"
@@ -491,6 +546,12 @@ const PaymentDetails = ({
                   <ShieldCheck className="h-3.5 w-3.5" />
                   {dir === 'rtl' ? 'دفع آمن' : 'Secure payment'}
                 </span>
+                {isVodafoneCash && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-fuchsia-400/40 bg-[linear-gradient(90deg,rgb(168_85_247/0.18),rgb(236_72_153/0.18))] px-2 py-0.5 text-[9px] font-black text-fuchsia-700 shadow-[0_0_14px_-7px_rgb(217_70_239/0.95)] dark:text-fuchsia-200">
+                    <Bot className="h-3.5 w-3.5" />
+                    {dir === 'rtl' ? 'دفع آلي' : 'Automated payment'}
+                  </span>
+                )}
                 {group?.currency && (
                   <span className="rounded-full border border-violet-400/25 bg-violet-500/10 px-2 py-0.5 text-[9px] font-black text-violet-600 dark:text-violet-300">
                     {String(group.currency).toUpperCase()}
@@ -809,6 +870,66 @@ const PaymentDetails = ({
           </div>
         </motion.form>
         </div>
+
+        {autoVerification && createPortal(
+          <div className="fixed inset-0 z-[240] flex items-center justify-center bg-[radial-gradient(34rem_circle_at_50%_15%,rgb(192_38_211/0.2),transparent_52%),radial-gradient(28rem_circle_at_15%_85%,rgb(37_99_235/0.17),transparent_50%),rgb(2_1_10/0.86)] px-4 backdrop-blur-[16px]">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 14 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              transition={{ duration: 0.26, ease: 'easeOut' }}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="vodafone-auto-payment-title"
+              className="relative isolate w-full max-w-[22rem] overflow-hidden rounded-[1.65rem] border border-fuchsia-300/25 bg-[radial-gradient(20rem_circle_at_92%_-8%,rgb(244_114_208/0.25),transparent_46%),radial-gradient(18rem_circle_at_2%_104%,rgb(37_99_235/0.3),transparent_48%),linear-gradient(145deg,#10082b_0%,#221b53_52%,#42136a_100%)] p-5 text-center text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.14),0_32px_90px_-35px_rgb(0_0_0/0.95),0_0_55px_-28px_rgb(192_38_211/0.76)] sm:p-6"
+            >
+              {autoVerification.status === 'checking' ? (
+                <>
+                  <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-2xl border border-fuchsia-300/30 bg-[linear-gradient(145deg,rgb(217_70_239/0.25),rgb(59_130_246/0.14))] text-fuchsia-200 shadow-[0_0_35px_-14px_rgb(217_70_239/0.95)]">
+                    <Bot className="h-8 w-8 animate-pulse" />
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-fuchsia-300/20 bg-fuchsia-400/10 px-2.5 py-1 text-[10px] font-black text-fuchsia-100">
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-fuchsia-300" />
+                    {dir === 'rtl' ? 'جارٍ التحقق آليًا' : 'Automatic verification in progress'}
+                  </span>
+                  <h3 id="vodafone-auto-payment-title" className="mt-3 text-xl font-black tracking-tight text-white">
+                    {dir === 'rtl' ? 'نتحقق من عملية فودافون كاش' : 'Checking Vodafone Cash payment'}
+                  </h3>
+                  <p className="mx-auto mt-2 max-w-[17rem] text-xs font-semibold leading-6 text-violet-100/76">
+                    {dir === 'rtl' ? 'سيتم تأكيد الدفع تلقائيًا فور اعتماد العملية من البوت.' : 'Your payment will be confirmed automatically as soon as the bot approves it.'}
+                  </p>
+                  <div className="mx-auto mt-5 grid h-28 w-28 place-items-center rounded-full border-2 border-fuchsia-300/35 bg-black/20 shadow-[inset_0_0_28px_rgb(217_70_239/0.15),0_0_30px_-14px_rgb(217_70_239/0.95)]">
+                    <div>
+                      <TimerReset className="mx-auto h-5 w-5 text-fuchsia-200" />
+                      <strong className="mt-1 block font-['Poppins'] text-2xl font-extrabold tracking-wide text-white [font-variant-numeric:tabular-nums]">
+                        {`${String(Math.floor(autoVerification.secondsLeft / 60)).padStart(2, '0')}:${String(autoVerification.secondsLeft % 60).padStart(2, '0')}`}
+                      </strong>
+                    </div>
+                  </div>
+                  <p className="mt-4 text-[10px] font-semibold leading-5 text-violet-100/65">{dir === 'rtl' ? 'الحد الأقصى للتحقق الآلي: 3 دقائق' : 'Automatic check limit: 3 minutes'}</p>
+                </>
+              ) : autoVerification.status === 'approved' ? (
+                <>
+                  <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-2xl border border-emerald-300/25 bg-emerald-400/15 text-emerald-300 shadow-[0_0_35px_-14px_rgb(52_211_153/0.95)]"><CheckCircle className="h-8 w-8" /></div>
+                  <h3 id="vodafone-auto-payment-title" className="text-xl font-black tracking-tight text-white">{dir === 'rtl' ? 'تم الدفع بنجاح' : 'Payment successful'}</h3>
+                  <p className="mx-auto mt-2 max-w-[17rem] text-xs font-semibold leading-6 text-emerald-100/80">{dir === 'rtl' ? 'تم اعتماد عملية فودافون كاش تلقائيًا.' : 'Your Vodafone Cash payment was approved automatically.'}</p>
+                </>
+              ) : (
+                <>
+                  <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-2xl border border-amber-300/25 bg-amber-400/15 text-amber-200 shadow-[0_0_35px_-14px_rgb(251_191_36/0.9)]"><TimerReset className="h-8 w-8" /></div>
+                  <h3 id="vodafone-auto-payment-title" className="text-xl font-black tracking-tight text-white">{dir === 'rtl' ? 'ستتم العملية بشكل يدوي' : 'Your payment will be reviewed manually'}</h3>
+                  <p className="mx-auto mt-2 max-w-[17rem] text-xs font-semibold leading-6 text-amber-50/80">{dir === 'rtl' ? 'انتهت مهلة التحقق الآلي. سيكمل فريقنا مراجعة العملية يدويًا.' : 'The automatic verification window ended. Our team will complete a manual review.'}</p>
+                </>
+              )}
+              {autoVerification.status !== 'checking' && (
+                <div className="mt-5 grid grid-cols-2 gap-2">
+                  <button type="button" onClick={handleSuccessConfirm} className="h-11 rounded-xl bg-[linear-gradient(135deg,#7c3aed,#c026d3)] px-3 text-xs font-black text-white">{dir === 'rtl' ? 'سجل الطلبات' : 'Request history'}</button>
+                  <button type="button" onClick={handleSuccessCancel} className="h-11 rounded-xl border border-white/15 bg-white/8 px-3 text-xs font-black text-violet-100">{dir === 'rtl' ? 'إغلاق' : 'Close'}</button>
+                </div>
+              )}
+            </motion.div>
+          </div>,
+          document.body
+        )}
 
         {submitStatus === 'success' && createPortal(
           <div className="fixed inset-0 z-[240] flex items-center justify-center bg-[radial-gradient(34rem_circle_at_50%_15%,rgb(192_38_211/0.2),transparent_52%),radial-gradient(28rem_circle_at_15%_85%,rgb(37_99_235/0.17),transparent_50%),rgb(2_1_10/0.82)] px-4 backdrop-blur-[16px]">

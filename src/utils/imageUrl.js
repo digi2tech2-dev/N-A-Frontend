@@ -30,8 +30,8 @@ export const resolveImageUrl = (path) => {
   const trimmed = String(path).trim();
   if (!trimmed) return '';
 
-  // Already absolute, data URI, or browser object URL — return as-is
-  if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:') || trimmed.startsWith('blob:')) {
+  // Already absolute, local public asset, data URI, or browser object URL — return as-is
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('/assets/') || trimmed.startsWith('data:') || trimmed.startsWith('blob:')) {
     return trimmed;
   }
 

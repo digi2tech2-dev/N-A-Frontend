@@ -6,6 +6,8 @@ const PAYMENT_METHOD_FIELDS = {
   usdt: ['amount'],
 };
 
+
+
 const ALLOWED_METHOD_TYPES = Object.keys(PAYMENT_METHOD_FIELDS);
 
 const slugifyToken = (value) =>
@@ -40,9 +42,11 @@ export const getPaymentFieldsForType = (type = 'mobile_wallet') =>
 export const createDefaultPaymentGroups = () => [
   {
     id: 'default-egypt-wallets',
-    name: 'محافظ مصر',
-    description: 'طرق دفع افتراضية لطلبات التارجت',
+    name: 'تحويل مصر',
+    description: 'طرق الدفع المصرية المتاحة للتحويل الآمن',
     currency: 'EGP',
+    image: '/assets/egypt-transfer-payment.png',
+    imageName: 'egypt-transfer-payment.png',
     isActive: true,
     methods: [
       {
@@ -256,4 +260,3 @@ export const findPaymentMethodById = (settings, methodId, options = {}) => {
 
   return null;
 };
-
