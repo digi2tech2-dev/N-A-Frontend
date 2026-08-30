@@ -7,3 +7,9 @@ coverage/
 .env*
 !.env.example
 /android/app/google-services.json
+
+# Android release signing material is never committed.
+*.jks
+*.keystore
+*.p12
+android/signing.properties
