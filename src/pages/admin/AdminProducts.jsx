@@ -66,6 +66,31 @@ const getProviderProductMaxQtyValue = (product) => (
     ?? ''
 );
 
+const HAGO_NOBILITY_LEVELS = Object.freeze({
+    1: 'Knight',
+    2: 'Viscount',
+    3: 'Earl',
+    4: 'Duke',
+});
+
+const getHagoNobilityType = (providerProduct) => {
+    const codeMatch = /^HAGO_NOBILITY_([1-4])$/.exec(String(providerProduct?.externalProductId || '').trim());
+    if (codeMatch) return Number(codeMatch[1]);
+
+    const serviceType = String(
+        providerProduct?.rawPayload?.serviceType || providerProduct?.rawPayload?.metadata?.serviceType || ''
+    ).trim().toUpperCase();
+    const nobilityType = Number(
+        providerProduct?.rawPayload?.nobilityType ?? providerProduct?.rawPayload?.metadata?.nobilityType
+    );
+    return serviceType === 'NOBILITY' && HAGO_NOBILITY_LEVELS[nobilityType] ? nobilityType : null;
+};
+
+const isHagoProvider = (provider, providerProduct) => (
+    String(provider?.slug || '').trim().toLowerCase() === 'hago'
+    || String(providerProduct?.providerSlug || providerProduct?.provider?.slug || '').trim().toLowerCase() === 'hago'
+);
+
 const getProviderProductIdentifiers = (product) => Array.from(new Set(
     [
         product?.id,
@@ -575,6 +600,7 @@ const AdminProducts = () => {
                     id: supplier.id,
                     name: supplier.supplierName || supplier.name || supplier.id,
                     isActive: supplier.isActive !== false,
+                    slug: String(supplier.slug || '').trim().toLowerCase(),
                 })) : []);
             })
             .catch(() => {
@@ -642,11 +668,11 @@ const AdminProducts = () => {
         () => providers.find((provider) => String(provider.id || provider._id || '') === String(selectedSupplierId || '')) || null,
         [providers, selectedSupplierId]
     );
+    const selectedHagoNobilityType = getHagoNobilityType(selectedProviderProduct);
     const isHagoNobilityProduct = productForm.pricingStrategy === 'hago_nobility_readiness' || Boolean(
-        selectedProvider?.slug === 'hago'
-        && /^HAGO_NOBILITY_[1-4]$/.test(String(selectedProviderProduct?.externalProductId || productForm.externalProductId || ''))
+        isHagoProvider(selectedProvider, selectedProviderProduct) && selectedHagoNobilityType
     );
-    const hagoNobilityLevel = String(selectedProviderProduct?.name || productForm.externalProductName || '').replace(/^Hago\s+/i, '') || '';
+    const hagoNobilityLevel = HAGO_NOBILITY_LEVELS[selectedHagoNobilityType] || '';
     const filteredProviderProducts = useMemo(() => {
         const normalizedQuery = String(providerProductQuery || '').trim().toLowerCase();
         if (!normalizedQuery) {
@@ -771,8 +797,9 @@ const AdminProducts = () => {
             minQty: getProviderProductMinQtyValue(selected),
             maxQty: getProviderProductMaxQtyValue(selected),
         } : null;
-        const isSelectedHagoNobility = selected?.providerSlug === 'hago'
-            || (selectedProvider?.slug === 'hago' && /^HAGO_NOBILITY_[1-4]$/.test(String(selected?.externalProductId || '')));
+        const isSelectedHagoNobility = Boolean(
+            isHagoProvider(selectedProvider, selected) && getHagoNobilityType(selected)
+        );
         setProductForm((prev) => ({
             ...prev,
             externalProductId: String(selected?.externalProductId || value).trim(),
@@ -783,12 +810,15 @@ const AdminProducts = () => {
                 syncPriceWithProvider: false,
                 externalPricingMode: 'use_local_price',
                 enableManualPrice: false,
+                autoFulfillmentEnabled: false,
                 minimumOrderQty: 1,
                 maximumOrderQty: 1,
                 minQty: 1,
                 maxQty: 1,
-            } : {}),
-            ...(prev.syncPriceWithProvider && selectedSnapshot
+            } : {
+                pricingStrategy: 'standard',
+            }),
+            ...(!isSelectedHagoNobility && prev.syncPriceWithProvider && selectedSnapshot
                 ? buildProviderSyncSnapshot(selectedSnapshot, {
                     enableManualPrice: prev.enableManualPrice,
                     manualPriceAdjustment: prev.manualPriceAdjustment,
@@ -2368,7 +2398,7 @@ const AdminProducts = () => {
                             </div>
                             ) : null}
 
-                            {productForm.connectionType === 'auto' ? (
+                            {productForm.connectionType === 'auto' && !isHagoNobilityProduct ? (
                             <>
                                 <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                                     <input
