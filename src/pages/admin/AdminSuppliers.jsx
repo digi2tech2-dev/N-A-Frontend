@@ -18,6 +18,7 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Badge from '../../components/ui/Badge';
 import Modal from '../../components/ui/Modal';
+import HagoManagementModal from '../../components/admin/HagoManagementModal';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
 import { useToast } from '../../components/ui/Toast';
 import useAuthStore from '../../store/useAuthStore';
@@ -211,6 +212,7 @@ const AdminSuppliers = () => {
   const [allProductsLoaded, setAllProductsLoaded] = useState(false);
   const [syncingSupplierId, setSyncingSupplierId] = useState(null);
   const [testingSupplierId, setTestingSupplierId] = useState(null);
+  const [hagoSupplier, setHagoSupplier] = useState(null);
 
   // ── Debug modal state ──────────────────────────────────────────────────────
   const [isDebugOpen, setIsDebugOpen] = useState(false);
@@ -219,7 +221,7 @@ const AdminSuppliers = () => {
   const [debugResult, setDebugResult] = useState(null);
   const [debugLoading, setDebugLoading] = useState(false);
 
-  const { dir } = useLanguage();
+  const { dir, t } = useLanguage();
   const isRTL = dir === 'rtl';
 
   const mergeRuntimeSupplierState = (supplierId, patch) => {
@@ -420,6 +422,11 @@ const AdminSuppliers = () => {
     setDebugResult(null);
     setDebugOrderId('');
     setIsDebugOpen(true);
+  };
+
+  const openHagoManagement = (row) => {
+    if (String(row?.slug || '').toLowerCase() !== 'hago') return;
+    setHagoSupplier(row);
   };
 
   const handleCheckBalance = async () => {
@@ -676,6 +683,12 @@ const AdminSuppliers = () => {
                   <Bug className="h-3.5 w-3.5" />
                   أدوات الفحص
                 </Button>
+                {String(row.slug || '').toLowerCase() === 'hago' ? (
+                  <Button size="sm" className={compactActionBtnClass} variant="secondary" onClick={() => openHagoManagement(row)}>
+                    <PlugZap className="h-3.5 w-3.5" />
+                    {t('hago.manage')}
+                  </Button>
+                ) : null}
                 <Button size="sm" className={compactActionBtnClass} variant="outline" onClick={() => openEdit(row)}>
                   <Pencil className="h-3.5 w-3.5" />
                   تعديل
@@ -740,6 +753,12 @@ const AdminSuppliers = () => {
                         <Bug className="h-4 w-4" />
                         أدوات الفحص
                       </Button>
+                      {String(row.slug || '').toLowerCase() === 'hago' ? (
+                        <Button size="sm" variant="secondary" onClick={() => openHagoManagement(row)}>
+                          <PlugZap className="h-4 w-4" />
+                          {t('hago.manage')}
+                        </Button>
+                      ) : null}
                       <Button size="sm" variant="outline" onClick={() => openEdit(row)}>
                         <Pencil className="h-4 w-4" />
                         تعديل
@@ -821,6 +840,12 @@ const AdminSuppliers = () => {
           </div>
         ) : null}
       </Modal>
+
+      <HagoManagementModal
+        provider={hagoSupplier}
+        isOpen={Boolean(hagoSupplier)}
+        onClose={() => setHagoSupplier(null)}
+      />
 
       <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title={editing ? 'تعديل مورد' : 'إضافة مورد جديد'} size="xl">
         <form onSubmit={submit} className="max-h-[75vh] space-y-4 overflow-y-auto pr-1">

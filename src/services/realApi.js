@@ -2626,6 +2626,17 @@ const realApi = {
       const res = await http.delete(`/admin/providers/${id}`);
       return normaliseProvider(unwrap(res)?.provider || unwrap(res));
     },
+
+    // Hago connection management is provider-scoped and strictly read-only
+    // apart from the OTP connection lifecycle. It never calls Hago directly.
+    getHagoConnection: async (id) => unwrap(await http.get(`/admin/providers/${id}/hago/connection`)),
+    createHagoLoginChallenge: async (id, payload) => unwrap(await http.post(`/admin/providers/${id}/hago/login-challenge`, payload)),
+    verifyHagoLoginChallenge: async (id, otp) => unwrap(await http.post(`/admin/providers/${id}/hago/login-challenge/verify`, { otp })),
+    validateHagoSession: async (id) => unwrap(await http.post(`/admin/providers/${id}/hago/session/validate`)),
+    getHagoReadiness: async (id) => unwrap(await http.get(`/admin/providers/${id}/hago/diagnostics/readiness`)),
+    getHagoProfile: async (id) => unwrap(await http.get(`/admin/providers/${id}/hago/diagnostics/profile`)),
+    getHagoWallet: async (id) => unwrap(await http.get(`/admin/providers/${id}/hago/diagnostics/wallet`)),
+    verifyHagoTarget: async (id, targetId) => unwrap(await http.post(`/admin/providers/${id}/hago/diagnostics/verify-target`, { targetId })),
   },
 
   // ── Users (Admin) ────────────────────────────────────────────────────────

@@ -286,6 +286,63 @@
     "expiredMessage": "This product availability period has ended",
     "remainingStock": "Remaining stock: {{count}}"
   },
+  "hago": {
+    "manage": "Manage Hago",
+    "connection": "Connection",
+    "accountSession": "Account & Session",
+    "connectAccount": "Connect Hago account",
+    "phone": "Phone number",
+    "countryCode": "Country code",
+    "countryOptional": "Country (optional)",
+    "languageOptional": "Language (optional)",
+    "sendOtp": "Send verification code",
+    "enterOtp": "Enter verification code",
+    "otp": "Verification code",
+    "confirmConnection": "Confirm connection",
+    "reconnect": "Reconnect",
+    "reconnectKeepsCurrent": "The current connection remains available until the new login succeeds.",
+    "validateSession": "Validate session",
+    "label": "Label",
+    "account": "Account",
+    "lastValidation": "Last validation",
+    "lastSuccessful": "Last successful connection",
+    "expiresAt": "Expires",
+    "noConnection": "No Hago account is currently connected.",
+    "unavailable": "Unavailable",
+    "diagnostics": "Diagnostics",
+    "readOnlyDiagnostics": "Read-only diagnostics",
+    "readOnlyNotice": "These tools show safe status and account data only; they never perform a recharge or financial transaction.",
+    "checkService": "Check service",
+    "accountDetails": "Account details",
+    "refreshBalance": "Refresh balance",
+    "verifyTarget": "Verify ID",
+    "targetPlaceholder": "Hago ID / VID",
+    "statusLabel": "Status",
+    "nickname": "Name",
+    "wallet": {
+      "diamond": "Hago Diamond",
+      "diamondNew": "Hago Diamond New",
+      "crystal": "Hago Crystal"
+    },
+    "status": {
+      "connected": "Connected",
+      "otpPending": "Verification code pending",
+      "reauthRequired": "Reauthentication required",
+      "unknown": "Connection status unknown"
+    },
+    "messages": {
+      "otpSent": "Verification code sent.",
+      "connected": "Hago account connected successfully.",
+      "sessionValidated": "Hago connection checked."
+    },
+    "errors": {
+      "connectionLoad": "Could not load Hago connection status.",
+      "otpSend": "Could not send the verification code.",
+      "otpVerify": "Could not verify the code.",
+      "sessionValidate": "Could not validate the Hago session.",
+      "diagnostic": "Could not run the requested diagnostic."
+    }
+  },
   "legacy": {
     "brand": "N&A HUB",
     "landingHero": "Your premium destination for game credits, app subscriptions, and digital products.",

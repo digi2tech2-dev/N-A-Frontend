@@ -286,6 +286,63 @@
     "expiredMessage": "انتهت فترة توفر هذا المنتج",
     "remainingStock": "المخزون المتبقي: {{count}}"
   },
+  "hago": {
+    "manage": "إدارة Hago",
+    "connection": "الاتصال",
+    "accountSession": "الحساب والجلسة",
+    "connectAccount": "ربط حساب Hago",
+    "phone": "رقم الهاتف",
+    "countryCode": "رمز الدولة",
+    "countryOptional": "الدولة (اختياري)",
+    "languageOptional": "اللغة (اختياري)",
+    "sendOtp": "إرسال رمز التحقق",
+    "enterOtp": "أدخل رمز التحقق",
+    "otp": "رمز التحقق",
+    "confirmConnection": "تأكيد الربط",
+    "reconnect": "إعادة تسجيل الدخول",
+    "reconnectKeepsCurrent": "يظل الاتصال الحالي متاحًا حتى ينجح الربط الجديد.",
+    "validateSession": "فحص الاتصال",
+    "label": "التسمية",
+    "account": "الحساب",
+    "lastValidation": "آخر فحص",
+    "lastSuccessful": "آخر اتصال ناجح",
+    "expiresAt": "ينتهي",
+    "noConnection": "لا يوجد حساب Hago متصل حاليًا.",
+    "unavailable": "غير متاح",
+    "diagnostics": "التشخيص",
+    "readOnlyDiagnostics": "تشخيصات للقراءة فقط",
+    "readOnlyNotice": "هذه الأدوات تعرض الحالة والبيانات الآمنة فقط ولا تنفذ أي شحن أو معاملة مالية.",
+    "checkService": "فحص الخدمة",
+    "accountDetails": "بيانات الحساب",
+    "refreshBalance": "تحديث الرصيد",
+    "verifyTarget": "تحقق من المعرف",
+    "targetPlaceholder": "Hago ID / VID",
+    "statusLabel": "الحالة",
+    "nickname": "الاسم",
+    "wallet": {
+      "diamond": "Hago Diamond",
+      "diamondNew": "Hago Diamond New",
+      "crystal": "Hago Crystal"
+    },
+    "status": {
+      "connected": "متصل",
+      "otpPending": "في انتظار رمز التحقق",
+      "reauthRequired": "بحاجة لإعادة تسجيل الدخول",
+      "unknown": "حالة الاتصال غير معروفة"
+    },
+    "messages": {
+      "otpSent": "تم إرسال رمز التحقق.",
+      "connected": "تم ربط حساب Hago بنجاح.",
+      "sessionValidated": "تم فحص اتصال Hago."
+    },
+    "errors": {
+      "connectionLoad": "تعذر تحميل حالة اتصال Hago.",
+      "otpSend": "تعذر إرسال رمز التحقق.",
+      "otpVerify": "تعذر تأكيد رمز التحقق.",
+      "sessionValidate": "تعذر فحص اتصال Hago.",
+      "diagnostic": "تعذر تشغيل التشخيص المطلوب."
+    }
+  },
   "legacy": {
     "brand": "N&A HUB",
     "landingHero": "وجهتك المميزة لشراء رصيد الألعاب، واشتراكات التطبيقات، والمنتجات الرقمية.",
