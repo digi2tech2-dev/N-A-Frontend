@@ -296,6 +296,8 @@
     "countryOptional": "Country (optional)",
     "languageOptional": "Language (optional)",
     "sendOtp": "Send verification code",
+    "sendNewOtp": "Send new verification code",
+    "loginExpired": "The verification code has expired. Request a new code to continue.",
     "enterOtp": "Enter verification code",
     "otp": "Verification code",
     "confirmConnection": "Confirm connection",

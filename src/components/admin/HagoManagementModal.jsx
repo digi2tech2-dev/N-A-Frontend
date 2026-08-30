@@ -28,6 +28,16 @@ const valueOrUnavailable = (value, unavailable) => (
   value === null || value === undefined || value === '' ? unavailable : String(value)
 );
 
+const pendingExpiryMs = (pendingLogin) => {
+  const expiresAt = Date.parse(String(pendingLogin?.expiresAt || ''));
+  return Number.isFinite(expiresAt) ? expiresAt : null;
+};
+
+const hasValidPendingLogin = (pendingLogin, now = Date.now()) => {
+  const expiresAt = pendingExpiryMs(pendingLogin);
+  return Boolean(pendingLogin && expiresAt && expiresAt > now);
+};
+
 const HagoManagementModal = ({ provider, isOpen, onClose }) => {
   const { addToast } = useToast();
   const { language, dir, t } = useLanguage();
@@ -44,6 +54,8 @@ const HagoManagementModal = ({ provider, isOpen, onClose }) => {
   const [diagnosticLoading, setDiagnosticLoading] = useState('');
   const [diagnostics, setDiagnostics] = useState({ readiness: null, profile: null, wallet: null, verification: null });
   const [targetId, setTargetId] = useState('');
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  const [requestingNewOtp, setRequestingNewOtp] = useState(false);
 
   const isCurrentProvider = (id) => openRef.current && activeProviderRef.current === id;
 
@@ -57,6 +69,8 @@ const HagoManagementModal = ({ provider, isOpen, onClose }) => {
     setDiagnosticLoading('');
     setDiagnostics({ readiness: null, profile: null, wallet: null, verification: null });
     setTargetId('');
+    setNowMs(Date.now());
+    setRequestingNewOtp(false);
   };
 
   const refreshConnection = async (id = providerId, { silent = false } = {}) => {
@@ -67,7 +81,8 @@ const HagoManagementModal = ({ provider, isOpen, onClose }) => {
       if (!isCurrentProvider(id)) return null;
       const nextConnection = data?.connection ?? null;
       setConnection(nextConnection);
-      setShowLoginForm(Boolean(nextConnection?.pendingLogin) || nextConnection?.hasConnection !== true);
+      setShowLoginForm(!hasValidPendingLogin(nextConnection?.pendingLogin) || nextConnection?.hasConnection !== true);
+      setRequestingNewOtp(false);
       return nextConnection;
     } catch (error) {
       if (isCurrentProvider(id) && !silent) addToast(error?.message || t('hago.errors.connectionLoad'), 'error');
@@ -88,13 +103,39 @@ const HagoManagementModal = ({ provider, isOpen, onClose }) => {
     };
   }, [isOpen, providerId]);
 
+  const pendingLogin = connection?.pendingLogin;
+  const pendingLoginExpiresAt = pendingExpiryMs(pendingLogin);
+  const isOtpPending = hasValidPendingLogin(pendingLogin, nowMs);
+  const isPendingLoginExpired = Boolean(pendingLogin) && !isOtpPending;
+
+  useEffect(() => {
+    setNowMs(Date.now());
+    if (!isOpen || !pendingLoginExpiresAt) return undefined;
+
+    const delay = pendingLoginExpiresAt - Date.now();
+    if (delay <= 0) {
+      setShowLoginForm(true);
+      setOtp('');
+      return undefined;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setNowMs(Date.now());
+      setShowLoginForm(true);
+      setOtp('');
+    }, delay + 1);
+    return () => window.clearTimeout(timeout);
+  }, [isOpen, pendingLoginExpiresAt]);
+
   const connectionStatus = String(connection?.connectionStatus || 'UNKNOWN').toUpperCase();
-  const currentStatus = statusConfig[connectionStatus] || statusConfig.UNKNOWN;
+  const displayConnectionStatus = isPendingLoginExpired && connectionStatus === 'OTP_PENDING'
+    ? 'UNKNOWN'
+    : connectionStatus;
+  const currentStatus = statusConfig[displayConnectionStatus] || statusConfig.UNKNOWN;
   const StatusIcon = currentStatus.icon;
   // A local connection record can exist without an upstream Hago account.
   // Only the backend allowlisted presence signal can enable session-bound UI.
   const hasConnection = connection?.hasConnection === true;
-  const isOtpPending = Boolean(connection?.pendingLogin);
   const canValidateSession = hasConnection && Boolean(connection?.enabled);
   const canReconnect = hasConnection;
   const dateLocale = language === 'en' ? 'en-US' : 'ar-EG';
@@ -111,6 +152,19 @@ const HagoManagementModal = ({ provider, isOpen, onClose }) => {
   const startReconnect = () => {
     setShowLoginForm(true);
     setOtp('');
+    setRequestingNewOtp(false);
+  };
+
+  const requestNewOtp = () => {
+    setOtp('');
+    setLoginForm(EMPTY_LOGIN_FORM);
+    setConnection((current) => current ? {
+      ...current,
+      pendingLogin: undefined,
+      connectionStatus: current.connectionStatus === 'OTP_PENDING' ? 'UNKNOWN' : current.connectionStatus,
+    } : current);
+    setRequestingNewOtp(true);
+    setShowLoginForm(true);
   };
 
   const sendOtp = async (event) => {
@@ -130,6 +184,7 @@ const HagoManagementModal = ({ provider, isOpen, onClose }) => {
       setConnection(data?.connection ?? connection);
       setOtp('');
       setShowLoginForm(true);
+      setRequestingNewOtp(false);
       addToast(t('hago.messages.otpSent'), 'success');
     } catch (error) {
       if (isCurrentProvider(providerId)) addToast(error?.message || t('hago.errors.otpSend'), 'error');
@@ -209,7 +264,7 @@ const HagoManagementModal = ({ provider, isOpen, onClose }) => {
             </div>
             {connectionLoading ? <Loader2 className="h-5 w-5 animate-spin text-[var(--color-primary)]" /> : (
               <Badge variant={currentStatus.variant} className="gap-1.5">
-                <StatusIcon className={`h-3.5 w-3.5 ${connectionStatus === 'OTP_PENDING' ? 'animate-pulse' : ''}`} />
+                <StatusIcon className={`h-3.5 w-3.5 ${isOtpPending ? 'animate-pulse' : ''}`} />
                 {t(currentStatus.labelKey)}
               </Badge>
             )}
@@ -255,7 +310,17 @@ const HagoManagementModal = ({ provider, isOpen, onClose }) => {
             ) : null}
           </div>
 
-          {showLoginForm && !isOtpPending ? (
+          {isPendingLoginExpired ? (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50/70 p-3 dark:border-amber-500/20 dark:bg-amber-500/10">
+              <p className="text-sm font-semibold text-gray-950 dark:text-white">{t('hago.loginExpired')}</p>
+              <Button size="sm" variant="secondary" onClick={requestNewOtp} disabled={submitting}>
+                <RefreshCw className="h-4 w-4" />
+                {t('hago.sendNewOtp')}
+              </Button>
+            </div>
+          ) : null}
+
+          {showLoginForm && !isOtpPending && !isPendingLoginExpired ? (
             <form onSubmit={sendOtp} className="mt-4 space-y-3 rounded-xl border border-amber-200 bg-amber-50/70 p-3 dark:border-amber-500/20 dark:bg-amber-500/10">
               <p className="text-sm font-bold text-gray-950 dark:text-white">{t('hago.connectAccount')}</p>
               <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
@@ -266,7 +331,7 @@ const HagoManagementModal = ({ provider, isOpen, onClose }) => {
               </div>
               <Button type="submit" size="sm" disabled={submitting}>
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlugZap className="h-4 w-4" />}
-                {t('hago.sendOtp')}
+                {t(requestingNewOtp ? 'hago.sendNewOtp' : 'hago.sendOtp')}
               </Button>
             </form>
           ) : null}

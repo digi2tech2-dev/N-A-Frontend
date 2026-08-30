@@ -296,6 +296,8 @@
     "countryOptional": "الدولة (اختياري)",
     "languageOptional": "اللغة (اختياري)",
     "sendOtp": "إرسال رمز التحقق",
+    "sendNewOtp": "إرسال رمز جديد",
+    "loginExpired": "انتهت صلاحية رمز التحقق. أرسل رمزًا جديدًا للمتابعة.",
     "enterOtp": "أدخل رمز التحقق",
     "otp": "رمز التحقق",
     "confirmConnection": "تأكيد الربط",
