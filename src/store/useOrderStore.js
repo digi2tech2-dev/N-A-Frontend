@@ -434,6 +434,18 @@ const useOrderStore = create((set, get) => ({
           ordersLastLoadedAt: Date.now(),
         }));
         return synced;
+      },
+
+      reconcileHagoFinancialOrder: async (id) => {
+        const result = await apiClient.orders.reconcileHagoFinancial(id);
+        const updated = result?.order;
+        if (updated) {
+          set((state) => ({
+            orders: (state.orders || []).map((order) => (order.id === id ? { ...order, ...updated } : order)),
+            ordersLastLoadedAt: Date.now(),
+          }));
+        }
+        return result;
       }
 }));
 

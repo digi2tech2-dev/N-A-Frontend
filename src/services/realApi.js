@@ -3535,6 +3535,19 @@ const realApi = {
         return null;
       }
     },
+
+    /**
+     * Read-only Hago evidence refresh for an unresolved Diamond/Crystal
+     * operation. This calls N&A only; the browser never reaches HAGO-BOT.
+     */
+    reconcileHagoFinancial: async (orderId) => {
+      const res = await http.post(`/admin/orders/${orderId}/hago/reconcile`);
+      const data = unwrap(res);
+      return {
+        ...data,
+        order: normaliseOrder(data?.order || data),
+      };
+    },
   },
 
   // ── Topups (BE: "deposits") ──────────────────────────────────────────────

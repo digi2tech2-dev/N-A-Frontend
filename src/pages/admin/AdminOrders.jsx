@@ -200,6 +200,7 @@ const AdminOrders = () => {
     getOrderById,
     updateOrderStatus,
     syncOrderSupplierStatus,
+    reconcileHagoFinancialOrder,
   } = useOrderStore();
   const { user: actor } = useAuthStore();
   const { users, loadUsers } = useAdminStore();
@@ -226,6 +227,7 @@ const AdminOrders = () => {
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [actionOrderId, setActionOrderId] = useState('');
   const [syncingOrderId, setSyncingOrderId] = useState('');
+  const [reconcilingHagoOrderId, setReconcilingHagoOrderId] = useState('');
   const [statusConfirm, setStatusConfirm] = useState(null);
   const deferredSearchTerm = useDeferredValue(searchTerm);
 
@@ -461,6 +463,27 @@ const AdminOrders = () => {
     }
   }, [addToast, isArabic, syncOrderSupplierStatus]);
 
+  const handleReconcileHago = useCallback(async (order) => {
+    setReconcilingHagoOrderId(order.id);
+    try {
+      const result = await reconcileHagoFinancialOrder(order.id);
+      const outcome = String(result?.outcome || '').toUpperCase();
+      addToast(
+        outcome === 'SUCCESS'
+          ? (isArabic ? 'تم تأكيد نجاح تحويل Hago' : 'Hago transfer success confirmed')
+          : outcome === 'FAILED'
+            ? (isArabic ? 'تم تأكيد فشل تحويل Hago وإرجاع الرصيد' : 'Hago transfer failure confirmed and refunded')
+            : (isArabic ? 'لا تزال نتيجة Hago غير مؤكدة' : 'Hago outcome remains unresolved'),
+        outcome === 'UNRESOLVED' ? 'info' : 'success'
+      );
+      await loadAdminOrders({ page, limit, search: serverSearchTerm || undefined, startDate: appliedStartDate || undefined, endDate: appliedEndDate || undefined });
+    } catch (error) {
+      addToast(error?.message || (isArabic ? 'تعذر التحقق من حالة Hago' : 'Unable to reconcile Hago status'), 'error');
+    } finally {
+      setReconcilingHagoOrderId('');
+    }
+  }, [addToast, appliedEndDate, appliedStartDate, isArabic, limit, loadAdminOrders, page, reconcileHagoFinancialOrder, serverSearchTerm]);
+
   const handleViewOrder = useCallback(async (order) => {
     setSelectedOrderId(order.id);
     const nextParams = new URLSearchParams(searchParams);
@@ -683,8 +706,10 @@ const AdminOrders = () => {
             onUpdateStatus={canConfirmOrders ? handleUpdateStatus : undefined}
             canUpdateStatus={canConfirmOrders}
             onSync={handleSync}
+            onReconcileHago={handleReconcileHago}
             isActionLoading={Boolean(selectedOrder && actionOrderId === selectedOrder.id)}
             isSyncing={Boolean(selectedOrder && syncingOrderId === selectedOrder.id)}
+            isReconcilingHago={Boolean(selectedOrder && reconcilingHagoOrderId === selectedOrder.id)}
           />
         </Suspense>
       ) : null}

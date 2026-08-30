@@ -158,8 +158,10 @@ const OrderDetailsDrawer = ({
   onUpdateStatus = () => {},
   canUpdateStatus = true,
   onSync = () => {},
+  onReconcileHago = null,
   isActionLoading = false,
   isSyncing = false,
+  isReconcilingHago = false,
 }) => {
   const locale = isArabic ? 'ar-EG' : 'en-US';
   const [copyState, setCopyState] = useState('idle');
@@ -167,6 +169,8 @@ const OrderDetailsDrawer = ({
   const [complaintText, setComplaintText] = useState('');
   const [complaintError, setComplaintError] = useState('');
   const isDrawerVisible = Boolean(isOpen && order);
+  const isHagoFinancialUnresolved = Boolean(order?.hagoFinancial?.serviceType)
+    && ['claimed', 'sent', 'pending', 'unknown'].includes(String(order?.hagoFinancial?.mutationState || '').toLowerCase());
   useNativeBackOverlay(isDrawerVisible, onClose);
   const primaryIdentifierField = order?.primaryIdentifierField || null;
   const rawRequestFields = Array.isArray(order?.requestDetails?.fields) ? order.requestDetails.fields : [];
@@ -660,7 +664,7 @@ const OrderDetailsDrawer = ({
                       </Card>
                     ) : null}
 
-                    {view === 'admin' && order.canSync && canUpdateStatus ? (
+                    {view === 'admin' && !isHagoFinancialUnresolved && order.canSync && canUpdateStatus ? (
                       <Card variant="flat" className="p-3.5">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div className="min-w-0">
@@ -684,6 +688,8 @@ const OrderDetailsDrawer = ({
                           isArabic={isArabic}
                           isLoading={isActionLoading}
                           onUpdateStatus={onUpdateStatus}
+                          onReconcileHago={onReconcileHago}
+                          isReconciling={isReconcilingHago}
                         />
                         <AdminOrderActions
                           order={order}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 
@@ -17,9 +17,47 @@ import Button from '../ui/Button';
  *   isLoading      – whether an action is in flight
  *   onUpdateStatus – (order, nextStatus) → void
  */
-const ManualReviewActions = ({ order, isArabic, isLoading, onUpdateStatus }) => {
+const ManualReviewActions = ({ order, isArabic, isLoading, onUpdateStatus, onReconcileHago = null, isReconciling = false }) => {
   const isManualReview = String(order?.status || '').toLowerCase() === 'manual_review';
   if (!isManualReview) return null;
+  const isHagoFinancialUnresolved = Boolean(order?.hagoFinancial?.serviceType)
+    && ['claimed', 'sent', 'pending', 'unknown'].includes(String(order?.hagoFinancial?.mutationState || '').toLowerCase());
+
+  if (isHagoFinancialUnresolved) {
+    return (
+      <Card
+        variant="flat"
+        className="border-[color:rgb(var(--color-warning-rgb)/0.38)] bg-[color:rgb(var(--color-warning-rgb)/0.08)] p-3.5"
+      >
+        <div className="space-y-3">
+          <div className="flex items-start gap-2.5">
+            <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[color:rgb(var(--color-warning-rgb)/0.15)]">
+              <AlertTriangle className="h-3.5 w-3.5 text-[var(--color-warning)]" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-[var(--color-text)]">
+                {isArabic ? 'نتيجة تحويل Hago غير مؤكدة' : 'Hago transfer outcome is unresolved'}
+              </p>
+              <p className="mt-0.5 text-[11px] leading-5 text-[var(--color-text-secondary)]">
+                {isArabic
+                  ? 'لا يمكن إعادة الإرسال أو إرجاع الرصيد قبل التحقق من حالة المزود.'
+                  : 'Retry and refund are blocked until the provider outcome is reconciled.'}
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="secondary"
+            className="h-9 w-full rounded-xl px-3 text-xs sm:w-auto"
+            onClick={() => onReconcileHago?.(order)}
+            disabled={!onReconcileHago || isReconciling}
+          >
+            <RefreshCw className={`h-4 w-4 ${isReconciling ? 'animate-spin' : ''}`} />
+            <span>{isArabic ? 'تحقق من حالة Hago' : 'Reconcile Hago status'}</span>
+          </Button>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card
