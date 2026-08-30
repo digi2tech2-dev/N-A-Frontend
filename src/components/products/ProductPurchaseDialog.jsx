@@ -96,6 +96,16 @@ const getCopy = (language = 'ar') => (
         fallbackStatus: 'Processing',
         usdEquivalent: 'USD equivalent',
         platformRate: 'Platform rate',
+        hagoId: 'Hago ID / VID',
+        hagoIdPlaceholder: 'Enter Hago ID',
+        determineHagoPrice: 'Check final price',
+        checkingHagoPrice: 'Checking Hago readiness…',
+        hagoPriceHint: 'Enter Hago ID to determine the final price.',
+        newOrUpgrade: 'New / Upgrade',
+        renewal: 'Renewal',
+        quoteExpired: 'This price quote expired. Refresh it before continuing.',
+        refreshHagoQuote: 'Refresh final price',
+        hagoCheckoutDisabled: 'Hago Nobility checkout will be enabled in a later phase.',
       }
     : {
         available: 'متاح',
@@ -138,6 +148,16 @@ const getCopy = (language = 'ar') => (
         fallbackStatus: 'قيد التنفيذ',
         usdEquivalent: 'ما يعادله بالدولار',
         platformRate: 'سعر تحويل المنصة',
+        hagoId: 'معرف Hago / VID',
+        hagoIdPlaceholder: 'أدخل معرف Hago',
+        determineHagoPrice: 'تحقق من السعر النهائي',
+        checkingHagoPrice: 'جارِ فحص جاهزية Hago…',
+        hagoPriceHint: 'أدخل معرف Hago لتحديد السعر النهائي.',
+        newOrUpgrade: 'جديد / ترقية',
+        renewal: 'تجديد',
+        quoteExpired: 'انتهت صلاحية عرض السعر. حدّثه قبل المتابعة.',
+        refreshHagoQuote: 'تحديث السعر النهائي',
+        hagoCheckoutDisabled: 'سيتم تفعيل إتمام طلبات Hago Nobility في مرحلة لاحقة.',
       }
 );
 
@@ -409,6 +429,11 @@ const ProductPurchaseDialog = ({
   const [showBalanceTopup, setShowBalanceTopup] = useState(false);
   const [topupStep, setTopupStep] = useState('summary');
   const [topupMethodId, setTopupMethodId] = useState('');
+  const [hagoTargetId, setHagoTargetId] = useState('');
+  const [hagoQuote, setHagoQuote] = useState(null);
+  const [hagoQuoteLoading, setHagoQuoteLoading] = useState(false);
+  const [hagoQuoteError, setHagoQuoteError] = useState('');
+  const [hagoQuoteExpired, setHagoQuoteExpired] = useState(false);
   const quantityInputRef = useRef(null);
   const mainFieldsRef = useRef(null);
   const hasFocusedQuantityRef = useRef(false);
@@ -442,6 +467,10 @@ const ProductPurchaseDialog = ({
     setShowBalanceTopup(false);
     setTopupStep('summary');
     setTopupMethodId('');
+    setHagoTargetId('');
+    setHagoQuote(null);
+    setHagoQuoteError('');
+    setHagoQuoteExpired(false);
   }, [initialProduct, isOpen, productId]);
 
   useEffect(() => {
@@ -493,6 +522,7 @@ const ProductPurchaseDialog = ({
   }, [copy.loading, initialProduct, isOpen, language, loadProducts, productId, products]);
 
   const quantityMeta = useMemo(() => (product ? getProductQuantityMeta(product) : null), [product]);
+  const isHagoNobilityProduct = product?.pricingStrategy === 'hago_nobility_readiness';
   const orderFields = useMemo(() => (product ? resolveProductOrderFields(product, language) : []), [language, product]);
 
   useEffect(() => {
@@ -516,6 +546,17 @@ const ProductPurchaseDialog = ({
 
     return () => window.clearTimeout(focusTimer);
   }, [isLoading, isOpen, product, quantityMeta, showBalanceTopup, successOrder]);
+
+  useEffect(() => {
+    if (!hagoQuote?.expiresAt) return undefined;
+    const remaining = new Date(hagoQuote.expiresAt).getTime() - Date.now();
+    if (!Number.isFinite(remaining) || remaining <= 0) {
+      setHagoQuoteExpired(true);
+      return undefined;
+    }
+    const timer = window.setTimeout(() => setHagoQuoteExpired(true), remaining);
+    return () => window.clearTimeout(timer);
+  }, [hagoQuote?.expiresAt]);
 
   const pricingUser = user || pricingPreviewUser || null;
   const shouldRequireAuth = Boolean(requireAuth && !user);
@@ -890,6 +931,27 @@ const ProductPurchaseDialog = ({
     }
   };
 
+  const handleHagoReadiness = async () => {
+    const targetId = sanitizeOrderFieldValue(hagoTargetId).trim();
+    if (!targetId || !product?.id || hagoQuoteLoading) return;
+    setHagoQuoteLoading(true);
+    setHagoQuoteError('');
+    setHagoQuoteExpired(false);
+    try {
+      const quote = await apiClient.products.getHagoNobilityReadiness(product.id, targetId);
+      setHagoQuote(quote);
+    } catch (error) {
+      setHagoQuote(null);
+      setHagoQuoteError(getReadableErrorMessage(
+        error,
+        language === 'en' ? 'Hago readiness could not be checked.' : 'تعذر فحص جاهزية Hago.',
+        { language }
+      ));
+    } finally {
+      setHagoQuoteLoading(false);
+    }
+  };
+
   const handleAutomaticTopup = () => {
     setTopupStep('methods');
   };
@@ -1182,6 +1244,65 @@ const ProductPurchaseDialog = ({
               {copy.backToPurchase}
             </button>
           </div>
+        ) : isHagoNobilityProduct ? (
+          <>
+            <button type="button" className="purchase-dialog-bag" aria-label="Hago">
+              <ShoppingBag />
+            </button>
+            <PurchaseBrandHeader
+              title={language === 'en' ? displayNameEn : displayNameAr}
+              secondaryTitle={language === 'en' ? displayNameAr : displayNameEn}
+            />
+            <div className="purchase-dialog-main-fields">
+              <div className="rounded-xl border border-indigo-400/25 bg-indigo-500/10 px-4 py-3 text-sm text-indigo-100">
+                <strong>{language === 'en' ? 'Hago Nobility' : 'Hago Nobility'}</strong>
+                <p className="mt-1 text-xs text-indigo-100/80">{copy.hagoPriceHint}</p>
+              </div>
+              <PurchaseFieldFrame icon={UserRound} controlIcon={Hash} label={copy.hagoId}>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  dir="ltr"
+                  value={hagoTargetId}
+                  placeholder={copy.hagoIdPlaceholder}
+                  onChange={(event) => {
+                    setHagoTargetId(event.target.value);
+                    setHagoQuote(null);
+                    setHagoQuoteError('');
+                    setHagoQuoteExpired(false);
+                  }}
+                />
+              </PurchaseFieldFrame>
+              {hagoQuote ? (
+                <div className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+                  <p className="font-bold">{hagoQuote.target?.nickName || hagoQuote.target?.vid || hagoQuote.target?.requestedId}</p>
+                  <p className="mt-1 text-xs text-emerald-100/80" dir="ltr">VID: {hagoQuote.target?.vid || hagoQuote.target?.requestedId}</p>
+                  <p className="mt-2">{language === 'en' ? 'Selected level' : 'المستوى المختار'}: {hagoQuote.nobility?.name}</p>
+                  <p>{hagoQuote.nobility?.operation === 'RENEW' ? copy.renewal : copy.newOrUpgrade}</p>
+                  <p className="mt-2 text-base font-black" dir="ltr">{hagoQuote.pricing?.finalPrice} {hagoQuote.pricing?.currency}</p>
+                  {hagoQuoteExpired ? <p className="mt-2 text-xs font-bold text-amber-200">{copy.quoteExpired}</p> : null}
+                </div>
+              ) : null}
+              {hagoQuoteError ? <div className="purchase-dialog-error">{hagoQuoteError}</div> : null}
+              <button
+                type="button"
+                className="purchase-dialog-primary"
+                onClick={handleHagoReadiness}
+                disabled={hagoQuoteLoading || !sanitizeOrderFieldValue(hagoTargetId).trim() || !isPurchasable}
+              >
+                <Hash className="h-5 w-5" />
+                {hagoQuoteLoading ? copy.checkingHagoPrice : (hagoQuoteExpired ? copy.refreshHagoQuote : copy.determineHagoPrice)}
+              </button>
+              {hagoQuote && !hagoQuoteExpired ? <p className="text-center text-xs text-[var(--color-muted)]">{copy.hagoCheckoutDisabled}</p> : null}
+            </div>
+            <div className="purchase-dialog-actions">
+              <button type="button" className="purchase-dialog-secondary" onClick={onClose}>
+                <Undo2 className="h-5 w-5" />
+                {copy.cancel}
+              </button>
+            </div>
+            <PurchaseProductFooter product={product} />
+          </>
         ) : (
           <>
             <button type="button" className="purchase-dialog-bag" aria-label={language === 'en' ? 'Shopping bag' : 'حقيبة الشراء'}>

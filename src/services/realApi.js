@@ -1598,6 +1598,13 @@ const productToBE = (fe) => {
   } else if (fe.pricingMode !== undefined) {
     body.pricingMode = fe.pricingMode;
   }
+  if (fe.pricingStrategy !== undefined) body.pricingStrategy = fe.pricingStrategy;
+  if (fe.hagoNobilityPricing !== undefined) {
+    body.hagoNobilityPricing = {
+      purchaseBasePrice: String(fe.hagoNobilityPricing?.purchaseBasePrice || ''),
+      renewalBasePrice: String(fe.hagoNobilityPricing?.renewalBasePrice || ''),
+    };
+  }
 
   const providerId = String(fe.providerId || fe.supplierId || '').trim();
   if (providerId) {
@@ -2293,6 +2300,11 @@ const realApi = {
 
     verifyField: async (id, fieldValue) => {
       const res = await http.post(`/products/${id}/verify-field`, { fieldValue });
+      return unwrap(res);
+    },
+
+    getHagoNobilityReadiness: async (id, targetId) => {
+      const res = await http.post(`/products/${id}/hago-nobility/readiness`, { targetId });
       return unwrap(res);
     },
 

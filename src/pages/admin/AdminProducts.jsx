@@ -390,6 +390,8 @@ const AdminProducts = () => {
         supplierMarginValue: 0,
         supplierFieldMappingsText: 'playerId:uid\nquantity:qty',
         syncPriceWithProvider: false,
+        pricingStrategy: 'standard',
+        hagoNobilityPricing: { purchaseBasePrice: '', renewalBasePrice: '' },
         enableManualPrice: false,
         displayAccountNumber: '',
         purchaseAccountNumber: '',
@@ -636,6 +638,15 @@ const AdminProducts = () => {
         )) || null,
         [productForm.externalProductId, productForm.providerProductId, providerProducts]
     );
+    const selectedProvider = useMemo(
+        () => providers.find((provider) => String(provider.id || provider._id || '') === String(selectedSupplierId || '')) || null,
+        [providers, selectedSupplierId]
+    );
+    const isHagoNobilityProduct = productForm.pricingStrategy === 'hago_nobility_readiness' || Boolean(
+        selectedProvider?.slug === 'hago'
+        && /^HAGO_NOBILITY_[1-4]$/.test(String(selectedProviderProduct?.externalProductId || productForm.externalProductId || ''))
+    );
+    const hagoNobilityLevel = String(selectedProviderProduct?.name || productForm.externalProductName || '').replace(/^Hago\s+/i, '') || '';
     const filteredProviderProducts = useMemo(() => {
         const normalizedQuery = String(providerProductQuery || '').trim().toLowerCase();
         if (!normalizedQuery) {
@@ -760,11 +771,23 @@ const AdminProducts = () => {
             minQty: getProviderProductMinQtyValue(selected),
             maxQty: getProviderProductMaxQtyValue(selected),
         } : null;
+        const isSelectedHagoNobility = selected?.providerSlug === 'hago'
+            || (selectedProvider?.slug === 'hago' && /^HAGO_NOBILITY_[1-4]$/.test(String(selected?.externalProductId || '')));
         setProductForm((prev) => ({
             ...prev,
             externalProductId: String(selected?.externalProductId || value).trim(),
             providerProductId: value,
             externalProductName: selected?.name || '',
+            ...(isSelectedHagoNobility ? {
+                pricingStrategy: 'hago_nobility_readiness',
+                syncPriceWithProvider: false,
+                externalPricingMode: 'use_local_price',
+                enableManualPrice: false,
+                minimumOrderQty: 1,
+                maximumOrderQty: 1,
+                minQty: 1,
+                maxQty: 1,
+            } : {}),
             ...(prev.syncPriceWithProvider && selectedSnapshot
                 ? buildProviderSyncSnapshot(selectedSnapshot, {
                     enableManualPrice: prev.enableManualPrice,
@@ -866,6 +889,11 @@ const AdminProducts = () => {
                 supplierMarginValue: product.supplierMarginValue ?? 0,
                 supplierFieldMappingsText: Array.isArray(product.supplierFieldMappings) ? product.supplierFieldMappings.map((m) => `${m.internalField}:${m.externalField}`).join('\n') : 'playerId:uid\nquantity:qty',
                 syncPriceWithProvider: shouldSyncWithProvider,
+                pricingStrategy: product.pricingStrategy || 'standard',
+                hagoNobilityPricing: {
+                    purchaseBasePrice: normalizePriceInput(product.hagoNobilityPricing?.purchaseBasePrice || ''),
+                    renewalBasePrice: normalizePriceInput(product.hagoNobilityPricing?.renewalBasePrice || ''),
+                },
                 externalPricingMode: product.externalPricingMode || (shouldSyncWithProvider ? 'use_supplier_price' : 'use_local_price'),
                 enableManualPrice: Number(product.manualPriceAdjustment || 0) !== 0,
                 displayAccountNumber: String(product.displayAccountNumber || product.purchaseAccountNumber || product.accountNumber || product.productAccountNumber || '').trim(),
@@ -922,6 +950,8 @@ const AdminProducts = () => {
                 supplierMarginValue: 0,
                 supplierFieldMappingsText: 'playerId:uid\nquantity:qty',
                 syncPriceWithProvider: false,
+                pricingStrategy: 'standard',
+                hagoNobilityPricing: { purchaseBasePrice: '', renewalBasePrice: '' },
                 enableManualPrice: false,
                 displayAccountNumber: '',
                 purchaseAccountNumber: '',
@@ -977,7 +1007,12 @@ const AdminProducts = () => {
         const selectedProviderProductId = isAutomaticConnection ? String(productForm.providerProductId || productForm.externalProductId || '').trim() : '';
         const selectedExternalProductId = isAutomaticConnection ? String(productForm.externalProductId || productForm.providerProductId || '').trim() : '';
         const hasProviderLink = Boolean(selectedSupplierId && selectedProviderProductId);
-        const shouldSyncWithProvider = Boolean(isAutomaticConnection && productForm.syncPriceWithProvider && hasProviderLink);
+        const isHagoNobility = Boolean(
+            isAutomaticConnection
+            && selectedProvider?.slug === 'hago'
+            && /^HAGO_NOBILITY_[1-4]$/.test(selectedExternalProductId)
+        );
+        const shouldSyncWithProvider = Boolean(isAutomaticConnection && productForm.syncPriceWithProvider && hasProviderLink && !isHagoNobility);
         const resolvedExternalPricingMode = shouldSyncWithProvider
             ? (usesProviderPricingMode(productForm.externalPricingMode) ? productForm.externalPricingMode : 'use_supplier_price')
             : (usesProviderPricingMode(productForm.externalPricingMode) ? 'use_local_price' : productForm.externalPricingMode);
@@ -1010,6 +1045,25 @@ const AdminProducts = () => {
         let syncedProviderBasePrice = null;
         let manualPriceAdjustmentRaw = normalizePriceInput(productForm.manualPriceAdjustment);
         let manualPriceAdjustment = productForm.enableManualPrice ? Number(manualPriceAdjustmentRaw || 0) : 0;
+
+        const hagoNobilityPricing = {
+            purchaseBasePrice: normalizePriceInput(productForm.hagoNobilityPricing?.purchaseBasePrice || ''),
+            renewalBasePrice: normalizePriceInput(productForm.hagoNobilityPricing?.renewalBasePrice || ''),
+        };
+        if (isHagoNobility) {
+            if (Number(hagoNobilityPricing.purchaseBasePrice) <= 0 || Number(hagoNobilityPricing.renewalBasePrice) <= 0) {
+                addToast(isEnglish
+                    ? 'Configure positive New / Upgrade and Renewal selling prices for Hago Nobility.'
+                    : 'اضبط سعر بيع موجب للجديد/الترقية وللتجديد في منتجات Hago Nobility.', 'error');
+                return;
+            }
+            minQty = 1;
+            maxQty = 1;
+            basePriceCoinsValue = hagoNobilityPricing.purchaseBasePrice;
+            basePriceCoins = Number(basePriceCoinsValue);
+            manualPriceAdjustment = 0;
+            manualPriceAdjustmentRaw = '';
+        }
 
         if (shouldSyncWithProvider) {
             try {
@@ -1098,6 +1152,8 @@ const AdminProducts = () => {
             orderFields: orderFieldsPayload,
             dynamicFields: dynamicFieldsPayload,
             syncPriceWithProvider: shouldSyncWithProvider,
+            pricingStrategy: isHagoNobility ? 'hago_nobility_readiness' : (productForm.pricingStrategy || 'standard'),
+            hagoNobilityPricing: isHagoNobility ? hagoNobilityPricing : undefined,
             enableManualPrice: productForm.enableManualPrice,
             displayAccountNumber: String(productForm.displayAccountNumber || productForm.purchaseAccountNumber || '').trim(),
             purchaseAccountNumber: String(productForm.displayAccountNumber || productForm.purchaseAccountNumber || '').trim(),
@@ -2326,7 +2382,7 @@ const AdminProducts = () => {
                             </>
                             ) : null}
 
-                            {productForm.connectionType === 'auto' ? (
+                            {productForm.connectionType === 'auto' && !isHagoNobilityProduct ? (
                             <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
                                 <div className="flex flex-wrap items-center gap-4">
                                     <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
@@ -2452,14 +2508,53 @@ const AdminProducts = () => {
                             </div>
                             ) : null}
 
+                            {isHagoNobilityProduct ? (
+                                <div className="rounded-lg border border-indigo-200 bg-indigo-50/70 p-4 dark:border-indigo-900/60 dark:bg-indigo-950/20">
+                                    <div className="flex items-center gap-2 text-sm font-semibold text-[var(--color-text)]">
+                                        <Info className="h-4 w-4 text-[var(--color-primary)]" />
+                                        <span>{isEnglish ? `Nobility level: ${hagoNobilityLevel}` : `مستوى النبالة: ${hagoNobilityLevel}`}</span>
+                                    </div>
+                                    <p className="mt-2 text-xs text-[var(--color-text-secondary)]">
+                                        {isEnglish
+                                            ? 'Hago Nobility dynamic readiness: provider cost is determined live during readiness and is not synced as the product catalog price.'
+                                            : 'تسعير Hago Nobility ديناميكي عبر الجاهزية: تكلفة المزود تُحدد مباشرة عند الفحص ولا تتم مزامنتها كسعر كتالوج المنتج.'}
+                                    </p>
+                                    <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                                        <Input
+                                            label={isEnglish ? 'New / Upgrade selling price' : 'سعر بيع جديد / ترقية'}
+                                            type="text"
+                                            inputMode="decimal"
+                                            value={productForm.hagoNobilityPricing?.purchaseBasePrice || ''}
+                                            onChange={(e) => setProductForm((prev) => ({
+                                                ...prev,
+                                                hagoNobilityPricing: { ...prev.hagoNobilityPricing, purchaseBasePrice: e.target.value },
+                                                basePriceCoins: e.target.value,
+                                            }))}
+                                            required
+                                        />
+                                        <Input
+                                            label={isEnglish ? 'Renewal selling price' : 'سعر بيع التجديد'}
+                                            type="text"
+                                            inputMode="decimal"
+                                            value={productForm.hagoNobilityPricing?.renewalBasePrice || ''}
+                                            onChange={(e) => setProductForm((prev) => ({
+                                                ...prev,
+                                                hagoNobilityPricing: { ...prev.hagoNobilityPricing, renewalBasePrice: e.target.value },
+                                            }))}
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                            ) : null}
+
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                                 <Input
                                     label="الحد الأدنى للطلب (Qty)"
                                     type="number"
                                     value={productForm.minimumOrderQty}
                                     onChange={(e) => setProductForm((prev) => ({ ...prev, minimumOrderQty: e.target.value }))}
-                                    readOnly={Boolean(canSyncWithProvider)}
-                                    disabled={Boolean(canSyncWithProvider)}
+                                    readOnly={Boolean(canSyncWithProvider || isHagoNobilityProduct)}
+                                    disabled={Boolean(canSyncWithProvider || isHagoNobilityProduct)}
                                     required
                                 />
                                 <Input
@@ -2467,8 +2562,8 @@ const AdminProducts = () => {
                                     type="number"
                                     value={productForm.maximumOrderQty}
                                     onChange={(e) => setProductForm((prev) => ({ ...prev, maximumOrderQty: e.target.value }))}
-                                    readOnly={Boolean(canSyncWithProvider)}
-                                    disabled={Boolean(canSyncWithProvider)}
+                                    readOnly={Boolean(canSyncWithProvider || isHagoNobilityProduct)}
+                                    disabled={Boolean(canSyncWithProvider || isHagoNobilityProduct)}
                                     required
                                 />
                                 <div className="w-full space-y-3">
@@ -2486,7 +2581,7 @@ const AdminProducts = () => {
                                             )}
                                         />
                                     ) : null}
-                                    <Input
+                                    {!isHagoNobilityProduct ? <Input
                                         label={isEnglish ? 'Final Price' : 'السعر النهائي'}
                                         type="text"
                                         inputMode="decimal"
@@ -2500,7 +2595,7 @@ const AdminProducts = () => {
                                                 {isEnglish ? 'USD' : 'دولار'}
                                             </span>
                                         )}
-                                    />
+                                    /> : null}
                                     <p className="mt-1 text-xs text-[var(--color-muted)]">
                                         {canSyncWithProvider
                                             ? (isEnglish ? 'This final price is synced automatically from the pricing settings above.' : 'هذا السعر النهائي يتم تحديثه تلقائيًا من إعدادات التسعير الموجودة بالأعلى.')
