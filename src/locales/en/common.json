@@ -321,6 +321,9 @@
     "targetPlaceholder": "Hago ID / VID",
     "statusLabel": "Status",
     "nickname": "Name",
+    "vid": "VID",
+    "country": "Country",
+    "requestedTargetId": "Requested ID",
     "wallet": {
       "diamond": "Hago Diamond",
       "diamondNew": "Hago Diamond New",

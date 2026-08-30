@@ -81,7 +81,9 @@ const HagoManagementModal = ({ provider, isOpen, onClose }) => {
       if (!isCurrentProvider(id)) return null;
       const nextConnection = data?.connection ?? null;
       setConnection(nextConnection);
-      setShowLoginForm(!hasValidPendingLogin(nextConnection?.pendingLogin) || nextConnection?.hasConnection !== true);
+      const hasConnection = nextConnection?.hasConnection === true;
+      const hasPendingLogin = hasValidPendingLogin(nextConnection?.pendingLogin);
+      setShowLoginForm(!hasConnection && !hasPendingLogin);
       setRequestingNewOtp(false);
       return nextConnection;
     } catch (error) {
@@ -380,6 +382,8 @@ const HagoManagementModal = ({ provider, isOpen, onClose }) => {
                 <div className="mt-3 space-y-1 text-sm text-gray-700 dark:text-gray-200">
                   <p>{t('hago.nickname')}: {valueOrUnavailable(diagnostics.profile.profile.nickName, t('hago.unavailable'))}</p>
                   <p dir="ltr">UID: {valueOrUnavailable(diagnostics.profile.profile.uid, t('hago.unavailable'))}</p>
+                  <p dir="ltr">{t('hago.vid')}: {valueOrUnavailable(diagnostics.profile.profile.vid, t('hago.unavailable'))}</p>
+                  <p>{t('hago.country')}: {valueOrUnavailable(diagnostics.profile.profile.country, t('hago.unavailable'))}</p>
                 </div>
               ) : null}
             </div>
@@ -413,10 +417,12 @@ const HagoManagementModal = ({ provider, isOpen, onClose }) => {
               </Button>
             </div>
             {diagnostics.verification?.verification ? (
-              <div className="mt-3 grid grid-cols-1 gap-2 text-sm text-gray-700 sm:grid-cols-3 dark:text-gray-200">
+              <div className="mt-3 grid grid-cols-1 gap-2 text-sm text-gray-700 sm:grid-cols-4 dark:text-gray-200">
                 <p>{t('hago.nickname')}: {valueOrUnavailable(diagnostics.verification.verification.nickName, t('hago.unavailable'))}</p>
                 <p dir="ltr">UID: {valueOrUnavailable(diagnostics.verification.verification.uid, t('hago.unavailable'))}</p>
-                <p dir="ltr">VID: {valueOrUnavailable(diagnostics.verification.verification.targetId, t('hago.unavailable'))}</p>
+                <p dir="ltr">{t('hago.vid')}: {valueOrUnavailable(diagnostics.verification.verification.vid, t('hago.unavailable'))}</p>
+                <p dir="ltr">{t('hago.requestedTargetId')}: {valueOrUnavailable(diagnostics.verification.verification.targetId, t('hago.unavailable'))}</p>
+                <p>{t('hago.country')}: {valueOrUnavailable(diagnostics.verification.verification.country, t('hago.unavailable'))}</p>
               </div>
             ) : null}
           </form>
