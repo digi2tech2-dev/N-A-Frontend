@@ -67,7 +67,7 @@ const HagoManagementModal = ({ provider, isOpen, onClose }) => {
       if (!isCurrentProvider(id)) return null;
       const nextConnection = data?.connection ?? null;
       setConnection(nextConnection);
-      setShowLoginForm(Boolean(nextConnection?.pendingLogin) || !nextConnection);
+      setShowLoginForm(Boolean(nextConnection?.pendingLogin) || nextConnection?.hasConnection !== true);
       return nextConnection;
     } catch (error) {
       if (isCurrentProvider(id) && !silent) addToast(error?.message || t('hago.errors.connectionLoad'), 'error');
@@ -91,8 +91,12 @@ const HagoManagementModal = ({ provider, isOpen, onClose }) => {
   const connectionStatus = String(connection?.connectionStatus || 'UNKNOWN').toUpperCase();
   const currentStatus = statusConfig[connectionStatus] || statusConfig.UNKNOWN;
   const StatusIcon = currentStatus.icon;
-  const isOtpPending = Boolean(connection?.pendingLogin) || connectionStatus === 'OTP_PENDING';
-  const canReconnect = Boolean(connection?.connectionStatus === 'CONNECTED' || connection?.connectionStatus === 'REAUTH_REQUIRED');
+  // A local connection record can exist without an upstream Hago account.
+  // Only the backend allowlisted presence signal can enable session-bound UI.
+  const hasConnection = connection?.hasConnection === true;
+  const isOtpPending = Boolean(connection?.pendingLogin);
+  const canValidateSession = hasConnection && Boolean(connection?.enabled);
+  const canReconnect = hasConnection;
   const dateLocale = language === 'en' ? 'en-US' : 'ar-EG';
   const formatSafeDate = (value) => value ? formatDateTime(value, dateLocale, {
     year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
@@ -157,7 +161,7 @@ const HagoManagementModal = ({ provider, isOpen, onClose }) => {
   };
 
   const validateSession = async () => {
-    if (!providerId || submitting) return;
+    if (!providerId || !hasConnection || submitting) return;
     setSubmitting(true);
     try {
       const data = await apiClient.suppliers.validateHagoSession(providerId);
@@ -172,8 +176,8 @@ const HagoManagementModal = ({ provider, isOpen, onClose }) => {
     }
   };
 
-  const runDiagnostic = async (key, callback) => {
-    if (!providerId || diagnosticLoading) return;
+  const runDiagnostic = async (key, callback, { requiresConnection = false } = {}) => {
+    if (!providerId || diagnosticLoading || (requiresConnection && !hasConnection)) return;
     setDiagnosticLoading(key);
     try {
       const data = await callback();
@@ -211,7 +215,7 @@ const HagoManagementModal = ({ provider, isOpen, onClose }) => {
             )}
           </div>
 
-          {connection ? (
+          {hasConnection || isOtpPending ? (
             <div className="mt-4 grid grid-cols-1 gap-2.5 text-sm sm:grid-cols-2">
               <div className="rounded-xl border border-white/70 bg-white/70 p-3 dark:border-gray-700 dark:bg-gray-950/25">
                 <p className="text-xs text-gray-500 dark:text-gray-400">{t('hago.label')}</p>
@@ -237,13 +241,13 @@ const HagoManagementModal = ({ provider, isOpen, onClose }) => {
           )}
 
           <div className="mt-4 flex flex-wrap gap-2">
-            {connection?.enabled && !isOtpPending ? (
+            {canValidateSession && !isOtpPending ? (
               <Button size="sm" variant="outline" onClick={validateSession} disabled={submitting}>
                 <ShieldCheck className="h-4 w-4" />
                 {t('hago.validateSession')}
               </Button>
             ) : null}
-            {(canReconnect || (!connection && !showLoginForm)) && !isOtpPending ? (
+            {canReconnect && !isOtpPending ? (
               <Button size="sm" variant="secondary" onClick={startReconnect} disabled={submitting}>
                 <RefreshCw className="h-4 w-4" />
                 {t('hago.reconnect')}
@@ -303,7 +307,7 @@ const HagoManagementModal = ({ provider, isOpen, onClose }) => {
             </div>
 
             <div className="rounded-xl border border-gray-200 p-3 dark:border-gray-700">
-              <Button size="sm" variant="outline" onClick={() => runDiagnostic('profile', () => apiClient.suppliers.getHagoProfile(providerId))} disabled={Boolean(diagnosticLoading)}>
+              <Button size="sm" variant="outline" onClick={() => runDiagnostic('profile', () => apiClient.suppliers.getHagoProfile(providerId), { requiresConnection: true })} disabled={!hasConnection || Boolean(diagnosticLoading)}>
                 {diagnosticLoading === 'profile' ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserRound className="h-4 w-4" />}
                 {t('hago.accountDetails')}
               </Button>
@@ -316,7 +320,7 @@ const HagoManagementModal = ({ provider, isOpen, onClose }) => {
             </div>
 
             <div className="rounded-xl border border-gray-200 p-3 dark:border-gray-700">
-              <Button size="sm" variant="outline" onClick={() => runDiagnostic('wallet', () => apiClient.suppliers.getHagoWallet(providerId))} disabled={Boolean(diagnosticLoading)}>
+              <Button size="sm" variant="outline" onClick={() => runDiagnostic('wallet', () => apiClient.suppliers.getHagoWallet(providerId), { requiresConnection: true })} disabled={!hasConnection || Boolean(diagnosticLoading)}>
                 {diagnosticLoading === 'wallet' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
                 {t('hago.refreshBalance')}
               </Button>
@@ -331,12 +335,14 @@ const HagoManagementModal = ({ provider, isOpen, onClose }) => {
           <form onSubmit={(event) => {
             event.preventDefault();
             const normalizedTargetId = targetId.trim();
-            if (normalizedTargetId) runDiagnostic('verification', () => apiClient.suppliers.verifyHagoTarget(providerId, normalizedTargetId));
+            if (hasConnection && normalizedTargetId) {
+              runDiagnostic('verification', () => apiClient.suppliers.verifyHagoTarget(providerId, normalizedTargetId), { requiresConnection: true });
+            }
           }} className="mt-4 rounded-xl border border-gray-200 p-3 dark:border-gray-700">
             <p className="text-sm font-bold text-gray-950 dark:text-white">{t('hago.verifyTarget')}</p>
             <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-              <Input value={targetId} onChange={(event) => setTargetId(event.target.value)} placeholder={t('hago.targetPlaceholder')} className="flex-1" />
-              <Button type="submit" size="sm" variant="secondary" disabled={Boolean(diagnosticLoading) || !targetId.trim()}>
+              <Input value={targetId} onChange={(event) => setTargetId(event.target.value)} placeholder={t('hago.targetPlaceholder')} className="flex-1" disabled={!hasConnection} />
+              <Button type="submit" size="sm" variant="secondary" disabled={!hasConnection || Boolean(diagnosticLoading) || !targetId.trim()}>
                 {diagnosticLoading === 'verification' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                 {t('hago.verifyTarget')}
               </Button>
