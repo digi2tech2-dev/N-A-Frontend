@@ -84,7 +84,6 @@ const AccountAccessState = ({ variant = 'pending' }) => {
   const [verificationCode, setVerificationCode] = useState('');
   const [verificationError, setVerificationError] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
-  const lastSubmittedCodeRef = useRef('');
   const verificationRequestRef = useRef(false);
 
   const currentStatus = normalizeAccountStatus(user?.status || blockedStatus || variant);
@@ -130,7 +129,6 @@ const AccountAccessState = ({ variant = 'pending' }) => {
       await apiClient.auth.resendVerification(email);
       setVerificationCode('');
       setVerificationError('');
-      lastSubmittedCodeRef.current = '';
       setResendCooldown(45);
       addToast('تم إرسال كود تأكيد جديد إلى بريدك الإلكتروني.', 'success');
     } catch (error) {
@@ -167,7 +165,6 @@ const AccountAccessState = ({ variant = 'pending' }) => {
       clearBlockedAccess?.();
       navigate('/auth?verified=1', { replace: true });
     } catch (error) {
-      lastSubmittedCodeRef.current = '';
       setVerificationError(formatAuthErrorMessage(error, { action: 'verifyCode' }));
     } finally {
       verificationRequestRef.current = false;
@@ -293,14 +290,6 @@ const AccountAccessState = ({ variant = 'pending' }) => {
                     const nextCode = value.replace(/\D/g, '').slice(0, 4);
                     setVerificationCode(nextCode);
                     if (verificationError) setVerificationError('');
-                    if (nextCode.length < 4) {
-                      lastSubmittedCodeRef.current = '';
-                      return;
-                    }
-                    if (!isVerifying && lastSubmittedCodeRef.current !== nextCode) {
-                      lastSubmittedCodeRef.current = nextCode;
-                      window.setTimeout(() => handleVerifyEmailCode(null, nextCode), 120);
-                    }
                   }}
                   disabled={isVerifying}
                   className="justify-center gap-3 [&>input]:h-16 [&>input]:w-14 [&>input]:rounded-2xl [&>input]:border-violet-200 [&>input]:bg-violet-50/70 [&>input]:text-2xl [&>input]:text-violet-800 [&>input]:shadow-none focus-within:[&>input]:border-fuchsia-400 dark:[&>input]:border-white/10 dark:[&>input]:bg-white/[0.055] dark:[&>input]:text-white sm:[&>input]:h-[4.5rem] sm:[&>input]:w-16"
