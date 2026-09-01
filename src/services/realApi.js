@@ -1538,7 +1538,12 @@ const productToBE = (fe) => {
           label,
           type: ['text', 'number', 'email', 'select', 'image', 'file'].includes(type) ? type : 'text',
           required: field?.required !== false,
-          isVerifiable: field?.isVerifiable === true,
+          isVerifiable: field?.verification?.enabled === true || field?.isVerifiable === true,
+          verification: {
+            enabled: field?.verification?.enabled === true || field?.isVerifiable === true,
+            strategy: 'provider',
+            providerCapability: 'target_identity',
+          },
         };
       })
       .filter((field) => field.name && field.label);
@@ -2298,8 +2303,8 @@ const realApi = {
       return fallback;
     },
 
-    verifyField: async (id, fieldValue) => {
-      const res = await http.post(`/products/${id}/verify-field`, { fieldValue });
+    verifyField: async (id, fieldKey, fieldValue) => {
+      const res = await http.post(`/products/${id}/verify-field`, { fieldKey, fieldValue });
       return unwrap(res);
     },
 

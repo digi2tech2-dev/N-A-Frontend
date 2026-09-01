@@ -73,6 +73,18 @@ const COPY = {
     ar: 'تغيّر سعر المنتج. راجع السعر الجديد ثم أعد تنفيذ الطلب.',
     en: 'The product price changed. Review the new price, then place the order again.',
   },
+  serviceUnavailable: {
+    ar: 'الخدمة غير متاحة مؤقتًا، يرجى المحاولة لاحقًا.',
+    en: 'The service is temporarily unavailable. Please try again later.',
+  },
+  invalidProviderTarget: {
+    ar: 'تعذر العثور على الحساب. تأكد من المعرف وحاول مرة أخرى.',
+    en: 'The account could not be found. Check the ID and try again.',
+  },
+  nobilityLowerTier: {
+    ar: 'لا يمكن شراء المستوى المحدد لحالة الحساب الحالية.',
+    en: 'The selected level cannot be purchased for the current account status.',
+  },
   twoFactorInvalid: {
     ar: 'كود التحقق غير صحيح. تأكد من آخر رسالة في بريدك ثم حاول مرة أخرى.',
     en: 'The verification code is incorrect. Check the latest email, then try again.',
@@ -200,6 +212,32 @@ export const getReadableErrorMessage = (error, fallback, options = {}) => {
     || includesAny(message, ['price increased', 'price changed', 'supplier price'])
   ) {
     return pick('priceChanged', language);
+  }
+
+  if (includesAny(code, [
+    'hago_nobility_insufficient_provider_balance',
+    'hago_nobility_pack_unavailable',
+    'hago_nobility_confirmation_required',
+    'hago_nobility_unsupported_configuration',
+    'hago_nobility_pricing_not_configured',
+    'hago_nobility_product_required',
+    'hago_connection_unavailable',
+    'hago_session_reauth_required',
+    'hago_upstream_timeout',
+    'hago_upstream_unavailable',
+    'hago_request_failed',
+    'hago_configuration_error',
+    'product_field_provider_unavailable',
+  ])) {
+    return pick('serviceUnavailable', language);
+  }
+
+  if (includesAny(code, ['hago_invalid_target', 'product_field_value_required'])) {
+    return pick('invalidProviderTarget', language);
+  }
+
+  if (includesAny(code, ['hago_nobility_lower_tier_blocked', 'hago_nobility_not_eligible'])) {
+    return pick('nobilityLowerTier', language);
   }
 
   if (includesAny(message, ['invalid verification code', 'invalid 2fa', 'invalid two factor', 'invalid otp'])) {

@@ -286,13 +286,19 @@ const normalizeDynamicFieldType = (value) => {
 
 const createDynamicFieldRow = (seed = {}) => {
     const rowId = String(seed.id || `dynamic-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`);
+    const verificationEnabled = seed?.verification?.enabled === true || seed.isVerifiable === true;
     return {
         id: rowId,
         name: String(seed.name || seed.key || '').trim(),
         label: String(seed.label || seed.labelAr || '').trim(),
         type: normalizeDynamicFieldType(seed.type),
         required: seed.required !== false,
-        isVerifiable: seed.isVerifiable === true,
+        isVerifiable: verificationEnabled,
+        verification: {
+            enabled: verificationEnabled,
+            strategy: seed?.verification?.strategy || 'provider',
+            providerCapability: seed?.verification?.providerCapability || 'target_identity',
+        },
     };
 };
 
@@ -335,7 +341,12 @@ const buildDynamicFieldsPayload = (fieldRows = []) => (
         label,
         type: normalizeDynamicFieldType(row?.type),
         required: row?.required !== false,
-        isVerifiable: row?.isVerifiable === true,
+        isVerifiable: row?.verification?.enabled === true || row?.isVerifiable === true,
+        verification: {
+            enabled: row?.verification?.enabled === true || row?.isVerifiable === true,
+            strategy: 'provider',
+            providerCapability: 'target_identity',
+        },
     };
 }).filter((field) => field.name && field.label);
 
@@ -352,6 +363,7 @@ const buildOrderFieldsPayloadFromDynamic = (dynamicFields = []) => (
     enabled: true,
     required: field.required !== false,
     isVerifiable: field.isVerifiable === true,
+    verification: field.verification,
     type: normalizeDynamicFieldType(field.type),
 }));
 
@@ -2707,7 +2719,7 @@ const AdminProducts = () => {
                                         ...prev,
                                         dynamicFields: [
                                             ...(prev.dynamicFields || []),
-                                            { name: '', label: '', type: 'text', required: true, isVerifiable: false },
+                                            { name: '', label: '', type: 'text', required: true, isVerifiable: false, verification: { enabled: false, strategy: 'provider', providerCapability: 'target_identity' } },
                                         ],
                                     }))}
                                 >
@@ -2766,7 +2778,15 @@ const AdminProducts = () => {
                                                     onChange={(e) => setProductForm((prev) => ({
                                                         ...prev,
                                                         dynamicFields: (prev.dynamicFields || []).map((row, rowIndex) => (
-                                                            rowIndex === index ? { ...row, type: e.target.value } : row
+                                                            rowIndex === index
+                                                                ? {
+                                                                    ...row,
+                                                                    type: e.target.value,
+                                                                    ...(['text', 'number'].includes(e.target.value)
+                                                                        ? {}
+                                                                        : { isVerifiable: false, verification: { ...row.verification, enabled: false } }),
+                                                                }
+                                                                : row
                                                         )),
                                                     }))}
                                                     className={selectClassName}
@@ -2794,21 +2814,29 @@ const AdminProducts = () => {
                                                 مطلوب
                                             </label>
 
-                                            {/* حذف (Delete) */}
-                                            <label className="inline-flex cursor-pointer items-center gap-2 self-end pb-2.5 text-xs font-medium text-indigo-700 dark:text-indigo-300 sm:col-span-1 md:col-span-2">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={item.isVerifiable === true}
-                                                    onChange={(e) => setProductForm((prev) => ({
-                                                        ...prev,
-                                                        dynamicFields: (prev.dynamicFields || []).map((row, rowIndex) => (
-                                                            rowIndex === index ? { ...row, isVerifiable: e.target.checked } : row
-                                                        )),
-                                                    }))}
-                                                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800"
-                                                />
-                                                يدعم التحقق (Verifiable)
-                                            </label>
+                                            {/* Provider verification is meaningful only for scalar target identifiers. */}
+                                            {['text', 'number'].includes(item.type || 'text') ? (
+                                                <label className="inline-flex cursor-pointer items-center gap-2 self-end pb-2.5 text-xs font-medium text-indigo-700 dark:text-indigo-300 sm:col-span-1 md:col-span-2">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={item.verification?.enabled === true || item.isVerifiable === true}
+                                                        onChange={(e) => setProductForm((prev) => ({
+                                                            ...prev,
+                                                            dynamicFields: (prev.dynamicFields || []).map((row, rowIndex) => (
+                                                                rowIndex === index
+                                                                    ? {
+                                                                        ...row,
+                                                                        isVerifiable: e.target.checked,
+                                                                        verification: { enabled: e.target.checked, strategy: 'provider', providerCapability: 'target_identity' },
+                                                                    }
+                                                                    : row
+                                                            )),
+                                                        }))}
+                                                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800"
+                                                    />
+                                                    تحقق مزود الخدمة
+                                                </label>
+                                            ) : <div className="self-end pb-2.5 text-xs text-gray-400 sm:col-span-1 md:col-span-2">التحقق متاح للنص أو الرقم فقط</div>}
 
                                             <div className="flex items-end pb-0.5 md:col-span-1">
                                                 <Button

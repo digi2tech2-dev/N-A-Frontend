@@ -55,6 +55,20 @@ const resolveFieldOptions = (field) => {
   return [];
 };
 
+const resolveFieldVerification = (field) => {
+  const configured = field?.verification;
+  if (configured?.enabled === true) {
+    return {
+      enabled: true,
+      strategy: configured.strategy,
+      providerCapability: configured.providerCapability,
+    };
+  }
+  return field?.isVerifiable === true
+    ? { enabled: true, strategy: 'provider', providerCapability: 'target_identity' }
+    : { enabled: false, strategy: null, providerCapability: null };
+};
+
 export const resolveProductOrderFields = (product, language = 'ar') => {
   if (Array.isArray(product?.dynamicFields) && product.dynamicFields.length > 0) {
     return product.dynamicFields
@@ -67,7 +81,8 @@ export const resolveProductOrderFields = (product, language = 'ar') => {
           placeholder: label,
           type: normalizeFieldType(field?.type),
           required: field?.required !== false,
-          isVerifiable: field?.isVerifiable === true,
+          isVerifiable: resolveFieldVerification(field).enabled,
+          verification: resolveFieldVerification(field),
           options: resolveFieldOptions(field),
         };
       })
@@ -93,7 +108,8 @@ export const resolveProductOrderFields = (product, language = 'ar') => {
           || key,
         type: normalizeFieldType(field?.type),
         required: field?.required !== false,
-        isVerifiable: field?.isVerifiable === true,
+        isVerifiable: resolveFieldVerification(field).enabled,
+        verification: resolveFieldVerification(field),
         options: resolveFieldOptions(field),
       };
     });
@@ -123,6 +139,7 @@ export const resolveProductOrderFields = (product, language = 'ar') => {
         type: 'text',
         required: true,
         isVerifiable: false,
+        verification: { enabled: false, strategy: null, providerCapability: null },
         options: [],
       }));
     }
@@ -135,6 +152,7 @@ export const resolveProductOrderFields = (product, language = 'ar') => {
     type: 'text',
     required: true,
     isVerifiable: false,
+    verification: { enabled: false, strategy: null, providerCapability: null },
     options: [],
   }];
 };

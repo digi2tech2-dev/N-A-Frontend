@@ -106,6 +106,12 @@ const getCopy = (language = 'ar') => (
         quoteExpired: 'This price quote expired. Refresh it before continuing.',
         refreshHagoQuote: 'Refresh final price',
         hagoCheckoutDisabled: 'Hago Nobility checkout will be enabled in a later phase.',
+        verify: 'Verify',
+        verificationRequired: 'Verify this account before purchasing.',
+        accountVerified: 'Account verified',
+        name: 'Name',
+        vid: 'VID',
+        country: 'Country',
       }
     : {
         available: 'متاح',
@@ -158,6 +164,12 @@ const getCopy = (language = 'ar') => (
         quoteExpired: 'انتهت صلاحية عرض السعر. حدّثه قبل المتابعة.',
         refreshHagoQuote: 'تحديث السعر النهائي',
         hagoCheckoutDisabled: 'سيتم تفعيل إتمام طلبات Hago Nobility في مرحلة لاحقة.',
+        verify: 'تحقق',
+        verificationRequired: 'تحقق من الحساب قبل إتمام الشراء.',
+        accountVerified: 'تم التحقق من الحساب',
+        name: 'الاسم',
+        vid: 'VID',
+        country: 'الدولة',
       }
 );
 
@@ -172,6 +184,7 @@ const formatQuantityInput = (value) => {
 };
 const parseQuantityInput = (value) => Number.parseInt(normalizeQuantityDigits(value), 10);
 const isUploadFieldType = (type) => ['image', 'file'].includes(String(type || '').trim().toLowerCase());
+const requiresProviderVerification = (field) => field?.verification?.enabled === true || field?.isVerifiable === true;
 const getOrderFieldIcon = (field, fallback = FileText) => {
   const descriptor = `${field?.key || ''} ${field?.label || ''} ${field?.placeholder || ''} ${field?.type || ''}`.toLowerCase();
   const type = String(field?.type || '').trim().toLowerCase();
@@ -680,6 +693,11 @@ const ProductPurchaseDialog = ({
           : `${field.label || key} مطلوب.`;
       }
     }
+    for (const field of orderFields) {
+      if (!requiresProviderVerification(field)) continue;
+      const key = String(field?.key || '').trim();
+      if (!verifiedData[key]?.verified) return copy.verificationRequired;
+    }
     if (!isPurchasable) return copy.unavailable;
     return '';
   };
@@ -725,7 +743,7 @@ const ProductPurchaseDialog = ({
     });
 
     try {
-      const result = await apiClient.products.verifyField(product.id, fieldValue);
+      const result = await apiClient.products.verifyField(product.id, key, fieldValue);
       setVerifiedData((prev) => ({ ...prev, [key]: result }));
     } catch (error) {
       setVerifiedData((prev) => {
@@ -735,7 +753,11 @@ const ProductPurchaseDialog = ({
       });
       setVerificationErrors((prev) => ({
         ...prev,
-        [key]: error?.response?.data?.message || error?.message || (language === 'en' ? 'Verification failed.' : 'فشل التحقق.'),
+        [key]: getReadableErrorMessage(
+          error,
+          language === 'en' ? 'Verification failed.' : 'تعذر التحقق من الحساب.',
+          { language }
+        ),
       }));
     } finally {
       setVerificationLoading((prev) => ({ ...prev, [key]: false }));
@@ -753,14 +775,14 @@ const ProductPurchaseDialog = ({
 
     if (!data) return null;
 
+    const identity = data.identity || {};
     return (
       <div className="mt-2 flex items-center gap-2 rounded-xl border border-indigo-400/25 bg-indigo-500/10 px-3 py-2 text-start text-xs font-bold text-indigo-200">
-        {data.avatar ? (
-          <img src={data.avatar} alt="" className="h-8 w-8 rounded-full object-cover ring-1 ring-indigo-300/30" />
-        ) : null}
         <div className="min-w-0">
-          <p className="truncate">{data.nickName || data.uid}</p>
-          {data.uid ? <p className="truncate text-[0.68rem] text-indigo-100/70" dir="ltr">{data.uid}</p> : null}
+          <p className="text-emerald-200">✓ {copy.accountVerified}</p>
+          {identity.displayName ? <p className="truncate">{copy.name}: {identity.displayName}</p> : null}
+          {identity.vid ? <p className="truncate text-[0.68rem] text-indigo-100/70" dir="ltr">{copy.vid}: {identity.vid}</p> : null}
+          {identity.country ? <p className="truncate text-[0.68rem] text-indigo-100/70">{copy.country}: {identity.country}</p> : null}
         </div>
       </div>
     );
@@ -768,7 +790,7 @@ const ProductPurchaseDialog = ({
 
   const renderVerifyButton = (field, value) => {
     const key = String(field?.key || '').trim();
-    if (field?.isVerifiable !== true || !key) return null;
+    if (!requiresProviderVerification(field) || !key) return null;
 
     return (
       <button
@@ -780,7 +802,7 @@ const ProductPurchaseDialog = ({
         {verificationLoading[key] ? (
           <span className="mx-auto block h-4 w-4 animate-spin rounded-full border-2 border-indigo-100/30 border-t-indigo-100" />
         ) : (
-          'تحقق'
+          copy.verify
         )}
       </button>
     );
@@ -837,7 +859,8 @@ const ProductPurchaseDialog = ({
             placeholder: field.placeholder,
             type: field.type,
             required: field.required,
-            isVerifiable: field.isVerifiable === true,
+            isVerifiable: requiresProviderVerification(field),
+            verification: field.verification,
             options: field.options,
           }));
 
@@ -1014,18 +1037,18 @@ const ProductPurchaseDialog = ({
     const label = field?.label || key;
     const placeholder = field?.placeholder || label;
     const FieldIcon = getOrderFieldIcon(field);
-    const verificationFooter = field?.isVerifiable === true ? renderVerificationResult(field) : null;
+    const verificationFooter = requiresProviderVerification(field) ? renderVerificationResult(field) : null;
 
     if (type === 'select') {
       return (
         <PurchaseFieldFrame
           key={key}
           icon={FieldIcon}
-          controlIcon={field?.isVerifiable === true ? null : FieldIcon}
+          controlIcon={requiresProviderVerification(field) ? null : FieldIcon}
           label={label}
           footer={verificationFooter}
         >
-          <div className={field?.isVerifiable === true ? 'grid grid-cols-[minmax(0,1fr)_auto] gap-2' : ''}>
+          <div className={requiresProviderVerification(field) ? 'grid grid-cols-[minmax(0,1fr)_auto] gap-2' : ''}>
             <select
               aria-label={label}
               value={orderFieldValues[key] || ''}
@@ -1072,11 +1095,11 @@ const ProductPurchaseDialog = ({
       <PurchaseFieldFrame
         key={key}
         icon={FieldIcon}
-        controlIcon={field?.isVerifiable === true ? null : FieldIcon}
+        controlIcon={requiresProviderVerification(field) ? null : FieldIcon}
         label={label}
         footer={verificationFooter}
       >
-        <div className={field?.isVerifiable === true ? 'grid grid-cols-[minmax(0,1fr)_auto] gap-2' : ''}>
+        <div className={requiresProviderVerification(field) ? 'grid grid-cols-[minmax(0,1fr)_auto] gap-2' : ''}>
           <input
             type={['number', 'email', 'password', 'tel'].includes(type) ? type : 'text'}
             aria-label={label}
@@ -1357,11 +1380,11 @@ const ProductPurchaseDialog = ({
             {hasPrimaryOrderField ? (
               <PurchaseFieldFrame
                 icon={primaryOrderFieldIcon}
-                controlIcon={primaryOrderField?.isVerifiable === true ? null : primaryOrderFieldIcon}
+                controlIcon={requiresProviderVerification(primaryOrderField) ? null : primaryOrderFieldIcon}
                 label={primaryOrderFieldLabel}
                 footer={renderVerificationResult(primaryOrderField)}
               >
-                <div className={primaryOrderField?.isVerifiable === true ? 'grid grid-cols-[minmax(0,1fr)_auto] gap-2' : ''}>
+                <div className={requiresProviderVerification(primaryOrderField) ? 'grid grid-cols-[minmax(0,1fr)_auto] gap-2' : ''}>
                   <input
                     type={['number', 'email', 'password', 'tel'].includes(primaryOrderFieldType) ? primaryOrderFieldType : 'text'}
                     aria-label={primaryOrderFieldLabel}
