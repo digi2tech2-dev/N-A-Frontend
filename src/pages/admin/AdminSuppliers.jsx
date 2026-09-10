@@ -431,7 +431,7 @@ const AdminSuppliers = () => {
     setHagoSupplier(row);
   };
   const openInchillManagement = (row) => {
-    if (String(row?.slug || '').toLowerCase() !== 'inchill') return;
+    if (String(row?.supplierCode || '').trim().toLowerCase() !== 'inchill') return;
     setInchillSupplier(row);
   };
 
@@ -695,9 +695,9 @@ const AdminSuppliers = () => {
                     {t('hago.manage')}
                   </Button>
                 ) : null}
-                {String(row.slug || '').toLowerCase() === 'inchill' ? (
+                {String(row.supplierCode || '').trim().toLowerCase() === 'inchill' ? (
                   <Button size="sm" className={compactActionBtnClass} variant="secondary" onClick={() => openInchillManagement(row)}>
-                    <PlugZap className="h-3.5 w-3.5" /> Inchill
+                    <PlugZap className="h-3.5 w-3.5" /> إدارة Inchill
                   </Button>
                 ) : null}
                 <Button size="sm" className={compactActionBtnClass} variant="outline" onClick={() => openEdit(row)}>
@@ -768,6 +768,12 @@ const AdminSuppliers = () => {
                         <Button size="sm" variant="secondary" onClick={() => openHagoManagement(row)}>
                           <PlugZap className="h-4 w-4" />
                           {t('hago.manage')}
+                        </Button>
+                      ) : null}
+                      {String(row.supplierCode || '').trim().toLowerCase() === 'inchill' ? (
+                        <Button size="sm" variant="secondary" onClick={() => openInchillManagement(row)}>
+                          <PlugZap className="h-4 w-4" />
+                          إدارة Inchill
                         </Button>
                       ) : null}
                       <Button size="sm" variant="outline" onClick={() => openEdit(row)}>
