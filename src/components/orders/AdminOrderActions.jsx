@@ -9,9 +9,9 @@ const AdminOrderActions = ({
   isLoading,
   onUpdateStatus,
 }) => {
-  const isHagoFinancialUnresolved = Boolean(order?.hagoFinancial?.serviceType)
-    && ['claimed', 'sent', 'pending', 'unknown'].includes(String(order?.hagoFinancial?.mutationState || '').toLowerCase());
-  if (isHagoFinancialUnresolved) {
+  const isUnresolvedFinancialOrder = [order?.hagoFinancial, order?.inchillFinancial].some((financial) => Boolean(financial?.serviceType)
+    && ['claimed', 'sent', 'pending', 'unknown'].includes(String(financial?.mutationState || '').toLowerCase()));
+  if (isUnresolvedFinancialOrder) {
     return null;
   }
   if (!isManualStatusEditableOrder(order)) {

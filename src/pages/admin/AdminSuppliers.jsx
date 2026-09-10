@@ -19,6 +19,7 @@ import Input from '../../components/ui/Input';
 import Badge from '../../components/ui/Badge';
 import Modal from '../../components/ui/Modal';
 import HagoManagementModal from '../../components/admin/HagoManagementModal';
+import InchillManagementModal from '../../components/admin/InchillManagementModal';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
 import { useToast } from '../../components/ui/Toast';
 import useAuthStore from '../../store/useAuthStore';
@@ -213,6 +214,7 @@ const AdminSuppliers = () => {
   const [syncingSupplierId, setSyncingSupplierId] = useState(null);
   const [testingSupplierId, setTestingSupplierId] = useState(null);
   const [hagoSupplier, setHagoSupplier] = useState(null);
+  const [inchillSupplier, setInchillSupplier] = useState(null);
 
   // ── Debug modal state ──────────────────────────────────────────────────────
   const [isDebugOpen, setIsDebugOpen] = useState(false);
@@ -427,6 +429,10 @@ const AdminSuppliers = () => {
   const openHagoManagement = (row) => {
     if (String(row?.slug || '').toLowerCase() !== 'hago') return;
     setHagoSupplier(row);
+  };
+  const openInchillManagement = (row) => {
+    if (String(row?.slug || '').toLowerCase() !== 'inchill') return;
+    setInchillSupplier(row);
   };
 
   const handleCheckBalance = async () => {
@@ -689,6 +695,11 @@ const AdminSuppliers = () => {
                     {t('hago.manage')}
                   </Button>
                 ) : null}
+                {String(row.slug || '').toLowerCase() === 'inchill' ? (
+                  <Button size="sm" className={compactActionBtnClass} variant="secondary" onClick={() => openInchillManagement(row)}>
+                    <PlugZap className="h-3.5 w-3.5" /> Inchill
+                  </Button>
+                ) : null}
                 <Button size="sm" className={compactActionBtnClass} variant="outline" onClick={() => openEdit(row)}>
                   <Pencil className="h-3.5 w-3.5" />
                   تعديل
@@ -846,6 +857,7 @@ const AdminSuppliers = () => {
         isOpen={Boolean(hagoSupplier)}
         onClose={() => setHagoSupplier(null)}
       />
+      <InchillManagementModal provider={inchillSupplier} isOpen={Boolean(inchillSupplier)} onClose={() => setInchillSupplier(null)} />
 
       <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title={editing ? 'تعديل مورد' : 'إضافة مورد جديد'} size="xl">
         <form onSubmit={submit} className="max-h-[75vh] space-y-4 overflow-y-auto pr-1">

@@ -446,6 +446,18 @@ const useOrderStore = create((set, get) => ({
           }));
         }
         return result;
+      },
+
+      reconcileInchillFinancialOrder: async (id) => {
+        const result = await apiClient.orders.reconcileInchillFinancial(id);
+        const updated = result?.order;
+        if (updated) {
+          set((state) => ({
+            orders: (state.orders || []).map((order) => (order.id === id ? { ...order, ...updated } : order)),
+            ordersLastLoadedAt: Date.now(),
+          }));
+        }
+        return result;
       }
 }));
 

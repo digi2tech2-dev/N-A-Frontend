@@ -159,9 +159,11 @@ const OrderDetailsDrawer = ({
   canUpdateStatus = true,
   onSync = () => {},
   onReconcileHago = null,
+  onReconcileInchill = null,
   isActionLoading = false,
   isSyncing = false,
   isReconcilingHago = false,
+  isReconcilingInchill = false,
 }) => {
   const locale = isArabic ? 'ar-EG' : 'en-US';
   const [copyState, setCopyState] = useState('idle');
@@ -171,6 +173,9 @@ const OrderDetailsDrawer = ({
   const isDrawerVisible = Boolean(isOpen && order);
   const isHagoFinancialUnresolved = Boolean(order?.hagoFinancial?.serviceType)
     && ['claimed', 'sent', 'pending', 'unknown'].includes(String(order?.hagoFinancial?.mutationState || '').toLowerCase());
+  const isInchillFinancialUnresolved = Boolean(order?.inchillFinancial?.serviceType)
+    && ['claimed', 'sent', 'pending', 'unknown'].includes(String(order?.inchillFinancial?.mutationState || '').toLowerCase());
+  const isUnresolvedFinancialOrder = isHagoFinancialUnresolved || isInchillFinancialUnresolved;
   useNativeBackOverlay(isDrawerVisible, onClose);
   const primaryIdentifierField = order?.primaryIdentifierField || null;
   const rawRequestFields = Array.isArray(order?.requestDetails?.fields) ? order.requestDetails.fields : [];
@@ -664,7 +669,7 @@ const OrderDetailsDrawer = ({
                       </Card>
                     ) : null}
 
-                    {view === 'admin' && !isHagoFinancialUnresolved && order.canSync && canUpdateStatus ? (
+                    {view === 'admin' && !isUnresolvedFinancialOrder && order.canSync && canUpdateStatus ? (
                       <Card variant="flat" className="p-3.5">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div className="min-w-0">
@@ -689,7 +694,8 @@ const OrderDetailsDrawer = ({
                           isLoading={isActionLoading}
                           onUpdateStatus={onUpdateStatus}
                           onReconcileHago={onReconcileHago}
-                          isReconciling={isReconcilingHago}
+                          onReconcileInchill={onReconcileInchill}
+                          isReconciling={isReconcilingHago || isReconcilingInchill}
                         />
                         <AdminOrderActions
                           order={order}

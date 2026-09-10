@@ -17,13 +17,17 @@ import Button from '../ui/Button';
  *   isLoading      – whether an action is in flight
  *   onUpdateStatus – (order, nextStatus) → void
  */
-const ManualReviewActions = ({ order, isArabic, isLoading, onUpdateStatus, onReconcileHago = null, isReconciling = false }) => {
+const ManualReviewActions = ({ order, isArabic, isLoading, onUpdateStatus, onReconcileHago = null, onReconcileInchill = null, isReconciling = false }) => {
   const isManualReview = String(order?.status || '').toLowerCase() === 'manual_review';
   if (!isManualReview) return null;
   const isHagoFinancialUnresolved = Boolean(order?.hagoFinancial?.serviceType)
     && ['claimed', 'sent', 'pending', 'unknown'].includes(String(order?.hagoFinancial?.mutationState || '').toLowerCase());
+  const isInchillFinancialUnresolved = Boolean(order?.inchillFinancial?.serviceType)
+    && ['claimed', 'sent', 'pending', 'unknown'].includes(String(order?.inchillFinancial?.mutationState || '').toLowerCase());
 
-  if (isHagoFinancialUnresolved) {
+  if (isHagoFinancialUnresolved || isInchillFinancialUnresolved) {
+    const providerName = isHagoFinancialUnresolved ? 'Hago' : 'Inchill';
+    const onReconcile = isHagoFinancialUnresolved ? onReconcileHago : onReconcileInchill;
     return (
       <Card
         variant="flat"
@@ -36,7 +40,7 @@ const ManualReviewActions = ({ order, isArabic, isLoading, onUpdateStatus, onRec
             </span>
             <div className="min-w-0">
               <p className="text-sm font-semibold text-[var(--color-text)]">
-                {isArabic ? 'نتيجة تحويل Hago غير مؤكدة' : 'Hago transfer outcome is unresolved'}
+                {isArabic ? `نتيجة تحويل ${providerName} غير مؤكدة` : `${providerName} transfer outcome is unresolved`}
               </p>
               <p className="mt-0.5 text-[11px] leading-5 text-[var(--color-text-secondary)]">
                 {isArabic
@@ -48,11 +52,11 @@ const ManualReviewActions = ({ order, isArabic, isLoading, onUpdateStatus, onRec
           <Button
             variant="secondary"
             className="h-9 w-full rounded-xl px-3 text-xs sm:w-auto"
-            onClick={() => onReconcileHago?.(order)}
-            disabled={!onReconcileHago || isReconciling}
+            onClick={() => onReconcile?.(order)}
+            disabled={!onReconcile || isReconciling}
           >
             <RefreshCw className={`h-4 w-4 ${isReconciling ? 'animate-spin' : ''}`} />
-            <span>{isArabic ? 'تحقق من حالة Hago' : 'Reconcile Hago status'}</span>
+            <span>{isArabic ? `تحقق من حالة ${providerName}` : `Reconcile ${providerName} status`}</span>
           </Button>
         </div>
       </Card>

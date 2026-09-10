@@ -434,6 +434,9 @@ const ProductPurchaseDialog = ({
   const [verifiedData, setVerifiedData] = useState({});
   const [verificationLoading, setVerificationLoading] = useState({});
   const [verificationErrors, setVerificationErrors] = useState({});
+  const [inchillPreflight, setInchillPreflight] = useState(null);
+  const [inchillPreflightLoading, setInchillPreflightLoading] = useState(false);
+  const [inchillPreflightError, setInchillPreflightError] = useState('');
   const [formError, setFormError] = useState('');
   const [serverError, setServerError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -665,6 +668,13 @@ const ProductPurchaseDialog = ({
   const primaryOrderFieldLabel = primaryOrderField?.label || copy.userId;
   const primaryOrderFieldPlaceholder = primaryOrderField?.placeholder || primaryOrderFieldLabel || copy.userIdPlaceholder;
   const primaryOrderFieldIcon = getOrderFieldIcon(primaryOrderField, UserRound);
+  const isInchillDiamond = Boolean(product?.isInchillDiamond);
+  const inchillTargetId = sanitizeOrderFieldValue(userId).trim();
+  const inchillPreflightReady = Boolean(
+    inchillPreflight?.ready
+    && inchillPreflight.targetId === inchillTargetId
+    && Number(inchillPreflight.amount) === Number(quantity)
+  );
   const orderFieldKeySet = useMemo(
     () => new Set(orderFields.map((field) => String(field?.key || '').trim()).filter(Boolean)),
     [orderFields]
@@ -699,7 +709,26 @@ const ProductPurchaseDialog = ({
       if (!verifiedData[key]?.verified) return copy.verificationRequired;
     }
     if (!isPurchasable) return copy.unavailable;
+    if (isInchillDiamond && !inchillPreflightReady) return language === 'en' ? 'Check Inchill readiness before purchasing.' : 'تحقق من جاهزية Inchill قبل الشراء.';
     return '';
+  };
+
+  const invalidateInchillPreflight = () => {
+    setInchillPreflight(null);
+    setInchillPreflightError('');
+  };
+
+  const checkInchillPreflight = async () => {
+    if (!product?.id || !inchillTargetId || !Number.isFinite(quantity) || quantity <= 0) return;
+    setInchillPreflightLoading(true);
+    setInchillPreflightError('');
+    try {
+      const result = await apiClient.products.getInchillPreflight(product.id, inchillTargetId, quantity);
+      setInchillPreflight({ ...result, targetId: inchillTargetId, amount: quantity });
+    } catch (error) {
+      setInchillPreflight(null);
+      setInchillPreflightError(getReadableErrorMessage(error, language === 'en' ? 'Inchill is temporarily unavailable.' : 'الخدمة غير متاحة مؤقتًا، يرجى المحاولة لاحقًا.', { language }));
+    } finally { setInchillPreflightLoading(false); }
   };
 
   const clearVerificationForField = (key) => {
@@ -1055,6 +1084,7 @@ const ProductPurchaseDialog = ({
               onChange={(event) => {
                 setOrderFieldValues((prev) => ({ ...prev, [key]: event.target.value }));
                 clearVerificationForField(key);
+                invalidateInchillPreflight();
                 setFormError('');
               }}
             >
@@ -1081,6 +1111,7 @@ const ProductPurchaseDialog = ({
                 const file = event.target.files?.[0] || null;
                 setOrderFieldFiles((prev) => ({ ...prev, [key]: file }));
                 setOrderFieldValues((prev) => ({ ...prev, [key]: file ? file.name : '' }));
+                invalidateInchillPreflight();
                 setFormError('');
               }}
             />
@@ -1107,6 +1138,7 @@ const ProductPurchaseDialog = ({
             onChange={(event) => {
               setOrderFieldValues((prev) => ({ ...prev, [key]: event.target.value }));
               clearVerificationForField(key);
+              invalidateInchillPreflight();
               setFormError('');
             }}
             placeholder={placeholder}
@@ -1356,6 +1388,7 @@ const ProductPurchaseDialog = ({
                 placeholder={copy.quantityPlaceholder}
                 onChange={(event) => {
                   setQuantityInput(formatQuantityInput(event.target.value));
+                  invalidateInchillPreflight();
                   setFormError('');
                 }}
                 onKeyDown={(event) => {
@@ -1392,6 +1425,7 @@ const ProductPurchaseDialog = ({
                     onChange={(event) => {
                       setUserId(event.target.value);
                       clearVerificationForField(primaryOrderFieldKey);
+                      invalidateInchillPreflight();
                       setFormError('');
                     }}
                     placeholder={primaryOrderFieldPlaceholder || copy.userIdPlaceholder}
@@ -1412,6 +1446,17 @@ const ProductPurchaseDialog = ({
             ) : null}
 
             {additionalOrderFields.map(renderAdditionalOrderField)}
+            {isInchillDiamond ? (
+              <div className="rounded-xl border border-indigo-400/25 bg-indigo-500/10 p-3 text-sm text-indigo-100">
+                <p className="font-bold">{language === 'en' ? 'Diamond recharge readiness' : 'جاهزية شحن Diamond'}</p>
+                <p className="mt-1 text-xs text-indigo-100/80">{language === 'en' ? 'Target and amount are checked safely before purchase.' : 'يتم التحقق من الحساب والمبلغ بأمان قبل الشراء.'}</p>
+                <button type="button" className="purchase-dialog-secondary mt-3" onClick={checkInchillPreflight} disabled={inchillPreflightLoading || !inchillTargetId || !Number.isFinite(quantity) || quantity <= 0}>
+                  {inchillPreflightLoading ? copy.loading : (language === 'en' ? 'Check readiness' : 'تحقق من الجاهزية')}
+                </button>
+                {inchillPreflightReady ? <p className="mt-2 font-bold text-emerald-200">✓ {language === 'en' ? 'Ready to recharge Diamond' : 'جاهز لشحن Diamond'}</p> : null}
+                {inchillPreflightError ? <p className="mt-2 text-red-300">{inchillPreflightError}</p> : null}
+              </div>
+            ) : null}
             </div>
 
             <PurchasePriceSummary
@@ -1431,7 +1476,7 @@ const ProductPurchaseDialog = ({
                 type="button"
                 className="purchase-dialog-primary"
                 onClick={handlePurchase}
-                disabled={isSubmitting || !isPurchasable}
+                disabled={isSubmitting || !isPurchasable || (isInchillDiamond && !inchillPreflightReady)}
               >
                 <LockKeyhole className="h-5 w-5" />
                 {purchaseButtonLabel}

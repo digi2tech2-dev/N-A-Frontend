@@ -2312,6 +2312,10 @@ const realApi = {
       const res = await http.post(`/products/${id}/hago-nobility/readiness`, { targetId });
       return unwrap(res);
     },
+    getInchillPreflight: async (id, targetId, amount) => {
+      const res = await http.post(`/products/${id}/inchill/preflight`, { targetId, amount });
+      return unwrap(res);
+    },
 
     /**
      * POST /admin/products — manual product creation.
@@ -2654,6 +2658,14 @@ const realApi = {
     getHagoProfile: async (id) => unwrap(await http.get(`/admin/providers/${id}/hago/diagnostics/profile`)),
     getHagoWallet: async (id) => unwrap(await http.get(`/admin/providers/${id}/hago/diagnostics/wallet`)),
     verifyHagoTarget: async (id, targetId) => unwrap(await http.post(`/admin/providers/${id}/hago/diagnostics/verify-target`, { targetId })),
+    getInchillConnection: async (id) => unwrap(await http.get(`/admin/providers/${id}/inchill/connection`)),
+    sendInchillOtp: async (id, payload) => unwrap(await http.post(`/admin/providers/${id}/inchill/send-otp`, payload)),
+    verifyInchillOtp: async (id, otp) => unwrap(await http.post(`/admin/providers/${id}/inchill/verify-otp`, { otp })),
+    validateInchillSession: async (id) => unwrap(await http.post(`/admin/providers/${id}/inchill/session/validate`)),
+    getInchillReadiness: async (id) => unwrap(await http.get(`/admin/providers/${id}/inchill/diagnostics/readiness`)),
+    getInchillProfile: async (id) => unwrap(await http.get(`/admin/providers/${id}/inchill/diagnostics/profile`)),
+    getInchillWallet: async (id) => unwrap(await http.get(`/admin/providers/${id}/inchill/diagnostics/wallet`)),
+    verifyInchillTarget: async (id, targetId) => unwrap(await http.post(`/admin/providers/${id}/inchill/diagnostics/verify-target`, { targetId })),
   },
 
   // ── Users (Admin) ────────────────────────────────────────────────────────
@@ -3552,6 +3564,11 @@ const realApi = {
         ...data,
         order: normaliseOrder(data?.order || data),
       };
+    },
+    reconcileInchillFinancial: async (orderId) => {
+      const res = await http.post(`/admin/orders/${orderId}/inchill/reconcile`);
+      const data = unwrap(res);
+      return { ...data, order: normaliseOrder(data?.order || data) };
     },
   },
 

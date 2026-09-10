@@ -201,6 +201,7 @@ const AdminOrders = () => {
     updateOrderStatus,
     syncOrderSupplierStatus,
     reconcileHagoFinancialOrder,
+    reconcileInchillFinancialOrder,
   } = useOrderStore();
   const { user: actor } = useAuthStore();
   const { users, loadUsers } = useAdminStore();
@@ -228,6 +229,7 @@ const AdminOrders = () => {
   const [actionOrderId, setActionOrderId] = useState('');
   const [syncingOrderId, setSyncingOrderId] = useState('');
   const [reconcilingHagoOrderId, setReconcilingHagoOrderId] = useState('');
+  const [reconcilingInchillOrderId, setReconcilingInchillOrderId] = useState('');
   const [statusConfirm, setStatusConfirm] = useState(null);
   const deferredSearchTerm = useDeferredValue(searchTerm);
 
@@ -484,6 +486,19 @@ const AdminOrders = () => {
     }
   }, [addToast, appliedEndDate, appliedStartDate, isArabic, limit, loadAdminOrders, page, reconcileHagoFinancialOrder, serverSearchTerm]);
 
+  const handleReconcileInchill = useCallback(async (order) => {
+    setReconcilingInchillOrderId(order.id);
+    try {
+      await reconcileInchillFinancialOrder(order.id);
+      addToast(isArabic ? 'لا تزال نتيجة Inchill غير مؤكدة' : 'Inchill outcome remains unresolved', 'info');
+      await loadAdminOrders({ page, limit, search: serverSearchTerm || undefined, startDate: appliedStartDate || undefined, endDate: appliedEndDate || undefined });
+    } catch (error) {
+      addToast(error?.message || (isArabic ? 'تعذر التحقق من حالة Inchill' : 'Unable to reconcile Inchill status'), 'error');
+    } finally {
+      setReconcilingInchillOrderId('');
+    }
+  }, [addToast, appliedEndDate, appliedStartDate, isArabic, limit, loadAdminOrders, page, reconcileInchillFinancialOrder, serverSearchTerm]);
+
   const handleViewOrder = useCallback(async (order) => {
     setSelectedOrderId(order.id);
     const nextParams = new URLSearchParams(searchParams);
@@ -707,9 +722,11 @@ const AdminOrders = () => {
             canUpdateStatus={canConfirmOrders}
             onSync={handleSync}
             onReconcileHago={handleReconcileHago}
+            onReconcileInchill={handleReconcileInchill}
             isActionLoading={Boolean(selectedOrder && actionOrderId === selectedOrder.id)}
             isSyncing={Boolean(selectedOrder && syncingOrderId === selectedOrder.id)}
             isReconcilingHago={Boolean(selectedOrder && reconcilingHagoOrderId === selectedOrder.id)}
+            isReconcilingInchill={Boolean(selectedOrder && reconcilingInchillOrderId === selectedOrder.id)}
           />
         </Suspense>
       ) : null}
