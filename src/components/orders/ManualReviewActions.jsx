@@ -20,8 +20,8 @@ import Button from '../ui/Button';
 const ManualReviewActions = ({ order, isArabic, isLoading, onUpdateStatus, onReconcileHago = null, onReconcileInchill = null, isReconciling = false }) => {
   const isManualReview = String(order?.status || '').toLowerCase() === 'manual_review';
   if (!isManualReview) return null;
-  const isHagoFinancialUnresolved = Boolean(order?.hagoFinancial?.serviceType)
-    && ['claimed', 'sent', 'pending', 'unknown'].includes(String(order?.hagoFinancial?.mutationState || '').toLowerCase());
+  const isHagoFinancialUnresolved = [order?.hagoFinancial, order?.hagoNobility].some((financial) => Boolean(financial?.serviceType)
+    && ['claimed', 'sent', 'pending', 'unknown'].includes(String(financial?.mutationState || '').toLowerCase()));
   const isInchillFinancialUnresolved = Boolean(order?.inchillFinancial?.serviceType)
     && ['claimed', 'sent', 'pending', 'unknown'].includes(String(order?.inchillFinancial?.mutationState || '').toLowerCase());
 

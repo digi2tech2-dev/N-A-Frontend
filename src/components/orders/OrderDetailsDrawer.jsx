@@ -171,8 +171,8 @@ const OrderDetailsDrawer = ({
   const [complaintText, setComplaintText] = useState('');
   const [complaintError, setComplaintError] = useState('');
   const isDrawerVisible = Boolean(isOpen && order);
-  const isHagoFinancialUnresolved = Boolean(order?.hagoFinancial?.serviceType)
-    && ['claimed', 'sent', 'pending', 'unknown'].includes(String(order?.hagoFinancial?.mutationState || '').toLowerCase());
+  const isHagoFinancialUnresolved = [order?.hagoFinancial, order?.hagoNobility].some((financial) => Boolean(financial?.serviceType)
+    && ['claimed', 'sent', 'pending', 'unknown'].includes(String(financial?.mutationState || '').toLowerCase()));
   const isInchillFinancialUnresolved = Boolean(order?.inchillFinancial?.serviceType)
     && ['claimed', 'sent', 'pending', 'unknown'].includes(String(order?.inchillFinancial?.mutationState || '').toLowerCase());
   const isUnresolvedFinancialOrder = isHagoFinancialUnresolved || isInchillFinancialUnresolved;

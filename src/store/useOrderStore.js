@@ -316,6 +316,7 @@ const useOrderStore = create((set, get) => ({
           return {
             order: nextOrder,
             updatedBalance: created?.updatedBalance,
+            statusCode: created?.statusCode,
           };
         } catch (err) {
           // Refetch products so the UI picks up the latest prices after a provider price jump.

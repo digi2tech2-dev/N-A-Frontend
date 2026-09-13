@@ -36,6 +36,9 @@ const API_BASE = apiBaseUrl;
 const http = axios.create({
   baseURL: API_BASE,
   timeout: 180_000,
+  // Keep Axios' normal 2xx semantics explicit: a 202 is a fulfilled response
+  // so checkout code can inspect its status and present a pending outcome.
+  validateStatus: (status) => status >= 200 && status < 300,
   // NOTE: Do NOT set a default Content-Type here.
   // Axios auto-sets 'application/json' for object bodies and
   // 'multipart/form-data; boundary=…' for FormData bodies.
@@ -3503,6 +3506,7 @@ const realApi = {
         quantity,
         customInputs: hasOrderFieldsValues ? orderFieldsValues : undefined,
         orderFieldsValues: hasOrderFieldsValues ? orderFieldsValues : undefined,
+        hagoNobility: orderData?.hagoNobility,
       });
 
       const requestConfig = orderData?.idempotencyKey
@@ -3513,6 +3517,9 @@ const realApi = {
       return {
         order: normaliseOrder(data?.order || data),
         updatedBalance: data?.updatedBalance ?? data?.order?.updatedBalance ?? res.data?.updatedBalance,
+        // Preserve 202 rather than flattening every fulfilled Axios response
+        // into a checkout success.
+        statusCode: res.status,
       };
     },
 

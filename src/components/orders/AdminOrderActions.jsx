@@ -9,7 +9,7 @@ const AdminOrderActions = ({
   isLoading,
   onUpdateStatus,
 }) => {
-  const isUnresolvedFinancialOrder = [order?.hagoFinancial, order?.inchillFinancial].some((financial) => Boolean(financial?.serviceType)
+  const isUnresolvedFinancialOrder = [order?.hagoFinancial, order?.hagoNobility, order?.inchillFinancial].some((financial) => Boolean(financial?.serviceType)
     && ['claimed', 'sent', 'pending', 'unknown'].includes(String(financial?.mutationState || '').toLowerCase()));
   if (isUnresolvedFinancialOrder) {
     return null;

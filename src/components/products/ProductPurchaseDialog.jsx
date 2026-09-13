@@ -450,6 +450,7 @@ const ProductPurchaseDialog = ({
   const [hagoQuoteLoading, setHagoQuoteLoading] = useState(false);
   const [hagoQuoteError, setHagoQuoteError] = useState('');
   const [hagoQuoteExpired, setHagoQuoteExpired] = useState(false);
+  const [hagoPendingOrder, setHagoPendingOrder] = useState(null);
   const quantityInputRef = useRef(null);
   const mainFieldsRef = useRef(null);
   const hasFocusedQuantityRef = useRef(false);
@@ -487,6 +488,7 @@ const ProductPurchaseDialog = ({
     setHagoQuote(null);
     setHagoQuoteError('');
     setHagoQuoteExpired(false);
+    setHagoPendingOrder(null);
   }, [initialProduct, isOpen, productId]);
 
   useEffect(() => {
@@ -1004,6 +1006,83 @@ const ProductPurchaseDialog = ({
     }
   };
 
+  const handleHagoPurchase = async () => {
+    const targetId = sanitizeOrderFieldValue(hagoTargetId).trim();
+    const quoteAmount = Number(hagoQuote?.pricing?.finalPrice);
+    if (!product?.id || !targetId || !hagoQuote?.quoteRef || hagoQuoteExpired || !Number.isFinite(quoteAmount) || quoteAmount <= 0) return;
+    setFormError('');
+    setServerError('');
+    if (quoteAmount > availableBalance) {
+      setShowBalanceTopup(true);
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const result = await addOrder({
+        productId: product.id,
+        quantity: 1,
+        customInputs: {},
+        hagoNobility: { quoteRef: hagoQuote.quoteRef, targetId },
+        preferLegacyOrderEndpoint: false,
+      });
+      const returnedOrder = result?.order || result || null;
+      const returnedId = returnedOrder?.id || returnedOrder?._id || returnedOrder?.orderId || '';
+      const returnedOrderNumber = String(returnedOrder?.siteOrderNumber || returnedOrder?.orderNumber || returnedOrder?.internalOrderNumber || returnedId).trim();
+      const nextBalance = Number(result?.updatedBalance);
+      if (Number.isFinite(nextBalance)) {
+        updateUserSession({ coins: nextBalance, walletBalance: nextBalance, balance: nextBalance });
+      }
+      const orderStatus = String(returnedOrder?.status || '').trim().toUpperCase();
+      const mutationState = String(returnedOrder?.hagoNobility?.mutationState || '').trim().toUpperCase();
+      const isConfirmedCompleted = orderStatus === 'COMPLETED' && mutationState === 'SUCCESS';
+      const isAuthoritativeFailure = ['FAILED', 'CANCELED', 'CANCELLED'].includes(orderStatus)
+        || mutationState === 'FAILED';
+      const isAmbiguous = Number(result?.statusCode) === 202
+        || ['PROCESSING', 'PENDING', 'MANUAL_REVIEW'].includes(orderStatus)
+        || ['READY', 'CLAIMED', 'SENT', 'PENDING', 'UNKNOWN'].includes(mutationState);
+      if (isAuthoritativeFailure) {
+        setServerError(String(
+          returnedOrder?.rejectionReason
+          || returnedOrder?.failureReason
+          || returnedOrder?.error
+          || (language === 'en'
+            ? 'The Hago Nobility order was not completed. Your payment was handled according to the order result.'
+            : 'لم يكتمل طلب نبالة Hago. تمت معالجة الدفع وفقًا لنتيجة الطلب.')
+        ));
+        return;
+      }
+      if (isAmbiguous || !isConfirmedCompleted) {
+        setHagoPendingOrder({ orderId: returnedId, orderNumber: returnedOrderNumber });
+        setHagoQuoteExpired(true);
+        addToast(
+          language === 'en'
+            ? 'Your order was received and is under review. Do not submit it again.'
+            : 'تم استلام الطلب وهو قيد المراجعة. لا تقم بإرسال الطلب مرة أخرى.',
+          'info'
+        );
+        return;
+      }
+      setSuccessOrder({
+        orderId: returnedId,
+        orderNumber: returnedOrderNumber,
+        productName: product?.nameAr || product?.name,
+        quantity: 1,
+        total: quoteAmount,
+        userId: targetId,
+        status: returnedOrder?.statusLabel || returnedOrder?.status || copy.fallbackStatus,
+      });
+      addToast(language === 'en' ? 'Hago Nobility order completed successfully!' : 'تم تنفيذ طلب نبالة Hago بنجاح!', 'success');
+    } catch (error) {
+      setServerError(getReadableErrorMessage(
+        error,
+        language === 'en' ? 'Purchase failed. Please refresh the quote and try again.' : 'فشلت عملية الشراء. حدّث عرض السعر ثم حاول مرة أخرى.',
+        { language }
+      ));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleAutomaticTopup = () => {
     setTopupStep('methods');
   };
@@ -1339,16 +1418,37 @@ const ProductPurchaseDialog = ({
                 </div>
               ) : null}
               {hagoQuoteError ? <div className="purchase-dialog-error">{hagoQuoteError}</div> : null}
-              <button
-                type="button"
-                className="purchase-dialog-primary"
-                onClick={handleHagoReadiness}
-                disabled={hagoQuoteLoading || !sanitizeOrderFieldValue(hagoTargetId).trim() || !isPurchasable}
-              >
-                <Hash className="h-5 w-5" />
-                {hagoQuoteLoading ? copy.checkingHagoPrice : (hagoQuoteExpired ? copy.refreshHagoQuote : copy.determineHagoPrice)}
-              </button>
-              {hagoQuote && !hagoQuoteExpired ? <p className="text-center text-xs text-[var(--color-muted)]">{copy.hagoCheckoutDisabled}</p> : null}
+              {hagoPendingOrder ? (
+                <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm font-bold text-amber-100">
+                  <p>{language === 'en' ? 'Your order was received and is under review. Do not submit it again.' : 'تم استلام الطلب وهو قيد المراجعة. لا تقم بإرسال الطلب مرة أخرى.'}</p>
+                  {hagoPendingOrder.orderId ? <button type="button" className="purchase-dialog-secondary mt-3" onClick={() => onViewOrder?.(hagoPendingOrder.orderId)}>{copy.orderDetails}</button> : null}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="purchase-dialog-primary"
+                  onClick={handleHagoReadiness}
+                  disabled={hagoQuoteLoading || !sanitizeOrderFieldValue(hagoTargetId).trim() || !isPurchasable}
+                >
+                  <Hash className="h-5 w-5" />
+                  {hagoQuoteLoading ? copy.checkingHagoPrice : (hagoQuoteExpired ? copy.refreshHagoQuote : copy.determineHagoPrice)}
+                </button>
+              )}
+              {hagoQuote && !hagoQuoteExpired && !hagoPendingOrder ? (
+                <button
+                  type="button"
+                  className="purchase-dialog-primary"
+                  onClick={handleHagoPurchase}
+                  disabled={isSubmitting || !isPurchasable}
+                >
+                  <ShoppingBag className="h-5 w-5" />
+                  {isSubmitting
+                    ? copy.buying
+                    : (language === 'en'
+                      ? `${hagoQuote.nobility?.operation === 'RENEW' ? 'Confirm renewal' : 'Buy now'} for ${hagoQuote.pricing?.finalPrice} ${hagoQuote.pricing?.currency}`
+                      : `${hagoQuote.nobility?.operation === 'RENEW' ? 'تأكيد التجديد' : 'شراء الآن'} بـ ${hagoQuote.pricing?.finalPrice} ${hagoQuote.pricing?.currency}`)}
+                </button>
+              ) : null}
             </div>
             <div className="purchase-dialog-actions">
               <button type="button" className="purchase-dialog-secondary" onClick={onClose}>
