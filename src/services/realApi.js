@@ -2319,6 +2319,10 @@ const realApi = {
       const res = await http.post(`/products/${id}/inchill/preflight`, { targetId, amount });
       return unwrap(res);
     },
+    verifyInchillTarget: async (id, targetId) => {
+      const res = await http.post(`/products/${id}/inchill/verify-target`, { targetId });
+      return unwrap(res);
+    },
 
     /**
      * POST /admin/products — manual product creation.

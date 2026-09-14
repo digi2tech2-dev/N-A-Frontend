@@ -437,6 +437,9 @@ const ProductPurchaseDialog = ({
   const [inchillPreflight, setInchillPreflight] = useState(null);
   const [inchillPreflightLoading, setInchillPreflightLoading] = useState(false);
   const [inchillPreflightError, setInchillPreflightError] = useState('');
+  const [inchillTargetVerification, setInchillTargetVerification] = useState(null);
+  const [inchillTargetVerificationLoading, setInchillTargetVerificationLoading] = useState(false);
+  const [inchillTargetVerificationError, setInchillTargetVerificationError] = useState('');
   const [formError, setFormError] = useState('');
   const [serverError, setServerError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -478,6 +481,9 @@ const ProductPurchaseDialog = ({
     setVerifiedData({});
     setVerificationLoading({});
     setVerificationErrors({});
+    setInchillTargetVerification(null);
+    setInchillTargetVerificationLoading(false);
+    setInchillTargetVerificationError('');
     setFormError('');
     setServerError('');
     setSuccessOrder(null);
@@ -671,7 +677,12 @@ const ProductPurchaseDialog = ({
   const primaryOrderFieldPlaceholder = primaryOrderField?.placeholder || primaryOrderFieldLabel || copy.userIdPlaceholder;
   const primaryOrderFieldIcon = getOrderFieldIcon(primaryOrderField, UserRound);
   const isInchillDiamond = Boolean(product?.isInchillDiamond);
+  const requiresInchillTargetVerification = Boolean(product?.requiresInchillTargetVerification || isInchillDiamond);
   const inchillTargetId = sanitizeOrderFieldValue(userId).trim();
+  const inchillTargetVerified = Boolean(
+    inchillTargetVerification?.verified
+    && inchillTargetVerification?.targetId === inchillTargetId
+  );
   const inchillPreflightReady = Boolean(
     inchillPreflight?.ready
     && inchillPreflight.targetId === inchillTargetId
@@ -711,6 +722,7 @@ const ProductPurchaseDialog = ({
       if (!verifiedData[key]?.verified) return copy.verificationRequired;
     }
     if (!isPurchasable) return copy.unavailable;
+    if (requiresInchillTargetVerification && !inchillTargetVerified) return language === 'en' ? 'Verify the Inchill target ID before purchasing.' : 'تحقق من معرّف Inchill قبل الشراء.';
     if (isInchillDiamond && !inchillPreflightReady) return language === 'en' ? 'Check Inchill readiness before purchasing.' : 'تحقق من جاهزية Inchill قبل الشراء.';
     return '';
   };
@@ -720,8 +732,33 @@ const ProductPurchaseDialog = ({
     setInchillPreflightError('');
   };
 
+  const invalidateInchillTargetVerification = () => {
+    setInchillTargetVerification(null);
+    setInchillTargetVerificationError('');
+  };
+
+  const verifyInchillTarget = async () => {
+    if (!product?.id || !inchillTargetId) return;
+    setInchillTargetVerificationLoading(true);
+    setInchillTargetVerificationError('');
+    try {
+      const result = await apiClient.products.verifyInchillTarget(product.id, inchillTargetId);
+      setInchillTargetVerification(result);
+      invalidateInchillPreflight();
+    } catch (error) {
+      setInchillTargetVerification(null);
+      setInchillTargetVerificationError(getReadableErrorMessage(
+        error,
+        language === 'en' ? 'Unable to verify the Inchill target ID.' : 'تعذر التحقق من معرّف Inchill.',
+        { language }
+      ));
+    } finally {
+      setInchillTargetVerificationLoading(false);
+    }
+  };
+
   const checkInchillPreflight = async () => {
-    if (!product?.id || !inchillTargetId || !Number.isFinite(quantity) || quantity <= 0) return;
+    if (!product?.id || !inchillTargetVerified || !Number.isFinite(quantity) || quantity <= 0) return;
     setInchillPreflightLoading(true);
     setInchillPreflightError('');
     try {
@@ -1164,6 +1201,7 @@ const ProductPurchaseDialog = ({
                 setOrderFieldValues((prev) => ({ ...prev, [key]: event.target.value }));
                 clearVerificationForField(key);
                 invalidateInchillPreflight();
+                invalidateInchillTargetVerification();
                 setFormError('');
               }}
             >
@@ -1191,6 +1229,7 @@ const ProductPurchaseDialog = ({
                 setOrderFieldFiles((prev) => ({ ...prev, [key]: file }));
                 setOrderFieldValues((prev) => ({ ...prev, [key]: file ? file.name : '' }));
                 invalidateInchillPreflight();
+                invalidateInchillTargetVerification();
                 setFormError('');
               }}
             />
@@ -1218,6 +1257,7 @@ const ProductPurchaseDialog = ({
               setOrderFieldValues((prev) => ({ ...prev, [key]: event.target.value }));
               clearVerificationForField(key);
               invalidateInchillPreflight();
+              invalidateInchillTargetVerification();
               setFormError('');
             }}
             placeholder={placeholder}
@@ -1513,11 +1553,16 @@ const ProductPurchaseDialog = ({
             {hasPrimaryOrderField ? (
               <PurchaseFieldFrame
                 icon={primaryOrderFieldIcon}
-                controlIcon={requiresProviderVerification(primaryOrderField) ? null : primaryOrderFieldIcon}
+                controlIcon={(requiresInchillTargetVerification || requiresProviderVerification(primaryOrderField)) ? null : primaryOrderFieldIcon}
                 label={primaryOrderFieldLabel}
-                footer={renderVerificationResult(primaryOrderField)}
+                footer={requiresInchillTargetVerification ? (
+                  <>
+                    {inchillTargetVerificationError ? <p className="mt-1 text-xs font-bold text-red-400">{inchillTargetVerificationError}</p> : null}
+                    {inchillTargetVerified ? <div className="mt-2 flex items-center gap-2 rounded-xl border border-indigo-400/25 bg-indigo-500/10 px-3 py-2 text-start text-xs font-bold text-indigo-200"><div className="min-w-0"><p className="text-emerald-200">✓ {language === 'en' ? 'Inchill account verified' : 'تم التحقق من حساب Inchill'}</p>{inchillTargetVerification.displayName ? <p className="truncate">{copy.name}: {inchillTargetVerification.displayName}</p> : null}{inchillTargetVerification.vid ? <p className="truncate text-[0.68rem] text-indigo-100/70" dir="ltr">{copy.vid}: {inchillTargetVerification.vid}</p> : null}</div></div> : null}
+                  </>
+                ) : renderVerificationResult(primaryOrderField)}
               >
-                <div className={requiresProviderVerification(primaryOrderField) ? 'grid grid-cols-[minmax(0,1fr)_auto] gap-2' : ''}>
+                <div className={(requiresInchillTargetVerification || requiresProviderVerification(primaryOrderField)) ? 'grid grid-cols-[minmax(0,1fr)_auto] gap-2' : ''}>
                   <input
                     type={['number', 'email', 'password', 'tel'].includes(primaryOrderFieldType) ? primaryOrderFieldType : 'text'}
                     aria-label={primaryOrderFieldLabel}
@@ -1526,11 +1571,12 @@ const ProductPurchaseDialog = ({
                       setUserId(event.target.value);
                       clearVerificationForField(primaryOrderFieldKey);
                       invalidateInchillPreflight();
+                      invalidateInchillTargetVerification();
                       setFormError('');
                     }}
                     placeholder={primaryOrderFieldPlaceholder || copy.userIdPlaceholder}
                   />
-                  {renderVerifyButton(primaryOrderField, userId)}
+                  {requiresInchillTargetVerification ? <button type="button" onClick={verifyInchillTarget} disabled={inchillTargetVerificationLoading || !inchillTargetId} className="min-h-[2.75rem] rounded-xl border border-indigo-400/25 bg-indigo-500/15 px-3 text-sm font-black text-indigo-100 transition hover:bg-indigo-500/25 disabled:cursor-wait disabled:opacity-60">{inchillTargetVerificationLoading ? <span className="mx-auto block h-4 w-4 animate-spin rounded-full border-2 border-indigo-100/30 border-t-indigo-100" /> : (language === 'en' ? 'Verify' : 'تحقق')}</button> : renderVerifyButton(primaryOrderField, userId)}
                 </div>
               </PurchaseFieldFrame>
             ) : null}
@@ -1550,7 +1596,7 @@ const ProductPurchaseDialog = ({
               <div className="rounded-xl border border-indigo-400/25 bg-indigo-500/10 p-3 text-sm text-indigo-100">
                 <p className="font-bold">{language === 'en' ? 'Diamond recharge readiness' : 'جاهزية شحن Diamond'}</p>
                 <p className="mt-1 text-xs text-indigo-100/80">{language === 'en' ? 'Target and amount are checked safely before purchase.' : 'يتم التحقق من الحساب والمبلغ بأمان قبل الشراء.'}</p>
-                <button type="button" className="purchase-dialog-secondary mt-3" onClick={checkInchillPreflight} disabled={inchillPreflightLoading || !inchillTargetId || !Number.isFinite(quantity) || quantity <= 0}>
+                <button type="button" className="purchase-dialog-secondary mt-3" onClick={checkInchillPreflight} disabled={inchillPreflightLoading || !inchillTargetVerified || !Number.isFinite(quantity) || quantity <= 0}>
                   {inchillPreflightLoading ? copy.loading : (language === 'en' ? 'Check readiness' : 'تحقق من الجاهزية')}
                 </button>
                 {inchillPreflightReady ? <p className="mt-2 font-bold text-emerald-200">✓ {language === 'en' ? 'Ready to recharge Diamond' : 'جاهز لشحن Diamond'}</p> : null}
@@ -1576,7 +1622,7 @@ const ProductPurchaseDialog = ({
                 type="button"
                 className="purchase-dialog-primary"
                 onClick={handlePurchase}
-                disabled={isSubmitting || !isPurchasable || (isInchillDiamond && !inchillPreflightReady)}
+                disabled={isSubmitting || !isPurchasable || (requiresInchillTargetVerification && !inchillTargetVerified) || (isInchillDiamond && !inchillPreflightReady)}
               >
                 <LockKeyhole className="h-5 w-5" />
                 {purchaseButtonLabel}
