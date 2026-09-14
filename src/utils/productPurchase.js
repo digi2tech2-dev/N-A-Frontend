@@ -115,7 +115,14 @@ export const resolveProductOrderFields = (product, language = 'ar') => {
     });
 
     const hasPlayerId = mappedFields.some((field) => String(field?.key || '').trim().toLowerCase() === 'playerid');
-    if (!hasPlayerId) {
+    // Inchill checkout must submit the product's configured target field.  A
+    // synthetic playerId is not part of the server-declared field snapshot and
+    // is therefore (correctly) removed by the real API serializer.  Preserve
+    // the configured field for Inchill rather than injecting a second alias.
+    const isInchillTargetProduct = Boolean(
+      product?.isInchillDiamond || product?.requiresInchillTargetVerification
+    );
+    if (!hasPlayerId && !isInchillTargetProduct) {
       return [{
         key: 'playerId',
         label: FIELD_COPY.playerId[language] || FIELD_COPY.playerId.en,

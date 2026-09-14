@@ -77,6 +77,14 @@ const COPY = {
     ar: 'الخدمة غير متاحة مؤقتًا، يرجى المحاولة لاحقًا.',
     en: 'The service is temporarily unavailable. Please try again later.',
   },
+  inchillUnavailable: {
+    ar: 'الشحن عبر Inchill غير متاح مؤقتًا.',
+    en: 'Inchill recharges are temporarily unavailable.',
+  },
+  inchillVerificationRequired: {
+    ar: 'يرجى التحقق من معرف المستخدم مرة أخرى.',
+    en: 'Please verify the user ID again.',
+  },
   invalidProviderTarget: {
     ar: 'تعذر العثور على الحساب. تأكد من المعرف وحاول مرة أخرى.',
     en: 'The account could not be found. Check the ID and try again.',
@@ -230,6 +238,21 @@ export const getReadableErrorMessage = (error, fallback, options = {}) => {
     'product_field_provider_unavailable',
   ])) {
     return pick('serviceUnavailable', language);
+  }
+
+  if (includesAny(code, [
+    'inchill_financial_checkout_not_enabled',
+    'inchill_connection_required',
+    'inchill_reauthentication_required',
+    'inchill_session_unknown',
+    'inchill_preflight_failed',
+    'inchill_insufficient_provider_balance',
+  ])) {
+    return pick('inchillUnavailable', language);
+  }
+
+  if (includesAny(code, ['inchill_target_invalid'])) {
+    return pick('inchillVerificationRequired', language);
   }
 
   if (includesAny(code, ['hago_invalid_target', 'product_field_value_required'])) {
