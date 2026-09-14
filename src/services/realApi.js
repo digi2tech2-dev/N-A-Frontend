@@ -691,6 +691,17 @@ const normaliseProduct = (p) => {
     : '';
   const providerProductId = pp?._id || pp?.id || rawProviderProductId || p.providerProductId || p.externalProductId || '';
   const externalProductId = pp?.externalProductId || p.externalProductId || p.providerProductId || rawProviderProductId || '';
+  // Customer payloads deliberately omit provider internals and carry the
+  // server-derived capability flag. Admin catalog payloads retain the
+  // populated relation, so normalize that same canonical relation as well.
+  const providerSlug = String(
+    (typeof p.provider === 'object' ? p.provider?.slug : '') || ''
+  ).trim().toLowerCase();
+  const isInchillDiamond = Boolean(p.isInchillDiamond) || (
+    providerSlug === 'inchill'
+    && String(externalProductId) === 'INCHILL_DIAMOND_AMOUNT'
+  );
+  const requiresInchillTargetVerification = Boolean(p.requiresInchillTargetVerification) || isInchillDiamond;
   const providerMapping = p.providerMapping || p.orderFieldsMapping || {};
   const supplierFieldMappings = Array.isArray(providerMapping)
     ? providerMapping
@@ -781,6 +792,8 @@ const normaliseProduct = (p) => {
     providerProductId,
     externalProductId,
     externalProductName: pp?.rawName || p.externalProductName || '',
+    isInchillDiamond,
+    requiresInchillTargetVerification,
     displayAccountNumber: purchaseAccountNumber,
     purchaseAccountNumber,
     accountNumber: p.accountNumber || purchaseAccountNumber,

@@ -1201,7 +1201,6 @@ const ProductPurchaseDialog = ({
                 setOrderFieldValues((prev) => ({ ...prev, [key]: event.target.value }));
                 clearVerificationForField(key);
                 invalidateInchillPreflight();
-                invalidateInchillTargetVerification();
                 setFormError('');
               }}
             >
@@ -1229,7 +1228,6 @@ const ProductPurchaseDialog = ({
                 setOrderFieldFiles((prev) => ({ ...prev, [key]: file }));
                 setOrderFieldValues((prev) => ({ ...prev, [key]: file ? file.name : '' }));
                 invalidateInchillPreflight();
-                invalidateInchillTargetVerification();
                 setFormError('');
               }}
             />
@@ -1257,7 +1255,6 @@ const ProductPurchaseDialog = ({
               setOrderFieldValues((prev) => ({ ...prev, [key]: event.target.value }));
               clearVerificationForField(key);
               invalidateInchillPreflight();
-              invalidateInchillTargetVerification();
               setFormError('');
             }}
             placeholder={placeholder}
