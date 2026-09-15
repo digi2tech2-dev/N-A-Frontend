@@ -10,6 +10,7 @@ const OrdersMobileCards = ({
   isArabic,
   currencies,
   onViewOrder,
+  orderMoneyFormatOptions,
 }) => {
   const locale = isArabic ? 'ar-EG' : 'en-US';
 
@@ -38,7 +39,7 @@ const OrdersMobileCards = ({
               </p>
             </div>
             <p className="mt-1 text-[13px] font-semibold text-[var(--color-text)]">
-              {formatOrderMoney(order, currencies, locale)}
+              {formatOrderMoney(order, currencies, locale, orderMoneyFormatOptions?.(order))}
             </p>
           </div>
 

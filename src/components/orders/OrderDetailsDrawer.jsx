@@ -164,6 +164,7 @@ const OrderDetailsDrawer = ({
   isSyncing = false,
   isReconcilingHago = false,
   isReconcilingInchill = false,
+  orderMoneyFormatOptions,
 }) => {
   const locale = isArabic ? 'ar-EG' : 'en-US';
   const [copyState, setCopyState] = useState('idle');
@@ -450,7 +451,7 @@ const OrderDetailsDrawer = ({
                           <h3 className="order-details-neon__product-name mt-1.5 line-clamp-2 text-base font-black leading-6 text-[var(--color-text)] sm:text-lg">{order.productName}</h3>
                           <div className="mt-3.5 flex flex-wrap items-center gap-2">
                             <span dir="ltr" className="order-details-neon__price inline-flex rounded-xl border border-[color:rgb(var(--color-primary-rgb)/0.28)] bg-[linear-gradient(135deg,rgb(var(--color-primary-rgb)/0.14),rgb(var(--color-primary-rgb)/0.06))] px-3 py-1.5 text-sm font-black text-[var(--color-primary)] shadow-[inset_0_1px_rgb(255_255_255/0.07)]">
-                              {formatOrderMoney(order, currencies, locale)}
+                              {formatOrderMoney(order, currencies, locale, orderMoneyFormatOptions?.(order))}
                             </span>
                             <Badge variant={order.typeVariant}>{order.typeLabel}</Badge>
                           </div>

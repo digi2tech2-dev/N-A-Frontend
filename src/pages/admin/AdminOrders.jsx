@@ -31,6 +31,7 @@ import {
   summarizeOrders,
   getProviderDisplayName,
   PROVIDER_DISPLAY_NAMES,
+  getOrderCurrencyCode,
 } from '../../utils/orders';
 import { formatNumber } from '../../utils/intl';
 import { cn } from '../../components/ui/Button';
@@ -62,6 +63,10 @@ const SummaryCard = ({ icon: Icon, label, value, alert = false }) => (
 
 const DEFAULT_ADMIN_ORDERS_LIMIT = 100;
 const ROWS_OPTIONS = [20, 50, DEFAULT_ADMIN_ORDERS_LIMIT, 500];
+const EGP_ADMIN_ORDER_AMOUNT_OPTIONS = Object.freeze({ minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const getAdminOrderMoneyFormatOptions = (order) => (
+  getOrderCurrencyCode(order) === 'EGP' ? EGP_ADMIN_ORDER_AMOUNT_OPTIONS : undefined
+);
 
 const buildPageNumbers = (currentPage, totalPages) => {
   if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
@@ -684,6 +689,7 @@ const AdminOrders = () => {
           isArabic={isArabic}
           currencies={currencies}
           onViewOrder={handleViewOrder}
+          orderMoneyFormatOptions={getAdminOrderMoneyFormatOptions}
         />
       ) : (
         <EmptyOrdersState
@@ -727,6 +733,7 @@ const AdminOrders = () => {
             isSyncing={Boolean(selectedOrder && syncingOrderId === selectedOrder.id)}
             isReconcilingHago={Boolean(selectedOrder && reconcilingHagoOrderId === selectedOrder.id)}
             isReconcilingInchill={Boolean(selectedOrder && reconcilingInchillOrderId === selectedOrder.id)}
+            orderMoneyFormatOptions={getAdminOrderMoneyFormatOptions}
           />
         </Suspense>
       ) : null}

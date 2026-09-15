@@ -366,11 +366,12 @@ export const getOrderAmountValue = (order = {}) => {
 
 export const getOrderCurrencyCode = (order = {}) => resolveOrderExecutionCurrency(order, 'USD');
 
-export const formatOrderMoney = (order, currencies = [], locale = 'ar-EG') => {
+export const formatOrderMoney = (order, currencies = [], locale = 'ar-EG', formatOptions = {}) => {
   const amount = getOrderAmountValue(order);
   const currencyCode = getOrderCurrencyCode(order);
   const displayFormatOptions = {
     maximumFractionDigits: ORDER_DISPLAY_MAXIMUM_FRACTION_DIGITS,
+    ...formatOptions,
   };
 
   try {
