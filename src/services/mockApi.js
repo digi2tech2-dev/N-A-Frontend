@@ -282,7 +282,7 @@ const buildMockWalletTransactionsForUser = (userId) => {
       type: normalizeMockWalletType(entry.type),
       amount: Math.abs(toFiniteNumber(entry.amount)),
       signedAmount: toFiniteNumber(entry.signedAmount, 0),
-      currency: resolveWalletTransactionExecutionCurrency(entry, user?.currency || 'USD'),
+      currency: resolveWalletTransactionExecutionCurrency(entry) || null,
       originalCurrency: resolveWalletTransactionOriginalCurrency(entry) || null,
       status: String(entry.status || 'completed').toLowerCase(),
     }));
@@ -311,7 +311,7 @@ const buildMockWalletTransactionsForUser = (userId) => {
         reference: order?.externalOrderId || order?.id || null,
         sourceType: 'order',
         sourceId: order?.id || null,
-        currency: resolveOrderExecutionCurrency(order, user?.currency || 'USD'),
+        currency: resolveOrderExecutionCurrency(order) || null,
         originalCurrency: resolveOrderExecutionCurrency(order) || null,
         createdAt: order?.createdAt || order?.date || null,
       };
@@ -341,7 +341,7 @@ const buildMockWalletTransactionsForUser = (userId) => {
         reference: topup?.id || null,
         sourceType: 'topup',
         sourceId: topup?.id || null,
-        currency: resolveTopupExecutionCurrency(topup, user?.currency || 'USD'),
+        currency: resolveTopupExecutionCurrency(topup) || null,
         originalCurrency: resolveTopupExecutionCurrency(topup) || null,
         createdAt: topup?.createdAt || topup?.date || null,
       };

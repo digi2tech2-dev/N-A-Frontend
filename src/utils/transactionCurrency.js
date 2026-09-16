@@ -30,24 +30,22 @@ export const resolveTopupExecutionCurrency = (topup = {}, fallback = '') => firs
 );
 
 export const resolveWalletTransactionOriginalCurrency = (transaction = {}) => firstCurrencyCode(
+  transaction?.currency,
+  transaction?.currencyCode,
   transaction?.originalCurrency,
   resolveSnapshotExecutionCurrency(transaction?.financialSnapshot),
   resolveOrderExecutionCurrency(transaction?.order),
-  resolveTopupExecutionCurrency(transaction?.topup),
-  transaction?.currencyCode,
-  transaction?.currency,
-  transaction?.walletCurrency,
-  transaction?.user?.currency
+  resolveTopupExecutionCurrency(transaction?.topup)
 );
 
-export const resolveWalletTransactionExecutionCurrency = (transaction = {}, fallback = '') => firstCurrencyCode(
+// WalletTransaction amounts are denominated only by their own immutable
+// snapshot (or a nested immutable source snapshot). Never use a current user
+// or wallet currency here: historical transactions may be genuinely unknown.
+export const resolveWalletTransactionExecutionCurrency = (transaction = {}) => firstCurrencyCode(
+  transaction?.currency,
+  transaction?.currencyCode,
   transaction?.originalCurrency,
   resolveSnapshotExecutionCurrency(transaction?.financialSnapshot),
   resolveOrderExecutionCurrency(transaction?.order),
-  resolveTopupExecutionCurrency(transaction?.topup),
-  transaction?.currencyCode,
-  transaction?.currency,
-  transaction?.walletCurrency,
-  transaction?.user?.currency,
-  fallback
+  resolveTopupExecutionCurrency(transaction?.topup)
 );

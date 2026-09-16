@@ -389,7 +389,13 @@ const AdminUserWallet = () => {
               const signedAmount = getSignedAmount(transaction);
               const isCredit = signedAmount >= 0;
               const TransactionIcon = isCredit ? ArrowUpRight : ArrowDownLeft;
-              const transactionCurrency = transaction?.currency || currency;
+              const transactionCurrency = String(transaction?.currency || '').trim().toUpperCase();
+              const formatTransactionAmount = (value, { signed = false } = {}) => {
+                if (transactionCurrency) return formatWalletAmount(value, transactionCurrency, { signed });
+                const numericValue = toFiniteNumber(value, 0);
+                const sign = numericValue < 0 ? '-' : (signed && numericValue > 0 ? '+' : '');
+                return `${sign}${formatNumber(Math.abs(numericValue), locale)}`;
+              };
 
               return (
                 <article
@@ -412,7 +418,7 @@ const AdminUserWallet = () => {
                           </p>
                         </div>
                         <p className={`shrink-0 text-sm font-black ${isCredit ? 'text-emerald-600' : 'text-rose-600'}`}>
-                          {formatWalletAmount(signedAmount, transactionCurrency, { signed: true })}
+                          {formatTransactionAmount(signedAmount, { signed: true })}
                         </p>
                       </div>
 
@@ -420,7 +426,7 @@ const AdminUserWallet = () => {
                         <span>{isCredit ? 'إضافة للمحفظة' : 'خصم من المحفظة'}</span>
                         {transaction?.balanceAfter !== null && transaction?.balanceAfter !== undefined ? (
                           <span>
-                            الرصيد بعدها: <b className="font-bold text-[var(--color-text)]">{formatWalletAmount(transaction.balanceAfter, transactionCurrency)}</b>
+                            الرصيد بعدها: <b className="font-bold text-[var(--color-text)]">{formatTransactionAmount(transaction.balanceAfter)}</b>
                           </span>
                         ) : null}
                       </div>

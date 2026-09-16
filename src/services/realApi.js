@@ -495,10 +495,7 @@ const normaliseWalletTransaction = (tx, fallbackUserId = '') => {
   const amount = toFiniteNumber(tx.amount ?? tx.value ?? tx.total ?? 0);
   const balanceAfterRaw = tx.balanceAfter ?? tx.balance ?? tx.walletBalance;
   const originalTransactionCurrency = resolveWalletTransactionOriginalCurrency(tx);
-  const transactionCurrency = resolveWalletTransactionExecutionCurrency(
-    tx,
-    tx.walletCurrency || user?.currency || 'USD'
-  );
+  const transactionCurrency = resolveWalletTransactionExecutionCurrency(tx);
   const rawUserId = typeof tx.userId === 'object' && tx.userId !== null
     ? (tx.userId._id || tx.userId.id || '')
     : tx.userId;
@@ -528,7 +525,7 @@ const normaliseWalletTransaction = (tx, fallbackUserId = '') => {
     amount: Math.abs(amount),
     signedAmount: toFiniteNumber(tx.signedAmount, getSignedWalletAmount(amount, type)),
     balanceAfter: balanceAfterRaw === undefined || balanceAfterRaw === null ? null : toFiniteNumber(balanceAfterRaw, 0),
-    currency: transactionCurrency,
+    currency: transactionCurrency || null,
     originalCurrency: originalTransactionCurrency || null,
     status: String(tx.status || 'completed').trim().toLowerCase(),
     description: tx.description || tx.note || tx.title || '',

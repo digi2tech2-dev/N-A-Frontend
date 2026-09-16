@@ -175,7 +175,7 @@ const buildWalletOperation = (transaction, wallet, isArabic) => {
     sourceId: transaction?.sourceId || transaction?.reference || transaction?.id || null,
     date: transaction?.createdAt || transaction?.date || wallet?.lastTransactionAt || null,
     amount: signedAmount,
-    currencyCode: resolveWalletTransactionExecutionCurrency(transaction, wallet?.currency || 'USD'),
+    currencyCode: resolveWalletTransactionExecutionCurrency(transaction) || null,
     userId: wallet?.userId || transaction?.userId || '',
     userName: wallet?.userName || wallet?.user?.name || transaction?.user?.name || '',
     userEmail: wallet?.userEmail || wallet?.user?.email || transaction?.user?.email || '',
@@ -431,8 +431,9 @@ const AdminWallet = () => {
   }, [endDate, formatRangeDate, isArabic, startDate]);
 
   const formatMoney = useCallback(
-    (amount, currencyCode = 'USD') => {
+    (amount, currencyCode = null) => {
       const safeAmount = Math.abs(asNumber(amount));
+      if (!currencyCode) return formatNumber(safeAmount, locale);
       return formatCurrencyAmount(safeAmount, currencyCode, currencies, locale);
     },
     [currencies, locale]
