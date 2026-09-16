@@ -7,6 +7,7 @@ import PageTransition from './components/app/PageTransition';
 import SessionBootstrap from './components/app/SessionBootstrap';
 import RouteErrorBoundary from './components/app/RouteErrorBoundary';
 import WebsiteUpdateModal from './components/app/WebsiteUpdateModal';
+import AndroidUpdateModal from './components/app/AndroidUpdateModal';
 import AndroidBackNavigation from './components/app/AndroidBackNavigation';
 import NativePushBootstrap from './components/app/NativePushBootstrap';
 import { LanguageProvider } from './context/LanguageContext';
@@ -29,9 +30,11 @@ import {
 import useAuthStore from './store/useAuthStore';
 import DeveloperApi from './pages/DeveloperApi';
 import { routeLoaders } from './transitions/routeModules';
+import { isNativeAndroidApp } from './utils/nativePlatform';
 
 const Layout = lazy(routeLoaders.Layout);
 const Onboarding = lazy(routeLoaders.Onboarding);
+const WebLanding = lazy(routeLoaders.WebLanding);
 const Auth = lazy(routeLoaders.Auth);
 const AccountPending = lazy(routeLoaders.AccountPending);
 const AccountRejected = lazy(routeLoaders.AccountRejected);
@@ -99,7 +102,7 @@ const OnboardingRoute = () => {
     return <Navigate to={destination} replace />;
   }
 
-  return renderSuspended(<Onboarding />);
+  return renderSuspended(isNativeAndroidApp() ? <Onboarding /> : <WebLanding />);
 };
 
 const AdminPanelDefaultRoute = () => {
@@ -486,12 +489,14 @@ const AnimatedAppRoutes = ({ location }) => {
 };
 
 function App() {
+  const isAndroidApp = isNativeAndroidApp();
+
   return (
     <ThemeProvider>
       <LanguageProvider>
-        <ToastProvider>
+          <ToastProvider>
           <SessionBootstrap />
-          <WebsiteUpdateModal />
+          {isAndroidApp ? <AndroidUpdateModal /> : <WebsiteUpdateModal />}
           <BrowserRouter>
             <AndroidBackNavigation />
             <NativePushBootstrap />

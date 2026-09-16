@@ -1,6 +1,7 @@
 export const routeLoaders = {
   Layout: () => import('../components/layout/Layout'),
   Onboarding: () => import('../pages/Onboarding'),
+  WebLanding: () => import('../pages/WebLanding'),
   Auth: () => import('../pages/Auth'),
   AccountPending: () => import('../pages/AccountPending'),
   AccountRejected: () => import('../pages/AccountRejected'),

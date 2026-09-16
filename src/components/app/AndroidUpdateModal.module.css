@@ -1,0 +1,4 @@
+.modalLayer {
+  padding-top: max(.75rem, env(safe-area-inset-top));
+  padding-bottom: max(.75rem, env(safe-area-inset-bottom));
+}
