@@ -36,6 +36,7 @@ export const routeLoaders = {
   AddBalance: () => import('../pages/AddBalance'),
   WalletTopupHistory: () => import('../pages/WalletTopupHistory'),
   PaymentDetails: () => import('../pages/PaymentDetails'),
+  ApiDocs: () => import('../pages/ApiDocs'),
 };
 
 const publicPaths = new Set([
@@ -50,6 +51,7 @@ const publicPaths = new Set([
   '/auth/verify-email',
   '/account-pending',
   '/account-rejected',
+  '/api-docs',
 ]);
 
 const routeMatchers = [
@@ -62,6 +64,7 @@ const routeMatchers = [
   [/^\/auth\/account-rejected\/?$/, routeLoaders.AccountRejected],
   [/^\/account-pending\/?$/, routeLoaders.AccountPending],
   [/^\/account-rejected\/?$/, routeLoaders.AccountRejected],
+  [/^\/api-docs\/?$/, routeLoaders.ApiDocs],
   [/^\/dashboard\/?$/, routeLoaders.Dashboard],
   [/^\/orders(?:\/[^/]+)?\/?$/, routeLoaders.Orders],
   [/^\/products\/?$/, routeLoaders.Products],

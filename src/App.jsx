@@ -67,6 +67,7 @@ const TargetOrders = lazy(routeLoaders.TargetOrders);
 const AddBalance = lazy(routeLoaders.AddBalance);
 const WalletTopupHistory = lazy(routeLoaders.WalletTopupHistory);
 const PaymentDetails = lazy(routeLoaders.PaymentDetails);
+const ApiDocs = lazy(routeLoaders.ApiDocs);
 
 const ADMIN_PANEL_ROLES = [...ADMIN_ROLES, ...SUPERVISOR_ROLES];
 
@@ -121,10 +122,12 @@ const AdminDashboardRoute = () => {
 const RouteAwareFloatingSupport = () => {
   const { pathname } = useLocation();
 
-  if (pathname === ACCOUNT_VERIFICATION_ROUTE) return null;
+  if (pathname === ACCOUNT_VERIFICATION_ROUTE || pathname === '/api-docs') return null;
 
   return <FloatingWhatsApp />;
 };
+
+const RouteAwareMobileNav = () => useLocation().pathname === '/api-docs' ? null : <MobileBottomNav />;
 
 const AnimatedAppRoutes = ({ location }) => {
   const isAdminRoute = location.pathname.startsWith('/admin');
@@ -136,6 +139,7 @@ const AnimatedAppRoutes = ({ location }) => {
       <Route path="/onboarding" element={<OnboardingRoute />} />
       <Route path="/auth" element={renderSuspended(<Auth />)} />
       <Route path="/login" element={renderSuspended(<Auth />)} />
+      <Route path="/api-docs" element={renderSuspended(<ApiDocs />)} />
       <Route path="/email-verified" element={renderSuspended(<EmailVerified />)} />
       <Route path={ACCOUNT_PENDING_ROUTE} element={renderSuspended(<AccountPending />)} />
       <Route path={ACCOUNT_REJECTED_ROUTE} element={renderSuspended(<AccountRejected />)} />
@@ -494,7 +498,7 @@ function App() {
             <PageTransition>
               {(location) => <AnimatedAppRoutes location={location} />}
             </PageTransition>
-            <MobileBottomNav />
+            <RouteAwareMobileNav />
             <RouteAwareFloatingSupport />
           </BrowserRouter>
         </ToastProvider>

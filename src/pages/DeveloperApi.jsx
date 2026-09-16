@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   AlertTriangle,
   BookOpen,
@@ -21,11 +22,11 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { useToast } from '../components/ui/Toast';
 import useAuthStore from '../store/useAuthStore';
-import apiClient from '../services/client'; 
+import apiClient from '../services/client';
+import { apiBaseUrl as backendApiBaseUrl } from '../config/dataProvider';
 
-const apiBaseUrl = typeof window !== 'undefined'
-  ? `${window.location.origin}/api/v1/reseller`
-  : '/api/v1/reseller';
+const configuredB2bBase = String(import.meta.env.VITE_B2B_API_BASE_URL || '').trim().replace(/\/+$/, '');
+const apiBaseUrl = configuredB2bBase || `${String(backendApiBaseUrl || '').replace(/\/+$/, '').replace(/\/api$/, '')}/client/api`;
 
 const endpointUrl = (path) => `${apiBaseUrl}${path}`;
 
@@ -316,10 +317,35 @@ const TokenGeneratorCard = () => {
   );
 };
 
+const ApiSettingsCard = () => {
+  const { addToast } = useToast();
+  const { user } = useAuthStore();
+  const [ips, setIps] = useState((user?.whitelistIps || []).join('\n'));
+  const [webhookUrl, setWebhookUrl] = useState(user?.webhookUrl || '');
+  const [saving, setSaving] = useState(false);
+  const enabled = Boolean(user?.isApiEnabled);
+  const save = async () => {
+    setSaving(true);
+    try {
+      await apiClient.me.updateApiSettings({ whitelistIps: ips.split(/\r?\n|,/).map((value) => value.trim()).filter(Boolean), webhookUrl });
+      addToast('API settings saved.', 'success');
+    } catch (error) {
+      addToast(error?.message || 'Unable to save API settings.', 'error');
+    } finally { setSaving(false); }
+  };
+  return <Card className="rounded-2xl border border-[color:rgb(var(--color-border-rgb)/0.86)] bg-[color:rgb(var(--color-card-rgb)/0.5)] p-5 shadow-[var(--shadow-subtle)]">
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-lg font-bold">Canonical API settings</h2><p className="mt-1 text-sm text-[var(--color-text-secondary)]">Access is {enabled ? 'enabled' : 'not enabled'} by an administrator.</p></div><Link to="/api-docs" className="text-sm font-semibold text-[var(--color-primary)]">Open public API docs</Link></div>
+    <label className="mt-5 block text-sm font-semibold">Allowed IP addresses (one per line)</label><textarea disabled={!enabled} value={ips} onChange={(event) => setIps(event.target.value)} rows="4" className="mt-2 w-full rounded-xl border bg-transparent p-3 text-left font-mono text-sm [direction:ltr] disabled:opacity-50" />
+    <label className="mt-4 block text-sm font-semibold">Webhook URL</label><input disabled={!enabled} value={webhookUrl} onChange={(event) => setWebhookUrl(event.target.value)} placeholder="https://example.com/webhook" className="mt-2 w-full rounded-xl border bg-transparent p-3 text-left text-sm [direction:ltr] disabled:opacity-50" />
+    <Button className="mt-4" disabled={!enabled || saving} onClick={save}>{saving ? 'Saving…' : 'Save API settings'}</Button>
+  </Card>;
+};
+
 // --- Main Page Component ---
 const DeveloperApi = () => {
   const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState('overview');
+  const showLegacyGuide = false;
 
   const docsPlainText = useMemo(
     () => `========================================
@@ -469,8 +495,18 @@ Error Codes:
       
       {/* قسم توليد التوكن اللي كان مفقود */}
       <TokenGeneratorCard />
+      <ApiSettingsCard />
 
-      <Card className="rounded-2xl border border-[color:rgb(var(--color-border-rgb)/0.9)] bg-[color:rgb(var(--color-card-rgb)/0.9)] p-5 shadow-[var(--shadow-subtle)]">
+      {!showLegacyGuide ? (
+        <Card className="rounded-2xl border border-[color:rgb(var(--color-border-rgb)/0.9)] bg-[color:rgb(var(--color-card-rgb)/0.9)] p-6 shadow-[var(--shadow-subtle)]">
+          <BookOpen className="h-7 w-7 text-[var(--color-primary)]" />
+          <h1 className="mt-3 text-2xl font-bold text-[var(--color-text)]">Canonical B2B API</h1>
+          <p className="mt-2 text-sm leading-6 text-[var(--color-text-secondary)]">Use the public Canonical guide for the current <code className="[direction:ltr]">/client/api</code> contract. It covers token headers, product fields, idempotent orders, status checks, errors, rate limits, and maintenance behavior.</p>
+          <div className="mt-5 flex flex-wrap gap-3"><Link to="/api-docs" className="rounded-xl bg-[var(--color-primary)] px-4 py-2 text-sm font-bold text-white">Read public documentation</Link><code className="rounded-xl border border-[color:rgb(var(--color-border-rgb)/0.8)] px-4 py-2 text-sm [direction:ltr]">{apiBaseUrl}</code></div>
+        </Card>
+      ) : null}
+
+      {showLegacyGuide ? <Card className="rounded-2xl border border-[color:rgb(var(--color-border-rgb)/0.9)] bg-[color:rgb(var(--color-card-rgb)/0.9)] p-5 shadow-[var(--shadow-subtle)]">
         <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h1 className="flex items-center gap-2 text-2xl font-bold text-[var(--color-text)]">
@@ -650,7 +686,7 @@ Error Codes:
             </div>
           </Section>
         ) : null}
-      </Card>
+      </Card> : null}
     </div>
   );
 };
