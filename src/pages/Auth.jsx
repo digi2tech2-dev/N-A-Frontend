@@ -35,6 +35,7 @@ import {
 import { WORLD_CURRENCY_COUNTRIES } from '../data/worldCurrencyCatalog';
 import { getDefaultRouteForRole } from '../utils/authRoles';
 import { getAccountAccessRoute, normalizeAccountStatus } from '../utils/accountStatus';
+import { isNativeAndroidApp } from '../utils/nativePlatform';
 import {
   clearReferralBridge,
   persistReferralBridge,
@@ -193,6 +194,8 @@ const Auth = () => {
   const oauthHandledRef = useRef(false);
   const authVideoRef = useRef(null);
   const reduceMotion = useReducedMotion();
+  const nativeAndroidApp = isNativeAndroidApp();
+  const suppressAuthVideoForReducedMotion = reduceMotion && !nativeAndroidApp;
   const [shouldLoadAuthVideo, setShouldLoadAuthVideo] = useState(false);
   const { dir } = useLanguage();
   const { t } = useTranslation();
@@ -248,7 +251,7 @@ const Auth = () => {
   // Background video is decorative, so let the form paint and become
   // interactive before asking the browser to download the 3.8 MB asset.
   useEffect(() => {
-    if (reduceMotion || typeof window === 'undefined') return undefined;
+    if (suppressAuthVideoForReducedMotion || typeof window === 'undefined') return undefined;
 
     const schedule = window.requestIdleCallback
       ? window.requestIdleCallback(() => setShouldLoadAuthVideo(true), { timeout: 1400 })
@@ -261,12 +264,12 @@ const Auth = () => {
         window.clearTimeout(schedule);
       }
     };
-  }, [reduceMotion]);
+  }, [suppressAuthVideoForReducedMotion]);
 
   // Android WebView can ignore the declarative autoPlay attribute until the
   // media element has loaded. Explicitly retry muted playback when ready.
   useEffect(() => {
-    if (reduceMotion || !shouldLoadAuthVideo) return undefined;
+    if (suppressAuthVideoForReducedMotion || !shouldLoadAuthVideo) return undefined;
 
     const video = authVideoRef.current;
     if (!video) return undefined;
@@ -289,7 +292,7 @@ const Auth = () => {
       video.removeEventListener('loadeddata', play);
       video.removeEventListener('canplay', play);
     };
-  }, [reduceMotion, shouldLoadAuthVideo]);
+  }, [shouldLoadAuthVideo, suppressAuthVideoForReducedMotion]);
 
   const countryOptions = useMemo(() => (
     WORLD_CURRENCY_COUNTRIES
@@ -836,8 +839,8 @@ const Auth = () => {
     <div className={styles.authPage}>
       <video
         ref={authVideoRef}
-        className={styles.authVideoBackground}
-        autoPlay={!reduceMotion && shouldLoadAuthVideo}
+        className={`${styles.authVideoBackground} ${nativeAndroidApp ? styles.authVideoBackgroundNativeAndroid : ''}`.trim()}
+        autoPlay={!suppressAuthVideoForReducedMotion && shouldLoadAuthVideo}
         muted
         defaultMuted
         loop

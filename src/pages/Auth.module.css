@@ -491,5 +491,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .authVideoBackground { display: none; }
+  .authVideoBackgroundNativeAndroid { display: block; }
   .primaryButton, .modeButton { transition: none; }
 }

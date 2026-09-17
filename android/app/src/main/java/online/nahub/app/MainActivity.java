@@ -28,6 +28,8 @@ public class MainActivity extends BridgeActivity implements ModifiedMainActivity
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        bridge.getWebView().getSettings().setMediaPlaybackRequiresUserGesture(false);
+
         // Android 15/target 36 enforces edge-to-edge. Add the status-bar inset
         // to the WebView so the remote UI starts below the system icons.
         ViewCompat.setOnApplyWindowInsetsListener(bridge.getWebView(), (view, insets) -> {
