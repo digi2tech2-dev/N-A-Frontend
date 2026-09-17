@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowUpRight, CheckCircle2, LockKeyhole, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowUpRight, ShieldCheck } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import useMediaStore from '../store/useMediaStore';
 import useGroupStore from '../store/useGroupStore';
@@ -15,8 +15,7 @@ import slideTwoHeroImage from '../assets/slide-2.webp';
 import slideThreeHeroImage from '../assets/slide-3.webp';
 import slideFourHeroImage from '../assets/slide-4.webp';
 import targetBannerImage from '../assets/تارجت.jpg';
-import coinsImage from '../assets/logo.PNG';
-import { resolveImageUrl } from '../utils/imageUrl';
+import { ANDROID_APK_DOWNLOAD_URL } from '../config/appDownloads';
 import {
   createStorefrontCategories,
   createStorefrontProducts,
@@ -59,13 +58,18 @@ const Dashboard = () => {
     };
   }, [loadProducts]);
 
-  const slideTwoUrl = 'https://chat.whatsapp.com/FE7DF2bKaaWG3snAGaFjpg';
   const heroSlides = useMemo(() => ([
     { id: 'landing-slide-1', image: slideOneHeroImage, title: '' },
-    { id: 'landing-slide-2', image: slideTwoHeroImage, title: '', href: slideTwoUrl },
+    {
+      id: 'android-app-download',
+      image: slideTwoHeroImage,
+      title: '',
+      href: ANDROID_APK_DOWNLOAD_URL,
+      alt: language === 'ar' ? 'تحميل تطبيق N&A HUB للأندرويد' : 'Download the N&A HUB Android app',
+    },
     { id: 'landing-slide-3', image: slideThreeHeroImage, title: '', href: '/referral' },
     { id: 'landing-slide-4', image: slideFourHeroImage, title: '' },
-  ]), []);
+  ]), [language]);
 
   const storefrontProducts = useMemo(
     () => createStorefrontProducts(products, {
@@ -91,57 +95,6 @@ const Dashboard = () => {
     }),
     [storefrontCategories]
   );
-
-  const categoryChildrenByParent = useMemo(() => (
-    storefrontCategories.reduce((map, category) => {
-      const parentId = String(category?.parentCategory || '').trim();
-      if (!parentId) return map;
-      if (!map.has(parentId)) map.set(parentId, []);
-      map.get(parentId).push(category.id);
-      return map;
-    }, new Map())
-  ), [storefrontCategories]);
-
-  const collectCategoryIds = useCallback((categoryId) => {
-    const seen = new Set();
-    const stack = [String(categoryId || '').trim()].filter(Boolean);
-    while (stack.length) {
-      const currentId = stack.pop();
-      if (!currentId || seen.has(currentId)) continue;
-      seen.add(currentId);
-      (categoryChildrenByParent.get(currentId) || []).forEach((childId) => {
-        if (!seen.has(childId)) stack.push(childId);
-      });
-    }
-    return seen;
-  }, [categoryChildrenByParent]);
-
-  const bestSellingProducts = useMemo(() => {
-    const firstCategory = visibleHomepageCategories[0];
-    const secondCategory = visibleHomepageCategories[1];
-    const pickedIds = new Set();
-
-    const pickFromCategory = (category, limit) => {
-      if (!category) return [];
-      const categoryIds = collectCategoryIds(category.id);
-      const selected = [];
-
-      for (const product of storefrontProducts) {
-        if (selected.length >= limit) break;
-        if (!categoryIds.has(String(product?.category || '').trim())) continue;
-        if (pickedIds.has(product.id)) continue;
-        pickedIds.add(product.id);
-        selected.push(product);
-      }
-
-      return selected;
-    };
-
-    return [
-      ...pickFromCategory(firstCategory, 4),
-      ...pickFromCategory(secondCategory, 4),
-    ];
-  }, [collectCategoryIds, storefrontProducts, visibleHomepageCategories]);
 
   const handleCategorySelect = useCallback((categoryId) => {
     navigate(categoryId === 'all' ? '/products' : `/products?category=${encodeURIComponent(categoryId)}`);
@@ -241,64 +194,6 @@ const Dashboard = () => {
             </span>
           </Link>
         </div>
-      ) : null}
-
-      {bestSellingProducts.length ? (
-        <section className="best-selling-section mx-auto w-full max-w-5xl overflow-hidden p-2.5 sm:p-4" aria-labelledby="best-selling-title">
-          <div className="mb-2.5 flex items-center gap-2 sm:mb-3">
-            <div className="flex min-w-0 items-center gap-2">
-              <span className="best-selling-heading-icon" aria-hidden="true">
-                <Sparkles className="h-3.5 w-3.5" />
-              </span>
-              <h2 id="best-selling-title" className="truncate text-sm font-black text-[var(--color-text)] sm:text-base">
-                {language === 'ar' ? 'الأكثر مبيعًا' : 'Best sellers'}
-              </h2>
-            </div>
-          </div>
-
-          <div
-            className="scrollbar-hide flex snap-x snap-mandatory items-stretch gap-2.5 overflow-x-auto scroll-smooth pb-1 sm:gap-3"
-            dir={language === 'ar' ? 'rtl' : 'ltr'}
-          >
-            {bestSellingProducts.map((product) => {
-              const productName = product.displayName || product.nameAr || product.name || '';
-              const imageSrc = product.image ? resolveImageUrl(product.image) : coinsImage;
-              const isUnavailable = product.storefrontStatus?.isPurchasable === false;
-              const unavailableLabel = product.storefrontStatus?.badgeLabel || (language === 'ar' ? 'غير متاح' : 'Unavailable');
-
-              return (
-                <button
-                  key={product.id}
-                  type="button"
-                  onClick={() => {
-                    if (!isUnavailable) openPurchaseDialog(product);
-                  }}
-                  disabled={isUnavailable}
-                  className={`best-selling-card group relative isolate min-w-[41%] snap-start p-1.5 text-center min-[430px]:min-w-[31%] sm:min-w-[22%] sm:p-2 lg:min-w-[17%] ${isUnavailable ? 'is-unavailable cursor-not-allowed' : ''}`}
-                  aria-label={productName}
-                >
-                  <span className="best-selling-media relative flex aspect-square w-full items-center justify-center overflow-hidden">
-                    <img
-                      src={imageSrc}
-                      alt=""
-                      aria-hidden="true"
-                      className={`best-selling-image h-full w-full object-contain p-2.5 ${isUnavailable ? 'opacity-40 grayscale-[0.35]' : ''}`}
-                      loading="lazy"
-                      decoding="async"
-                    />
-                    <span className={`best-selling-status ${isUnavailable ? 'is-unavailable' : 'is-available'}`}>
-                      {isUnavailable ? <LockKeyhole /> : <CheckCircle2 />}
-                      <span>{isUnavailable ? unavailableLabel : (language === 'ar' ? 'متوفر' : 'Available')}</span>
-                    </span>
-                  </span>
-                  <span className="best-selling-name mt-2 line-clamp-2 block min-h-8 px-1 text-[0.68rem] font-extrabold leading-4 text-[var(--color-text)] sm:text-[0.75rem]">
-                    {productName}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
       ) : null}
 
       {isSearchOpen ? (

@@ -7203,6 +7203,49 @@ body {
   }
 }
 
+/* Keep footer support actions easy to scan and tap at every dashboard width. */
+.site-copyright-footer__actions {
+  gap: 0.48rem;
+}
+
+.site-copyright-footer__contact {
+  gap: 0.55rem;
+  max-width: 15.5rem;
+  padding: 0.48rem 0.6rem;
+  border-radius: 0.8rem;
+}
+
+.site-copyright-footer__contact-icon {
+  width: 1.55rem;
+  height: 1.55rem;
+}
+
+.site-copyright-footer__contact small {
+  font-size: 0.5rem;
+}
+
+.site-copyright-footer__contact strong {
+  font-size: 0.6rem;
+}
+
+.site-copyright-footer__contact:focus-visible,
+.site-copyright-footer__download:focus-visible {
+  outline: 2px solid rgb(103 232 249 / 0.9);
+  outline-offset: 3px;
+}
+
+@media (max-width: 520px) {
+  .site-copyright-footer__actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .site-copyright-footer__contact {
+    max-width: none;
+  }
+}
+
 /* The notification menu gets its own mobile viewport so it cannot be clipped by the header. */
 @media (max-width: 640px) {
   .header-notifications-popover {

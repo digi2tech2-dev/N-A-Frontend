@@ -2,9 +2,9 @@ import React from 'react';
 import { ArrowUpLeft, Bot, Download, MessageCircle, ShieldCheck, UserRound } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import logo from '../../assets/logo.PNG';
+import { ANDROID_APK_DOWNLOAD_URL } from '../../config/appDownloads';
 
 const ENGINEERS_WHATSAPP_URL = `https://wa.me/201019603238?text=${encodeURIComponent('كنت محتاج تفاصيل عن انشاء موقع')}`;
-const ANDROID_DOWNLOAD_URL = import.meta.env.VITE_ANDROID_APP_URL || '/downloads/na-hub.apk';
 
 const SiteCopyrightFooter = ({ isArabic, showEngineerContact = true }) => {
   const isNativeApp = Capacitor.isNativePlatform();
@@ -29,7 +29,7 @@ const SiteCopyrightFooter = ({ isArabic, showEngineerContact = true }) => {
         <div className="site-copyright-footer__actions">
           {!isNativeApp ? (
             <a
-              href={ANDROID_DOWNLOAD_URL}
+              href={ANDROID_APK_DOWNLOAD_URL}
               download
               className="site-copyright-footer__download"
               aria-label={isArabic ? 'تحميل تطبيق N&A لنظام أندرويد' : 'Download the N&A Android app'}
@@ -42,14 +42,24 @@ const SiteCopyrightFooter = ({ isArabic, showEngineerContact = true }) => {
               <Download className="site-copyright-footer__download-arrow" aria-hidden="true" />
             </a>
           ) : null}
-          <a href="/contact-us" className="site-copyright-footer__contact site-copyright-footer__contact--admin">
+          <a
+            href="/contact-us"
+            className="site-copyright-footer__contact site-copyright-footer__contact--admin"
+            aria-label={isArabic ? 'التواصل مع الدعم' : 'Contact support'}
+          >
             <span className="site-copyright-footer__contact-icon"><UserRound /></span>
-            <span><small>{isArabic ? 'الدعم والمساعدة' : 'Support & help'}</small><strong>{isArabic ? 'تواصل مع المسؤول' : 'Contact the admin'}</strong></span>
+            <span><small>{isArabic ? 'الدعم والمساعدة' : 'Support & help'}</small><strong>{isArabic ? 'التواصل مع الدعم' : 'Contact support'}</strong></span>
             <ArrowUpLeft className="site-copyright-footer__arrow" aria-hidden="true" />
           </a>
-          <a href={ENGINEERS_WHATSAPP_URL} target="_blank" rel="noreferrer" className="site-copyright-footer__contact">
+          <a
+            href={ENGINEERS_WHATSAPP_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="site-copyright-footer__contact"
+            aria-label={isArabic ? 'التواصل مع فريق التطوير' : 'Contact the development team'}
+          >
             <span className="site-copyright-footer__contact-icon"><MessageCircle /></span>
-            <span><small>{isArabic ? 'هل تريد تجربة مشابهة؟' : 'Want a similar experience?'}</small><strong>{isArabic ? 'تواصل مع مهندسي البرنامج' : 'Contact the software engineers'}</strong></span>
+            <span><small>{isArabic ? 'هل تريد تجربة مشابهة؟' : 'Want a similar experience?'}</small><strong>{isArabic ? 'التواصل مع فريق التطوير' : 'Contact the development team'}</strong></span>
             <ArrowUpLeft className="site-copyright-footer__arrow" aria-hidden="true" />
           </a>
         </div>

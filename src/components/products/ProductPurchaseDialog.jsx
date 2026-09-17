@@ -43,7 +43,7 @@ import {
   resolveProductOrderFields,
   sanitizeOrderFieldValue,
 } from '../../utils/productPurchase';
-import { getWalletBalanceSummary, multiplyRawPriceByQuantity, normalizeMoneyAmount } from '../../utils/money';
+import { formatRawPriceString, getWalletBalanceSummary, multiplyRawPriceByQuantity, normalizeMoneyAmount } from '../../utils/money';
 import { getProductStatus } from '../../utils/productStatus';
 import { devLogger } from '../../utils/devLogger';
 import { useBodyScrollLock } from '../../utils/bodyScrollLock';
@@ -182,6 +182,37 @@ const formatQuantityInput = (value) => {
   const digits = normalizeQuantityDigits(value);
   return digits ? digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '';
 };
+
+const roundPurchaseSummaryAmount = (value, maximumFractionDigits = 3) => {
+  const rawValue = String(value ?? '0').trim();
+  const match = rawValue.match(/^([+-]?)(\d+)(?:\.(\d+))?$/);
+
+  if (!match) {
+    const numericValue = Number(rawValue);
+    return Number.isFinite(numericValue)
+      ? (Math.round(numericValue * (10 ** maximumFractionDigits)) / (10 ** maximumFractionDigits)).toString()
+      : '0';
+  }
+
+  const [, sign, integerPart, fractionPart = ''] = match;
+  if (fractionPart.length <= maximumFractionDigits) return rawValue;
+
+  const fraction = fractionPart.slice(0, maximumFractionDigits).padEnd(maximumFractionDigits, '0');
+  const roundedMagnitude = BigInt(`${integerPart}${fraction}`)
+    + (Number(fractionPart[maximumFractionDigits]) >= 5 ? 1n : 0n);
+  const roundedDigits = roundedMagnitude.toString().padStart(maximumFractionDigits + 1, '0');
+  const roundedInteger = roundedDigits.slice(0, -maximumFractionDigits);
+  const roundedFraction = roundedDigits.slice(-maximumFractionDigits).replace(/0+$/, '');
+  const roundedValue = roundedFraction ? `${roundedInteger}.${roundedFraction}` : roundedInteger;
+
+  return sign === '-' && roundedValue !== '0' ? `-${roundedValue}` : roundedValue;
+};
+
+const formatPurchaseSummaryCurrency = (amount, currencyCode, currencies) => {
+  const { symbol } = getCurrencyMeta(currencyCode, currencies);
+  return `${formatRawPriceString(roundPurchaseSummaryAmount(amount))} ${symbol}`;
+};
+
 const parseQuantityInput = (value) => Number.parseInt(normalizeQuantityDigits(value), 10);
 const isUploadFieldType = (type) => ['image', 'file'].includes(String(type || '').trim().toLowerCase());
 const requiresProviderVerification = (field) => field?.verification?.enabled === true || field?.isVerifiable === true;
@@ -598,12 +629,12 @@ const ProductPurchaseDialog = ({
     maximumFractionDigits: 4,
     minimumFractionDigits: 4,
   });
-  const formattedTotalPriceUsd = formatCurrencyAmount(totalPriceBase, 'USD', currencies, locale);
-  const formattedPlatformRate = formatCurrencyAmount(
+  const formattedPurchaseSummaryTotalPrice = formatPurchaseSummaryCurrency(totalPrice, userCurrencyCode, currencies);
+  const formattedPurchaseSummaryTotalPriceUsd = formatPurchaseSummaryCurrency(totalPriceBase, 'USD', currencies);
+  const formattedPurchaseSummaryPlatformRate = formatPurchaseSummaryCurrency(
     getCurrencyMeta(userCurrencyCode, currencies).rate,
     userCurrencyCode,
-    currencies,
-    locale
+    currencies
   );
   const balanceShortfall = normalizeMoneyAmount(Math.max(0, totalPrice - availableBalance));
   const formattedAvailableBalance = formatCurrencyAmount(availableBalance, userCurrencyCode, currencies, locale);
@@ -1561,9 +1592,9 @@ const ProductPurchaseDialog = ({
             <PurchasePriceSummary
               title={copy.purchaseSummary}
               quantity={quantityInput ? formatCount(safeQuantity) : '---'}
-              total={formattedTotalPrice}
-              totalUsd={formattedTotalPriceUsd}
-              conversionRate={formattedPlatformRate}
+              total={formattedPurchaseSummaryTotalPrice}
+              totalUsd={formattedPurchaseSummaryTotalPriceUsd}
+              conversionRate={formattedPurchaseSummaryPlatformRate}
               accountCurrencyCode={userCurrencyCode}
               copy={copy}
             />
