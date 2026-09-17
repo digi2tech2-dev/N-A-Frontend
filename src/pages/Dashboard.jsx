@@ -197,7 +197,7 @@ const Dashboard = () => {
         </div>
       ) : null}
 
-      <ContactActions isArabic={language === 'ar'} />
+      <ContactActions isArabic={language === 'ar'} className="contact-actions--dashboard" />
 
       {isSearchOpen ? (
         <ProductSearch

@@ -276,7 +276,7 @@ const ContactUs = () => {
           </Card>
         </motion.section>
       </div>
-      <ContactActions isArabic={isArabic} supportHref="#support-form" className="mx-auto mt-4 max-w-6xl" />
+      <ContactActions isArabic={isArabic} supportHref="#support-form" className="contact-actions--contact-page" />
     </div>
   );
 };
