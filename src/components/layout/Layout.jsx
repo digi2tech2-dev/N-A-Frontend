@@ -160,7 +160,6 @@ const Layout = ({ children = null }) => {
         {showCopyrightFooter ? (
           <SiteCopyrightFooter
             isArabic={language === 'ar' || dir === 'rtl'}
-            showEngineerContact={!isAdmin}
           />
         ) : null}
       </div>

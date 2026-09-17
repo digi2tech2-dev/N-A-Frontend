@@ -7246,6 +7246,86 @@ body {
   }
 }
 
+/* Support actions are intentionally page-scoped: Dashboard and Contact Us. */
+.contact-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.contact-actions__card {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 0.7rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid rgb(52 211 153 / 0.22);
+  border-radius: 1rem;
+  color: rgb(236 253 245 / 0.92);
+  background: linear-gradient(135deg, rgb(16 185 129 / 0.14), rgb(8 47 73 / 0.3));
+  box-shadow: inset 0 1px rgb(255 255 255 / 0.08), 0 12px 26px -22px rgb(16 185 129 / 0.75);
+  text-decoration: none;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.contact-actions__card:hover {
+  transform: translateY(-2px);
+  border-color: rgb(52 211 153 / 0.48);
+  background: linear-gradient(135deg, rgb(16 185 129 / 0.2), rgb(8 47 73 / 0.42));
+}
+
+.contact-actions__card--support {
+  border-color: rgb(56 189 248 / 0.26);
+  background: linear-gradient(135deg, rgb(14 165 233 / 0.16), rgb(30 41 92 / 0.32));
+}
+
+.contact-actions__card--support:hover {
+  border-color: rgb(56 189 248 / 0.5);
+  background: linear-gradient(135deg, rgb(14 165 233 / 0.23), rgb(30 41 92 / 0.44));
+}
+
+.contact-actions__icon {
+  display: grid;
+  width: 2.2rem;
+  height: 2.2rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 0.75rem;
+  color: rgb(209 250 229);
+  background: rgb(16 185 129 / 0.22);
+}
+
+.contact-actions__card--support .contact-actions__icon {
+  color: rgb(224 242 254);
+  background: rgb(14 165 233 / 0.22);
+}
+
+.contact-actions__icon svg { width: 1.05rem; height: 1.05rem; }
+.contact-actions__card small,
+.contact-actions__card strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.contact-actions__card small { color: rgb(167 243 208 / 0.68); font-size: 0.66rem; font-weight: 700; }
+.contact-actions__card--support small { color: rgb(186 230 253 / 0.72); }
+.contact-actions__card strong { margin-top: 0.12rem; color: inherit; font-size: 0.83rem; font-weight: 850; }
+.contact-actions__arrow { width: 1rem; height: 1rem; margin-inline-start: auto; flex: 0 0 auto; color: rgb(167 243 208 / 0.8); }
+.contact-actions__card--support .contact-actions__arrow { color: rgb(186 230 253 / 0.82); }
+.contact-actions__card:focus-visible { outline: 2px solid rgb(103 232 249 / 0.9); outline-offset: 3px; }
+
+:root:not(.dark) .contact-actions__card {
+  color: rgb(6 95 70);
+  background: linear-gradient(135deg, rgb(209 250 229 / 0.82), rgb(240 253 250 / 0.9));
+}
+
+:root:not(.dark) .contact-actions__card--support {
+  color: rgb(30 64 175);
+  background: linear-gradient(135deg, rgb(224 242 254 / 0.88), rgb(238 242 255 / 0.94));
+}
+
+@media (max-width: 640px) {
+  .contact-actions { grid-template-columns: 1fr; gap: 0.55rem; }
+  .contact-actions__card { min-height: 3.8rem; padding: 0.72rem 0.8rem; }
+}
+
 /* The notification menu gets its own mobile viewport so it cannot be clipped by the header. */
 @media (max-width: 640px) {
   .header-notifications-popover {

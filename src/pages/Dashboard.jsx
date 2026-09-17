@@ -16,6 +16,7 @@ import slideThreeHeroImage from '../assets/slide-3.webp';
 import slideFourHeroImage from '../assets/slide-4.webp';
 import targetBannerImage from '../assets/تارجت.jpg';
 import { ANDROID_APK_DOWNLOAD_URL } from '../config/appDownloads';
+import ContactActions from '../components/contact/ContactActions';
 import {
   createStorefrontCategories,
   createStorefrontProducts,
@@ -195,6 +196,8 @@ const Dashboard = () => {
           </Link>
         </div>
       ) : null}
+
+      <ContactActions isArabic={language === 'ar'} />
 
       {isSearchOpen ? (
         <ProductSearch

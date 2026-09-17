@@ -8,6 +8,7 @@ import { textareaClassName } from '../components/ui/Input';
 import { cn } from '../components/ui/Button';
 import { buildWhatsAppLink, getAdminWhatsAppNumber } from '../utils/whatsapp';
 import { useLanguage } from '../context/LanguageContext';
+import ContactActions from '../components/contact/ContactActions';
 
 const ContactUs = () => {
   const { dir } = useLanguage();
@@ -22,15 +23,15 @@ const ContactUs = () => {
     if (isArabic) {
       return {
         eyebrow: 'الشكاوي والتواصل',
-        title: 'تواصل مع صاحب الموقع',
-        description: 'اختر نوع المشكلة، وسنجهز رسالة واضحة لصاحب الموقع عبر واتساب.',
+        title: 'التواصل مع الدعم',
+        description: 'اختر نوع المشكلة، وسنجهز رسالة واضحة للدعم عبر واتساب.',
         complaintLabel: 'اختر نوع الشكوى',
         messageLabel: 'الشكوى أو الرسالة',
         messagePlaceholder: 'اختر نوع الشكوى أو اكتب التفاصيل هنا',
         submit: 'إرسال',
-        helper: 'سيتم فتح واتساب برسالة موجهة لصاحب الموقع.',
+        helper: 'سيتم فتح واتساب برسالة موجهة للدعم.',
         previewTitle: 'معاينة الرسالة',
-        previewHint: 'سيظهر النص بهذا الشكل لصاحب الموقع داخل واتساب.',
+        previewHint: 'سيظهر النص بهذا الشكل للدعم داخل واتساب.',
         messageRequired: 'اختر نوع الشكوى أو اكتب الرسالة أولًا.',
         success: 'تم تجهيز الرسالة وفتح واتساب.',
       };
@@ -39,14 +40,14 @@ const ContactUs = () => {
     return {
       eyebrow: 'Contact us',
       title: 'Contact us quickly and clearly',
-      description: 'Choose the issue type, and we will prepare a clear WhatsApp message for the site owner.',
+      description: 'Choose the issue type, and we will prepare a clear WhatsApp message for support.',
       complaintLabel: 'Choose complaint type',
       messageLabel: 'Complaint or message',
       messagePlaceholder: 'Choose a complaint type or write the details here',
       submit: 'Send',
-      helper: 'WhatsApp will open with a message addressed to the site owner.',
+      helper: 'WhatsApp will open with a message addressed to support.',
       previewTitle: 'Message preview',
-      previewHint: 'This is how the text will appear to the site owner inside WhatsApp.',
+      previewHint: 'This is how the text will appear to support inside WhatsApp.',
       messageRequired: 'Message is required.',
       success: 'Your message is ready and WhatsApp has been opened.',
     };
@@ -58,54 +59,54 @@ const ContactUs = () => {
           {
             id: 'product-topup',
             label: 'شحن المنتج',
-            text: 'رسالة إلى صاحب الموقع\nنوع الشكوى: مشكلة في شحن المنتج\nتفاصيل المشكلة: لم يتم شحن المنتج أو يوجد تأخير في تنفيذ الطلب.\nرقم الطلب: \nاسم المنتج: ',
+            text: 'رسالة إلى الدعم\nنوع الشكوى: مشكلة في شحن المنتج\nتفاصيل المشكلة: لم يتم شحن المنتج أو يوجد تأخير في تنفيذ الطلب.\nرقم الطلب: \nاسم المنتج: ',
           },
           {
             id: 'wallet-balance',
             label: 'الرصيد',
-            text: 'رسالة إلى صاحب الموقع\nنوع الشكوى: مشكلة في الرصيد أو المحفظة\nتفاصيل المشكلة: يوجد خطأ في الرصيد أو لم يتم إضافة الشحن.\nالمبلغ: \nرقم عملية الدفع إن وجد: ',
+            text: 'رسالة إلى الدعم\nنوع الشكوى: مشكلة في الرصيد أو المحفظة\nتفاصيل المشكلة: يوجد خطأ في الرصيد أو لم يتم إضافة الشحن.\nالمبلغ: \nرقم عملية الدفع إن وجد: ',
           },
           {
             id: 'account',
             label: 'الحساب',
-            text: 'رسالة إلى صاحب الموقع\nنوع الشكوى: مشكلة في الحساب\nتفاصيل المشكلة: أواجه مشكلة في تسجيل الدخول أو بيانات الحساب.\nالبريد أو رقم الحساب: ',
+            text: 'رسالة إلى الدعم\nنوع الشكوى: مشكلة في الحساب\nتفاصيل المشكلة: أواجه مشكلة في تسجيل الدخول أو بيانات الحساب.\nالبريد أو رقم الحساب: ',
           },
           {
             id: 'order',
             label: 'الطلب',
-            text: 'رسالة إلى صاحب الموقع\nنوع الشكوى: مشكلة في الطلب\nتفاصيل المشكلة: أحتاج مراجعة حالة الطلب أو تعديل بياناته.\nرقم الطلب: ',
+            text: 'رسالة إلى الدعم\nنوع الشكوى: مشكلة في الطلب\nتفاصيل المشكلة: أحتاج مراجعة حالة الطلب أو تعديل بياناته.\nرقم الطلب: ',
           },
           {
             id: 'general',
             label: 'تواصل عام',
-            text: 'رسالة إلى صاحب الموقع\nنوع الرسالة: تواصل عام\nتفاصيل الرسالة: ',
+            text: 'رسالة إلى الدعم\nنوع الرسالة: تواصل عام\nتفاصيل الرسالة: ',
           },
         ]
       : [
           {
             id: 'product-topup',
             label: 'Product top-up',
-            text: 'Message to site owner\nComplaint type: Product top-up issue\nDetails: The product was not delivered or the order is delayed.\nOrder number: \nProduct name: ',
+            text: 'Message to support\nComplaint type: Product top-up issue\nDetails: The product was not delivered or the order is delayed.\nOrder number: \nProduct name: ',
           },
           {
             id: 'wallet-balance',
             label: 'Balance',
-            text: 'Message to site owner\nComplaint type: Wallet or balance issue\nDetails: There is a balance error or the top-up was not added.\nAmount: \nPayment reference if available: ',
+            text: 'Message to support\nComplaint type: Wallet or balance issue\nDetails: There is a balance error or the top-up was not added.\nAmount: \nPayment reference if available: ',
           },
           {
             id: 'account',
             label: 'Account',
-            text: 'Message to site owner\nComplaint type: Account issue\nDetails: I have a login or account information issue.\nEmail or account ID: ',
+            text: 'Message to support\nComplaint type: Account issue\nDetails: I have a login or account information issue.\nEmail or account ID: ',
           },
           {
             id: 'order',
             label: 'Order',
-            text: 'Message to site owner\nComplaint type: Order issue\nDetails: I need to review the order status or update its details.\nOrder number: ',
+            text: 'Message to support\nComplaint type: Order issue\nDetails: I need to review the order status or update its details.\nOrder number: ',
           },
           {
             id: 'general',
             label: 'General contact',
-            text: 'Message to site owner\nMessage type: General contact\nDetails: ',
+            text: 'Message to support\nMessage type: General contact\nDetails: ',
           },
         ]
   ), [isArabic]);
@@ -115,8 +116,8 @@ const ContactUs = () => {
 
     if (!trimmedMessage) {
       return isArabic
-        ? 'رسالة إلى صاحب الموقع\nنوع الشكوى: -\nتفاصيل المشكلة: -'
-        : 'Message to site owner\nComplaint type: -\nDetails: -';
+        ? 'رسالة إلى الدعم\nنوع الشكوى: -\nتفاصيل المشكلة: -'
+        : 'Message to support\nComplaint type: -\nDetails: -';
     }
 
     return trimmedMessage;
@@ -176,7 +177,7 @@ const ContactUs = () => {
             </div>
             <div className="rounded-[var(--radius-lg)] border border-[color:rgb(var(--color-primary-rgb)/0.2)] bg-[color:rgb(var(--color-primary-rgb)/0.08)] p-4 text-sm leading-6 text-[var(--color-text-secondary)]">
               <Sparkles className="mb-2 h-5 w-5 text-[var(--color-primary)]" />
-              {isArabic ? 'المعاينة تتحدث أثناء الكتابة قبل إرسالها لصاحب الموقع.' : 'The preview updates while you type before sending it to the site owner.'}
+              {isArabic ? 'المعاينة تتحدث أثناء الكتابة قبل إرسالها للدعم.' : 'The preview updates while you type before sending it to support.'}
             </div>
           </div>
         </motion.section>
@@ -187,7 +188,7 @@ const ContactUs = () => {
           transition={{ duration: 0.45, delay: 0.08 }}
           className="order-1 lg:order-2"
         >
-          <Card variant="premium" className="relative overflow-hidden border border-[color:rgb(var(--color-border-rgb)/0.78)] bg-[linear-gradient(180deg,rgb(var(--color-card-rgb)/0.98),rgb(var(--color-surface-rgb)/0.88))] p-5 shadow-[var(--shadow-medium)] sm:p-7">
+          <Card id="support-form" variant="premium" className="relative overflow-hidden border border-[color:rgb(var(--color-border-rgb)/0.78)] bg-[linear-gradient(180deg,rgb(var(--color-card-rgb)/0.98),rgb(var(--color-surface-rgb)/0.88))] p-5 shadow-[var(--shadow-medium)] sm:p-7">
             <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,var(--color-primary),var(--color-primary-hover),var(--color-success))]" />
             <form className="space-y-5" onSubmit={handleSubmit}>
               <div className="space-y-4">
@@ -275,6 +276,7 @@ const ContactUs = () => {
           </Card>
         </motion.section>
       </div>
+      <ContactActions isArabic={isArabic} supportHref="#support-form" className="mx-auto mt-4 max-w-6xl" />
     </div>
   );
 };

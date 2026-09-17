@@ -95,7 +95,6 @@ const getCopy = (language = 'ar') => (
         loading: 'Loading product...',
         fallbackStatus: 'Processing',
         usdEquivalent: 'USD equivalent',
-        platformRate: 'Platform rate',
         hagoId: 'Hago ID / VID',
         hagoIdPlaceholder: 'Enter Hago ID',
         determineHagoPrice: 'Check final price',
@@ -153,7 +152,6 @@ const getCopy = (language = 'ar') => (
         loading: 'جاري تحميل المنتج...',
         fallbackStatus: 'قيد التنفيذ',
         usdEquivalent: 'ما يعادله بالدولار',
-        platformRate: 'سعر تحويل المنصة',
         hagoId: 'معرف Hago / VID',
         hagoIdPlaceholder: 'أدخل معرف Hago',
         determineHagoPrice: 'تحقق من السعر النهائي',
@@ -315,7 +313,6 @@ const PurchasePriceSummary = ({
   quantity,
   total,
   totalUsd = '',
-  conversionRate = '',
   accountCurrencyCode = 'USD',
   copy,
 }) => {
@@ -344,12 +341,6 @@ const PurchasePriceSummary = ({
               </span>
             ) : null}
           </div>
-          {showUsdEquivalent ? (
-            <p className="purchase-dialog-price-summary__rate">
-              <span>{copy.platformRate}</span>
-              <strong dir="ltr">1 USD = {conversionRate}</strong>
-            </p>
-          ) : null}
           <div className="purchase-dialog-price-summary__rows">
           {rows.map((row) => {
             const RowIcon = row.icon;
@@ -631,11 +622,6 @@ const ProductPurchaseDialog = ({
   });
   const formattedPurchaseSummaryTotalPrice = formatPurchaseSummaryCurrency(totalPrice, userCurrencyCode, currencies);
   const formattedPurchaseSummaryTotalPriceUsd = formatPurchaseSummaryCurrency(totalPriceBase, 'USD', currencies);
-  const formattedPurchaseSummaryPlatformRate = formatPurchaseSummaryCurrency(
-    getCurrencyMeta(userCurrencyCode, currencies).rate,
-    userCurrencyCode,
-    currencies
-  );
   const balanceShortfall = normalizeMoneyAmount(Math.max(0, totalPrice - availableBalance));
   const formattedAvailableBalance = formatCurrencyAmount(availableBalance, userCurrencyCode, currencies, locale);
   const formattedBalanceShortfall = formatCurrencyAmount(balanceShortfall, userCurrencyCode, currencies, locale);
@@ -1594,7 +1580,6 @@ const ProductPurchaseDialog = ({
               quantity={quantityInput ? formatCount(safeQuantity) : '---'}
               total={formattedPurchaseSummaryTotalPrice}
               totalUsd={formattedPurchaseSummaryTotalPriceUsd}
-              conversionRate={formattedPurchaseSummaryPlatformRate}
               accountCurrencyCode={userCurrencyCode}
               copy={copy}
             />

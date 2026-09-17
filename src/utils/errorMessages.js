@@ -33,6 +33,18 @@ const COPY = {
     ar: 'راجع البيانات المطلوبة ثم حاول مرة أخرى.',
     en: 'Review the required details, then try again.',
   },
+  invalidCreditLimit: {
+    ar: 'حد الدين غير صالح. أدخل قيمة أكبر من أو تساوي صفرًا.',
+    en: 'The credit limit is invalid. Enter a value greater than or equal to zero.',
+  },
+  creditLimitCurrencyChanged: {
+    ar: 'تغيّرت عملة المستخدم أثناء الحفظ. حدّث البيانات ثم أعد المحاولة.',
+    en: 'The user currency changed while saving. Refresh the data and try again.',
+  },
+  creditLimitCompatibility: {
+    ar: 'تعذر حفظ حد الدين بهذه الدقة. راجع القيمة ثم أعد المحاولة.',
+    en: 'The credit limit cannot be saved safely at this precision. Review the value and try again.',
+  },
   invalidCredentials: {
     ar: 'بيانات الدخول غير صحيحة. راجع البريد الإلكتروني وكلمة المرور ثم حاول مرة أخرى.',
     en: 'The sign-in details are incorrect. Check your email and password, then try again.',
@@ -238,6 +250,18 @@ export const getReadableErrorMessage = (error, fallback, options = {}) => {
     'product_field_provider_unavailable',
   ])) {
     return pick('serviceUnavailable', language);
+  }
+
+  if (includesAny(code, ['invalid_credit_limit'])) {
+    return pick('invalidCreditLimit', language);
+  }
+
+  if (includesAny(code, ['exact_ledger_currency_changed'])) {
+    return pick('creditLimitCurrencyChanged', language);
+  }
+
+  if (includesAny(code, ['exact_ledger_compatibility_unrepresentable'])) {
+    return pick('creditLimitCompatibility', language);
   }
 
   if (includesAny(code, [
