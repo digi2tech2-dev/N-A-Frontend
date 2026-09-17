@@ -2254,6 +2254,17 @@ const realApi = {
     },
   },
 
+  favorites: {
+    list: async () => {
+      const res = await http.get('/users/me/favorites');
+      const data = unwrap(res);
+      const products = Array.isArray(data) ? data : (data?.products || []);
+      return products.map(normaliseProduct).filter(Boolean);
+    },
+    add: async (productId) => unwrap(await http.post(`/users/me/favorites/${encodeURIComponent(productId)}`)),
+    remove: async (productId) => unwrap(await http.delete(`/users/me/favorites/${encodeURIComponent(productId)}`)),
+  },
+
   // ── Products ─────────────────────────────────────────────────────────────
   products: {
     /**

@@ -2,6 +2,7 @@ import React from 'react';
 import { cn } from '../ui/Button';
 import UnavailableLockOverlay from './UnavailableLockOverlay';
 import { resolveImageUrl } from '../../utils/imageUrl';
+import FavoriteButton from './FavoriteButton';
 
 const ProductCardSimple = React.memo(({
   product,
@@ -20,22 +21,30 @@ const ProductCardSimple = React.memo(({
   const displayName = arabicName;
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={isUnavailable ? -1 : 0}
       onClick={() => {
         if (!isUnavailable) onOpen?.(product);
       }}
-      disabled={isUnavailable}
+      onKeyDown={(event) => {
+        if (!isUnavailable && (event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault();
+          onOpen?.(product);
+        }
+      }}
       className={cn(
         'storefront-product-card group relative isolate flex w-full origin-center select-none flex-col rounded-[1.25rem] p-2 text-start transition-all duration-200 ease-out hover:-translate-y-0.5',
         isUnavailable && 'cursor-not-allowed hover:translate-y-0'
       )}
       aria-label={displayName}
+      aria-disabled={isUnavailable}
     >
       {isUnavailable ? (
         <span className="pointer-events-none absolute inset-0 z-10 rounded-[1.25rem] bg-[linear-gradient(180deg,rgb(255_255_255/0.14),rgb(244_114_208/0.08))] dark:bg-[linear-gradient(180deg,rgb(255_255_255/0.06),rgb(124_58_237/0.08))]" aria-hidden="true" />
       ) : null}
       <div className="storefront-product-media relative overflow-hidden rounded-[1rem]">
+        <FavoriteButton product={product} />
         {resolvedImageSrc ? (
           <img
             src={resolvedImageSrc}
@@ -76,7 +85,7 @@ const ProductCardSimple = React.memo(({
           </p>
         ) : null}
       </div>
-    </button>
+    </div>
   );
 });
 

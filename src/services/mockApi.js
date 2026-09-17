@@ -935,6 +935,40 @@ const mockApi = {
     },
   },
 
+  favorites: {
+    list: async () => {
+      await new Promise(resolve => setTimeout(resolve, Math.min(DELAY, 200)));
+      const authDb = getDB(AUTH_STORAGE_KEY, { state: { user: null } });
+      const userId = String(authDb?.state?.user?.id || '');
+      const db = getDB('favorites-storage', { state: { byUserId: {} } });
+      const ids = new Set((db.state.byUserId?.[userId] || []).map(String));
+      return mockProducts.filter((product) => ids.has(String(product.id || product._id)));
+    },
+    add: async (productId) => {
+      const authDb = getDB(AUTH_STORAGE_KEY, { state: { user: null } });
+      const userId = String(authDb?.state?.user?.id || '');
+      const id = String(productId || '');
+      if (!userId || !mockProducts.some((product) => String(product.id || product._id) === id)) throw new Error('Product not found');
+      const db = getDB('favorites-storage', { state: { byUserId: {} } });
+      const ids = new Set((db.state.byUserId?.[userId] || []).map(String));
+      ids.add(id);
+      db.state.byUserId = { ...(db.state.byUserId || {}), [userId]: [...ids] };
+      saveDB('favorites-storage', db);
+      return { productId: id };
+    },
+    remove: async (productId) => {
+      const authDb = getDB(AUTH_STORAGE_KEY, { state: { user: null } });
+      const userId = String(authDb?.state?.user?.id || '');
+      const id = String(productId || '');
+      const db = getDB('favorites-storage', { state: { byUserId: {} } });
+      const ids = new Set((db.state.byUserId?.[userId] || []).map(String));
+      ids.delete(id);
+      db.state.byUserId = { ...(db.state.byUserId || {}), [userId]: [...ids] };
+      saveDB('favorites-storage', db);
+      return { productId: id };
+    },
+  },
+
   notifications: {
     unreadCount: async () => {
       await new Promise(resolve => setTimeout(resolve, Math.min(DELAY, 200)));

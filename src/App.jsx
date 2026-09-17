@@ -41,6 +41,7 @@ const AccountRejected = lazy(routeLoaders.AccountRejected);
 const AccountVerificationRequired = lazy(routeLoaders.AccountVerificationRequired);
 const EmailVerified = lazy(routeLoaders.EmailVerified);
 const Dashboard = lazy(routeLoaders.Dashboard);
+const Favorites = lazy(routeLoaders.Favorites);
 const AdminDashboard = lazy(routeLoaders.AdminDashboard);
 const Orders = lazy(routeLoaders.Orders);
 const Products = lazy(routeLoaders.Products);
@@ -165,6 +166,14 @@ const AnimatedAppRoutes = ({ location }) => {
           element={(
             <ProtectedRoute roles={['customer', 'admin', ...SUPERVISOR_ROLES]}>
               {renderSuspended(<Orders />)}
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/favorites"
+          element={(
+            <ProtectedRoute roles={['customer']}>
+              {renderSuspended(<Favorites />)}
             </ProtectedRoute>
           )}
         />

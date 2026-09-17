@@ -14,6 +14,7 @@ let systemStorePromise = null;
 const loadMediaStore = () => import('../../store/useMediaStore').then((module) => module.default);
 const loadGroupStore = () => import('../../store/useGroupStore').then((module) => module.default);
 const loadAdminStore = () => import('../../store/useAdminStore').then((module) => module.default);
+const loadFavoritesStore = () => import('../../store/useFavoritesStore').then((module) => module.default);
 
 const loadSystemStore = () => {
   if (!systemStorePromise) {
@@ -142,6 +143,16 @@ const SessionBootstrap = () => {
       cancelled = true;
       clearIdleTask(idleHandle);
     };
+  }, [isAuthenticated, token, userId, userRole]);
+
+  useEffect(() => {
+    void loadFavoritesStore().then((store) => {
+      if (!isAuthenticated || !token || !userId || userRole !== 'customer') {
+        store.getState().resetFavorites?.();
+        return;
+      }
+      void runSilently(() => store.getState().loadFavorites?.({ userId }));
+    });
   }, [isAuthenticated, token, userId, userRole]);
 
   useEffect(() => {

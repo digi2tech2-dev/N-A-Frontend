@@ -548,6 +548,12 @@ const useAuthStore = create((set, get) => ({
           void apiClient.notifications.unregisterDevice({ token: pushToken, authToken }).catch(() => {});
         }
         profileRefreshRequest = null;
+        try {
+          const useFavoritesStore = (await import('./useFavoritesStore')).default;
+          useFavoritesStore.getState().resetFavorites?.();
+        } catch {
+          // Favorites are optional UI state and must not block logout.
+        }
         set({
           user: null,
           token: null,

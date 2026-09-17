@@ -12,6 +12,7 @@ import {
   Copy,
   CreditCard,
   Headset,
+  Heart,
   FolderKanban,
   Gauge,
   House,
@@ -191,6 +192,7 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
     { icon: IdCard, label: t('sidebar.myAccount', { defaultValue: dir === 'rtl' ? 'حسابي' : 'My Account' }), path: '/account', roles: ['admin', 'customer', ...SUPERVISOR_ROLES] },
     { icon: LockKeyhole, label: t('sidebar.accountProtection', { defaultValue: dir === 'rtl' ? 'حماية الحساب' : 'Account Security' }), path: '/account-security', roles: ['admin', 'customer', ...SUPERVISOR_ROLES] },
     { icon: Share2, label: dir === 'rtl' ? 'رابط الإحالة اكسب واسحب' : 'Referral Link — Earn & Withdraw', path: '/referral', roles: ['customer'] },
+    { icon: Heart, label: dir === 'rtl' ? 'المفضلة' : 'Favorites', path: '/favorites', roles: ['customer'] },
     {
       icon: ShoppingCart,
       label: t('sidebar.myOrders', { defaultValue: dir === 'rtl' ? 'طلباتي' : 'My Orders' }),
@@ -532,4 +534,3 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
 };
 
 export default Sidebar;
-
