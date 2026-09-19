@@ -30,6 +30,7 @@ const defaultForm = {
   supplierName: '',
   supplierCode: '',
   supplierType: 'api',
+  adapterType: '',
   baseUrl: '',
   authType: 'none',
   apiKey: '',
@@ -883,6 +884,13 @@ const AdminSuppliers = () => {
               <option value="manual">يدوي</option>
               <option value="hybrid">مختلط</option>
             </select>
+            <label className="space-y-1">
+              <span className="text-xs text-[var(--color-text-muted)]">نوع التكامل</span>
+              <select className={glowSelectClass} value={form.adapterType || ''} onChange={(event) => setForm({ ...form, adapterType: event.target.value })}>
+                <option value="">التكامل الافتراضي</option>
+                <option value="canonical-b2b">Canonical B2B</option>
+              </select>
+            </label>
             <select className={glowSelectClass} value={form.authType} onChange={(event) => setForm({ ...form, authType: event.target.value })}>
               <option value="none">بدون توثيق</option>
               <option value="api_key">مفتاح API</option>

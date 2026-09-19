@@ -1036,6 +1036,7 @@ const normaliseProvider = (p) => {
     // Name & code
     supplierName: p.name || p.supplierName || '',
     supplierCode: p.slug || p.supplierCode || '',
+    adapterType: p.adapterType || '',
     name: p.name || p.supplierName || '',
     // API config
     baseUrl: p.baseUrl || '',
@@ -1085,6 +1086,8 @@ const providerToBE = (fe) => {
   // Slug
   const slug = trimValue(fe.supplierCode || fe.slug);
   if (slug !== undefined) body.slug = slug;
+
+  if (fe.adapterType !== undefined) body.adapterType = trimValue(fe.adapterType) || null;
 
   // Base URL
   if (fe.baseUrl !== undefined) body.baseUrl = trimValue(fe.baseUrl);
@@ -2406,7 +2409,13 @@ const realApi = {
         params: { limit },
       });
       const data = unwrap(res);
-      const items = Array.isArray(data) ? data : (data?.providerProducts || []);
+      const items = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.providerProducts)
+          ? data.providerProducts
+          : Array.isArray(data?.products)
+            ? data.products
+            : [];
       return items.map((pp) => ({
         ...pp,
         id: pp._id || pp.id,
